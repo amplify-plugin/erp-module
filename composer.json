@@ -1,0 +1,32 @@
+{
+    "name": "amplify/erp",
+    "description": "This is a ERP API module for amplify",
+    "type": "library",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Hafijul Islam",
+            "email": "hafijul.islam@easyask.com",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "ext-gd": "*",
+        "amplify/sayt" : "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Amplify\\ErpApi\\": "./"
+        },
+        "files": [
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Amplify\\ErpApi\\ErpApiServiceProvider"
+            ]
+        }
+    }
+}
