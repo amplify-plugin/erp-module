@@ -31,7 +31,7 @@ use Amplify\ErpApi\Wrappers\Order;
 use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\TrackShipment;
 use Amplify\ErpApi\Wrappers\Warehouse;
-use App\Models\Shipping;
+use Amplify\System\Backend\Models\Shipping;
 use Exception;
 use Illuminate\Support\Facades\Http;
 

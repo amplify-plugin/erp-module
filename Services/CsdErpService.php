@@ -38,8 +38,8 @@ use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TermsType;
-use App\Models\Shipping;
-use App\Models\SystemConfiguration;
+use Amplify\System\Backend\Models\Shipping;
+use Amplify\System\Backend\Models\SystemConfiguration;
 use Carbon\CarbonImmutable;
 use Exception;
 use Illuminate\Support\Facades\Cache;
@@ -654,7 +654,7 @@ class CsdErpService implements ErpApiInterface
     public function getWarehouses(array $filters = []): WarehouseCollection
     {
         try {
-            $warehouseCollection = \App\Models\Warehouse::where($filters)->get();
+            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
 
             $warehouses = $warehouseCollection->toArray();
 
@@ -1443,7 +1443,7 @@ class CsdErpService implements ErpApiInterface
                 'checkNumber' => 0,
                 'recordLimit' => $record_limit,
             ], $includePeriods);
-            
+
             $response = $this->post('/sxapiargetinvoicelistv3', $payload);
 
             return $this->adapter->getInvoiceList($response);

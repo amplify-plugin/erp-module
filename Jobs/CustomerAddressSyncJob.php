@@ -3,7 +3,7 @@
 namespace Amplify\ErpApi\Jobs;
 
 use Amplify\ErpApi\Facades\ErpApi;
-use App\Models\CustomerAddress;
+use Amplify\System\Backend\Models\CustomerAddress;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

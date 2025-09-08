@@ -3,7 +3,7 @@
 namespace Amplify\ErpApi\Jobs;
 
 use Amplify\ErpApi\Facades\ErpApi;
-use App\Models\Contact;
+use Amplify\System\Backend\Models\Contact;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

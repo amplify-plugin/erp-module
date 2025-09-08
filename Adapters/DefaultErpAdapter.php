@@ -44,7 +44,7 @@ use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingOption;
 use Amplify\ErpApi\Wrappers\TrackShipment;
 use Amplify\ErpApi\Wrappers\Warehouse;
-use App\Models\ProductAvailability;
+use Amplify\System\Backend\Models\ProductAvailability;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 

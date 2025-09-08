@@ -37,8 +37,8 @@ use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TrackShipment;
+use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\CustomItem\Services\Exceptions\DefaultRhsException;
-use App\Models\Shipping;
 use Exception;
 use Illuminate\Support\Facades\Http;
 
@@ -446,7 +446,7 @@ class FactsErpService implements ErpApiInterface
     public function getWarehouses(array $filters = []): WarehouseCollection
     {
         try {
-            $warehouseCollection = \App\Models\Warehouse::where($filters)->get();
+            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
 
             $jsonWarehouses = json_encode($warehouseCollection);
 
@@ -1035,8 +1035,8 @@ class FactsErpService implements ErpApiInterface
             $contact_email = $orderInfo['email_address'] ?? null;
             $customer_number = $orderInfo['customer_number'] ?? $this->getCustomerDetail()->CustomerNumber;
 
-            $customer = \App\Models\Customer::whereCustomerCode($customer_number)->first();
-            $contact = \App\Models\Contact::whereEmail($contact_email)->first();
+            $customer = \Amplify\System\Backend\Models\Customer::whereCustomerCode($customer_number)->first();
+            $contact = \Amplify\System\Backend\Models\Contact::whereEmail($contact_email)->first();
 
             if (! $customer->is_assignable) {
                 throw new \Exception('This customer does not have Assignable option enabled.');

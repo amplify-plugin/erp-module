@@ -36,7 +36,7 @@ use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TrackShipment;
-use App\Models\Shipping;
+use Amplify\System\Backend\Models\Shipping;
 use Exception;
 use Illuminate\Support\Facades\Http;
 
@@ -526,7 +526,7 @@ class FactsErp77Service implements ErpApiInterface
     {
 
         try {
-            $warehouseCollection = \App\Models\Warehouse::where($filters)->get();
+            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
 
             $jsonWarehouses = json_encode($warehouseCollection);
 

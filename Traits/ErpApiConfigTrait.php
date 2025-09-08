@@ -7,7 +7,7 @@ use Amplify\ErpApi\Adapters\CsdErpAdapter;
 use Amplify\ErpApi\Adapters\DefaultErpAdapter;
 use Amplify\ErpApi\Adapters\FactsErp77Adapter;
 use Amplify\ErpApi\Adapters\FactsErpAdapter;
-use App\Models\Customer;
+use Amplify\System\Backend\Models\Customer;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 

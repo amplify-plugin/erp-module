@@ -2,7 +2,7 @@
 
 namespace Amplify\ErpApi\Interfaces;
 
-use App\Models\ProductSync;
+use Amplify\System\Backend\Models\ProductSync;
 
 interface ProductSyncInterface
 {

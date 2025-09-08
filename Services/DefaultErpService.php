@@ -35,14 +35,14 @@ use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
-use App\Models\CustomerAddress;
-use App\Models\CustomerOrder;
-use App\Models\CustomerOrderNote;
-use App\Models\Product;
-use App\Models\ProductAvailability;
-use App\Models\ProductSync;
-use App\Models\Shipping;
-use App\Models\Warehouse;
+use Amplify\System\Backend\Models\CustomerAddress;
+use Amplify\System\Backend\Models\CustomerOrder;
+use Amplify\System\Backend\Models\CustomerOrderNote;
+use Amplify\System\Backend\Models\Product;
+use Amplify\System\Backend\Models\ProductAvailability;
+use Amplify\System\Backend\Models\ProductSync;
+use Amplify\System\Backend\Models\Shipping;
+use Amplify\System\Backend\Models\Warehouse;
 use Exception;
 
 class DefaultErpService implements ErpApiInterface
@@ -70,7 +70,7 @@ class DefaultErpService implements ErpApiInterface
      */
     public function getCustomerList(array $filters = []): CustomerCollection
     {
-        return $this->adapter->getCustomerList(\App\Models\Customer::all()->toArray());
+        return $this->adapter->getCustomerList(\Amplify\System\Backend\Models\Customer::all()->toArray());
     }
 
     /**
@@ -80,7 +80,7 @@ class DefaultErpService implements ErpApiInterface
     {
         $customer_number = $filters['customer_number'] ?? $this->customerId();
 
-        $customer = \App\Models\Customer::where($this->config['customer_id_field'], $customer_number)
+        $customer = \Amplify\System\Backend\Models\Customer::where($this->config['customer_id_field'], $customer_number)
             ->with('warehouse')
             ->first();
 
@@ -383,7 +383,7 @@ class DefaultErpService implements ErpApiInterface
      */
     public function getInvoiceList(array $filters = []): InvoiceCollection
     {
-        $invoices = \App\Models\Invoice::where('customer_id', $this->customerId())
+        $invoices = \Amplify\System\Backend\Models\Invoice::where('customer_id', $this->customerId())
             ->when(! empty($filters['invoice_status']), function ($query) use ($filters) {
                 $query->where('invoice_status', $filters['invoice_status']);
             })
@@ -407,7 +407,7 @@ class DefaultErpService implements ErpApiInterface
         $invoice = [];
         if (array_key_exists('invoice_number', $filters)) {
 
-            $invoice = \App\Models\Invoice::where('invoice_number', $filters['invoice_number'])->with(['order'])->first();
+            $invoice = \Amplify\System\Backend\Models\Invoice::where('invoice_number', $filters['invoice_number'])->with(['order'])->first();
             $order = $invoice->order;
             $invoice = $invoice ? $invoice->toArray() : [];
             $invoice['order'] = $order;
@@ -578,8 +578,8 @@ class DefaultErpService implements ErpApiInterface
             $contact_email = $inputs['email_address'] ?? null;
             $customer_number = $inputs['customer_number'] ?? $this->getCustomerDetail()->CustomerNumber;
 
-            $customer = \App\Models\Customer::whereCustomerCode($customer_number)->first();
-            $contact = \App\Models\Contact::whereEmail($contact_email)->first();
+            $customer = \Amplify\System\Backend\Models\Customer::whereCustomerCode($customer_number)->first();
+            $contact = \Amplify\System\Backend\Models\Contact::whereEmail($contact_email)->first();
 
             if (! $customer->is_assignable) {
                 throw new \Exception('This customer does not have Assignable option enabled.');

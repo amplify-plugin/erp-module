@@ -2,8 +2,8 @@
 
 namespace Amplify\ErpApi\Commands;
 
+use Amplify\System\Backend\Models\Event;
 use Amplify\System\Factories\NotificationFactory;
-use App\Models\Event;
 use Exception;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Command\Command as CommandAlias;

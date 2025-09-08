@@ -4,9 +4,9 @@ namespace Amplify\ErpApi\Jobs;
 
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
-use App\Models\Customer;
-use App\Models\CustomerAddress;
-use App\Models\Warehouse;
+use Amplify\System\Backend\Models\Customer;
+use Amplify\System\Backend\Models\CustomerAddress;
+use Amplify\System\Backend\Models\Warehouse;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

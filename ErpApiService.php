@@ -2,9 +2,8 @@
 
 namespace Amplify\ErpApi;
 
-use Amplify\ErpApi\Collections\OrderNoteCollection;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
-use App\Models\ProductSync;
+use Amplify\System\Backend\Models\ProductSync;
 
 class ErpApiService
 {
