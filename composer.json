@@ -20,6 +20,7 @@
             "Amplify\\ErpApi\\": "./"
         },
         "files": [
+            "helpers.php"
         ]
     },
     "extra": {
