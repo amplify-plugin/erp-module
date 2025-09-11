@@ -688,7 +688,7 @@ class CsdErpService implements ErpApiInterface
 
     private function handleOrderSubmission(array $orderInfo = [])
     {
-        if (config('amplify.basic.client_code') === 'STV') {
+        if (config('amplify.client_code') === 'STV') {
             return $this->createOrderSteven($orderInfo);
         }
 
@@ -1188,7 +1188,7 @@ class CsdErpService implements ErpApiInterface
             $totalOrderValue = $response['tOrdtotdata']['t-ordtotdata'][0]['totordamt'] ?? 0.00;
 
             if (config('amplify.erp.use_amplify_shipping')) {
-                if (config('amplify.basic.client_code') === 'STV') {
+                if (config('amplify.client_code') === 'STV') {
                     $this->setShippingInfo([
                         'country_code' => $orderInfo['ship_to_country_code'],
                         'ship_via' => $orderInfo['shipping_method'],

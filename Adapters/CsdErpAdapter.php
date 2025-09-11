@@ -1633,7 +1633,7 @@ class CsdErpAdapter implements ErpApiInterface
 
     private function getPODetails(array $inputs = [])
     {
-        if (! in_array(config('amplify.basic.client_code'), ['NUX', 'DKL']) || empty($inputs['poNumber'])) {
+        if (! in_array(config('amplify.client_code'), ['NUX', 'DKL']) || empty($inputs['poNumber'])) {
             return [];
         }
 

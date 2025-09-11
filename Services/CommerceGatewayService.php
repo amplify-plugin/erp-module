@@ -992,7 +992,7 @@ class CommerceGatewayService implements ErpApiInterface
                 $response = $this->getOrderTotalUsingBackend($payload);
             } else {
 
-                $url = match (config('amplify.basic.client_code')) {
+                $url = match (config('amplify.client_code')) {
                     'ACT', 'MW' => 'createOrder',
                     default => 'getOrderTotal',
                 };

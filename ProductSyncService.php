@@ -139,7 +139,7 @@ class ProductSyncService
 
     private function getProductDescription(ProductSyncModel $productSync): string
     {
-        if (config('amplify.basic.client_code') === 'RHS') {
+        if (config('amplify.client_code') === 'RHS') {
             return $productSync->rhs_parts_note ?? '';
         }
 

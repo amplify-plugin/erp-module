@@ -59,7 +59,7 @@ trait BackendShippingCostTrait
             'FreightRate' => [],
         ];
 
-        $this->clientCode = strtoupper(config('amplify.basic.client_code'));
+        $this->clientCode = strtoupper(config('amplify.client_code'));
         $freightMeta = [
             'frttermscd' => '',
             'carrierid' => '',

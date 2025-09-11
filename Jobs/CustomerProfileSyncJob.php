@@ -36,7 +36,7 @@ class CustomerProfileSyncJob implements ShouldQueue
      */
     public function handle()
     {
-        if (config('amplify.basic.client_code') != 'ACP') {
+        if (config('amplify.client_code') != 'ACP') {
             $this->syncCustomerInfo();
             $this->syncShippingAddress();
             // set last synced datetime
