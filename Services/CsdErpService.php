@@ -562,7 +562,7 @@ class CsdErpService implements ErpApiInterface
                         'seqno' => $count++,
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
-                        'unit' => 'ea',
+                        'unit' => isset($item['uom']) ? $item['uom'] : 'ea',
                         'prod' => $item['item'],
                     ];
                 }
