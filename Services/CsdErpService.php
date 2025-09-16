@@ -953,7 +953,7 @@ class CsdErpService implements ErpApiInterface
                         'webtransactiontype' => 'LSF',
                         'ordertype' => $order['order_type'],
                         'ponumber' => $order['po_number'],
-                        'revieworderhold' => 'E',
+                        'revieworderhold' => 'V',
                     ],
                 ],
             ],
