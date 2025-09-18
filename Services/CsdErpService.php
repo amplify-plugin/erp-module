@@ -586,8 +586,6 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapioepricingmultiplev5', $payload);
 
-            logger()->debug('Message', $response);
-
             return $this->adapter->getProductPriceAvailability($response);
 
         } catch (Exception $exception) {

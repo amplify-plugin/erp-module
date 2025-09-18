@@ -716,6 +716,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->Price = ! empty($attributes['price']) ? (float) str_replace([',', '$'], '', $attributes['price']) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
+            $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
             $model->QtyPrice_1 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent1'] ?? 0);
             $model->QtyBreak_1 = $attributes['quantitybreak1'] ?? null;
             $model->QtyPrice_2 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent2'] ?? 0);
