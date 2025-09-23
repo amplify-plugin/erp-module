@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 
 class ContactProfileSyncJob implements ShouldQueue
 {
@@ -41,7 +42,7 @@ class ContactProfileSyncJob implements ShouldQueue
         $erpContactCollection = ErpApi::getContactList(['customer_number' => $customer_number, 'name' => $this->contact->name]);
 
         if ($erpContactCollection->isNotEmpty()) {
-            if ($erpContactData = $erpContactCollection->firstWhere('ContactEmail', $this->contact->email)) {
+            if ($erpContactData = $erpContactCollection->firstWhere('ContactEmail', Str::lower($this->contact->email))) {
                 $this->contact->update(['contact_code' => $erpContactData->ContactNumber, 'synced_at' => now()]);
                 return;
             }

@@ -54,6 +54,7 @@ use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\InvoiceTransactionCollection;
 use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class CsdErpAdapter implements ErpApiInterface
 {
@@ -1547,7 +1548,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->AccountTitleCode = $attributes['contacttype'] ?? null;
             $model->AccountTitleDesc = $attributes['contacttypedesc'] ?? null;
             $model->ContactPhone = $attributes['phoneno'] ?? $attributes['firstphoneno'] ?? null;
-            $model->ContactEmail = $attributes['emailaddr'] ?? $attributes['firstemailaddr'] ?? null;
+            $model->ContactEmail = Str::lower($attributes['emailaddr'] ?? $attributes['firstemailaddr'] ?? '');
             $model->ContactAddress1 = $attributes['addr1'] ?? null;
             $model->ContactAddress2 = $attributes['addr2'] ?? null;
             $model->ContactCity = $attributes['city'] ?? null;
