@@ -43,7 +43,6 @@ class ContactProfileSyncJob implements ShouldQueue
         if ($erpContactCollection->isNotEmpty()) {
             if ($erpContactData = $erpContactCollection->firstWhere('ContactEmail', $this->contact->email)) {
                 $this->contact->update(['contact_code' => $erpContactData->ContactNumber, 'synced_at' => now()]);
-
                 return;
             }
         }
