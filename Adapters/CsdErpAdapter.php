@@ -257,17 +257,14 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $collection = new ProductPriceAvailabilityCollection;
 
-        $data = $filters['tOemultprcoutV3']['t-oemultprcoutV3'] ?? [];
-
-        $attributes = collect($filters['tOemultprcoutbrk']['t-oemultprcoutbrk'] ?? []);
+        $tOemultprcoutV3 = collect($filters['tOemultprcoutV3']['t-oemultprcoutV3'] ?? [])->groupBy('seqno')->toArray();
+        $tOemultprcoutbrk = collect($filters['tOemultprcoutbrk']['t-oemultprcoutbrk'] ?? [])->groupBy('seqno')->toArray();
+        $tOutfieldvalue = collect($filters['tOutfieldvalue']['t-outfieldvalue'] ?? [])->groupBy('seqno')->toArray();
 
         $items = [];
 
-        foreach ($data as $item) {
-
-            $temp = $attributes->firstWhere('seqno', $item['seqno']);
-
-            $items[] = $item + ($temp ?? []);
+        foreach ($tOemultprcoutV3 as $seqno => $entry) {
+            $items[$seqno] = array_merge(array_shift($entry), array_shift($tOemultprcoutbrk[$seqno]), $this->mapFieldAttributes($tOutfieldvalue[$seqno]));
         }
 
         foreach ($items as $item) {
@@ -718,23 +715,23 @@ class CsdErpAdapter implements ErpApiInterface
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
             $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
-            $model->QtyPrice_1 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent1'] ?? 0);
+            $model->QtyPrice_1 = $attributes['Price_1'] ?? null;
             $model->QtyBreak_1 = $attributes['quantitybreak1'] ?? null;
-            $model->QtyPrice_2 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent2'] ?? 0);
+            $model->QtyPrice_2 = $attributes['Price_2'] ?? null;
             $model->QtyBreak_2 = $attributes['quantitybreak2'] ?? null;
-            $model->QtyPrice_3 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent3'] ?? 0);
+            $model->QtyPrice_3 = $attributes['Price_3'] ?? null;
             $model->QtyBreak_3 = $attributes['quantitybreak3'] ?? null;
-            $model->QtyPrice_4 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent4'] ?? 0);
+            $model->QtyPrice_4 = $attributes['Price_4'] ?? null;
             $model->QtyBreak_4 = $attributes['quantitybreak4'] ?? null;
-            $model->QtyPrice_5 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent5'] ?? 0);
+            $model->QtyPrice_5 = $attributes['Price_5'] ?? null;
             $model->QtyBreak_5 = $attributes['quantitybreak5'] ?? null;
-            $model->QtyPrice_6 = $this->calculateDiscountedPrice($model->Price, $attributes['discountpercent6'] ?? 0);
+            $model->QtyPrice_6 = $attributes['Price_6'] ?? null;
             $model->QtyBreak_6 = $attributes['quantitybreak6'] ?? null;
             $model->ExtendedPrice = $attributes['extamt'] ?? null;
             $model->OrderPrice = $attributes['OrderPrice'] ?? null;
-            $model->UnitOfMeasure = strtoupper($attributes['unit'] ?? null);
+            $model->UnitOfMeasure = $attributes['unit'] ?? null;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['price'] ?? null));
-            $model->DefaultSellingUnitOfMeasure = strtoupper($attributes['unit'] ?? null);
+            $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
             $model->AverageLeadTime = $attributes['AverageLeadTime'] ?? null;
             $model->QuantityAvailable = $attributes['netavail'] ?? null;
             $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
@@ -745,26 +742,6 @@ class CsdErpAdapter implements ErpApiInterface
         }
 
         return $model;
-    }
-
-    private function calculateDiscountedPrice($price, $discountAmount, string $type = '%')
-    {
-        if (! is_numeric($price)) {
-            return null;
-        }
-
-        if (! is_numeric($discountAmount)) {
-            return $price;
-        }
-
-        $price = (float) str_replace([',', '$'], '', $price);
-        $discountAmount = (float) str_replace([',', '$'], '', $discountAmount);
-
-        return round(match ($type) {
-            '%' => ((100 - $discountAmount) / 100) * $price,
-            default => $price - $discountAmount,
-        }, 2);
-
     }
 
     private function getPriceBasedOnQtyBreak(ProductPriceAvailability $model, float $orderedQty): float

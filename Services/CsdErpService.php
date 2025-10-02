@@ -556,10 +556,10 @@ class CsdErpService implements ErpApiInterface
 
             $count = 1;
 
-            foreach ($items as $index => $item) {
-                foreach ($warehouses as $warehouse) {
+            foreach ($items as $itemIndex => $item) {
+                foreach ($warehouses as $warehouseIndex => $warehouse) {
                     $proddataprcavail[] = [
-                        'seqno' => $count++,
+                        'seqno' => (900+$itemIndex).(600+$warehouseIndex),
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
                         'unit' => isset($item['uom']) ? $item['uom'] : 'ea',
