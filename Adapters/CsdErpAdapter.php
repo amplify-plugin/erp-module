@@ -264,7 +264,11 @@ class CsdErpAdapter implements ErpApiInterface
         $items = [];
 
         foreach ($tOemultprcoutV3 as $seqno => $entry) {
-            $items[$seqno] = array_merge(array_shift($entry), array_shift($tOemultprcoutbrk[$seqno]), $this->mapFieldAttributes($tOutfieldvalue[$seqno]));
+            $items[$seqno] = array_merge(
+                array_shift($entry),
+                empty($tOemultprcoutbrk[$seqno]) ? [] : array_shift($tOemultprcoutbrk[$seqno]),
+                empty($tOutfieldvalue[$seqno]) ? [] : $this->mapFieldAttributes($tOutfieldvalue[$seqno])
+            );
         }
 
         foreach ($items as $item) {
