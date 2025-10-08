@@ -16,6 +16,7 @@ use Amplify\ErpApi\Collections\ProductSyncCollection;
 use Amplify\ErpApi\Collections\QuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\ShippingOptionCollection;
+use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\ErpApiService;
 use Amplify\ErpApi\Exceptions\FactsErpException;
@@ -1172,7 +1173,7 @@ class FactsErpService implements ErpApiInterface
      *
      * @throws FactsErpException
      */
-    public function getTrackShipment(array $inputs = []): TrackShipment
+    public function getTrackShipment(array $inputs = []): TrackShipmentCollection
     {
         try {
 
