@@ -242,6 +242,7 @@ class CsdErpService implements ErpApiInterface
             $fields['lookupnm'] = substr($attributes['customer_name'] ?? '', 0, 15);
             $fields['selltype'] = 'Y';
             $fields['taxablety'] = 'Y';
+            $fields['pricecd'] = '1';
 
             $tMnTt = [];
 
