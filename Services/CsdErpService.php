@@ -813,7 +813,7 @@ class CsdErpService implements ErpApiInterface
         $order = $orderInfo['order'] ?? [];
         $items = $orderInfo['items'] ?? [];
         $customer_number = $this->customerId($orderInfo);
-        $contact_code = customer(true)->contact_code;
+        $contact_code = $order['contact_code'] ?? null;
 
         $orderLine = array_map(function ($item) {
             return [
