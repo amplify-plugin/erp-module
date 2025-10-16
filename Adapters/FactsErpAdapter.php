@@ -261,7 +261,7 @@ class FactsErpAdapter implements ErpApiInterface
         $model->SalesTaxAmount = $attributes['SalesTaxAmount'] ? (float) filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightAmount = $attributes['FreightAmount'] ? (float) filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightRate = $attributes['FreightRate'] ?? [];
-        $model->HazMatCharge = $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
+        $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
 
         return $model;
     }
@@ -736,8 +736,8 @@ class FactsErpAdapter implements ErpApiInterface
             $model->PdfAvailable = $attributes['PdfAvailable'] ?? 'No';
             $model->SignedType = $attributes['SignedType'] ?? null;
             $model->SignedDoc = $attributes['SignedDoc'] ?? null;
-            $model->FreightAmount = floatval($attributes['FreightAmount']) ?? null;
-            $model->HazMatCharge = floatval($attributes['HazMatCharge']) ?? null;
+            $model->FreightAmount = floatval($attributes['FreightAmount'] ?? 0);
+            $model->HazMatCharge = floatval($attributes['HazMatCharge'] ?? 0);
             $model->OrderDetail = new OrderDetailCollection;
             $model->OrderNotes = new OrderNoteCollection;
 
