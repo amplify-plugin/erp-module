@@ -37,9 +37,7 @@ use Amplify\ErpApi\Wrappers\Order;
 use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
-use Amplify\ErpApi\Wrappers\TrackShipment;
 use Amplify\System\Backend\Models\Shipping;
-use Amplify\System\CustomItem\Services\Exceptions\DefaultRhsException;
 use Exception;
 use Illuminate\Support\Facades\Http;
 
@@ -82,7 +80,7 @@ class FactsErpService implements ErpApiInterface
         $response = Http::timeout(10)
             ->withoutVerifying()
             ->withHeaders($this->commonHeaders)
-            ->post(($this->config['url'].$url), $payload);
+            ->post(($this->config['url'] . $url), $payload);
 
         // Item Master API Response RAW Logging
         if ($url == '/itemMaster') {
@@ -90,7 +88,6 @@ class FactsErpService implements ErpApiInterface
         }
 
         return $this->validate($response->body());
-
     }
 
     /**
@@ -130,13 +127,13 @@ class FactsErpService implements ErpApiInterface
             $response = json_decode($response, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new FactsErpException('Invalid JSON Error ('.json_last_error_msg().')', 500);
+                throw new FactsErpException('Invalid JSON Error (' . json_last_error_msg() . ')', 500);
             }
 
             if (isset($response['error'])) {
                 $firstError = array_shift($response['error']);
                 throw new FactsErpException(
-                    'Validation Failed Message ('.($firstError['message'] ?? '').')',
+                    'Validation Failed Message (' . ($firstError['message'] ?? '') . ')',
                     ($firstError['code'] ?? 422)
                 );
             }
@@ -277,33 +274,38 @@ class FactsErpService implements ErpApiInterface
     public function getShippingOption(array $data = []): ShippingOptionCollection
     {
         $items = $data['items'] ?? [];
+        $customer = $this->getCustomerDetail();
 
         $payload = [
             'content' => [
                 'CustomerNumber' => $this->customerId($data),
-                'CarrierCode' => '',
-                'PoNumber' => '',
-                'ShipToAddress1' => $data['customer_address_one'] ?? '',
-                'ShipToAddress2' => $data['customer_address_two'] ?? '',
-                'ShipToAddress3' => $data['customer_address_three'] ?? '',
-                'ShipToCity' => $data['customer_city'] ?? '',
-                'ShipToState' => $data['customer_state'] ?? '',
-                'ShipToZipCode' => $data['customer_zipcode'] ?? '',
+                'CustomerEmail' => $customer->CustomerEmail,
+                'CarrierCode' => $data['customer_carrier_code'] ?? $customer->CarrierCode,
+                'PoNumber' => $data['customer_po_number'] ?? '',
+                'ShipToAddress1' => $data['customer_address_one'] ?? $customer->CustomerAddress1,
+                'ShipToAddress2' => $data['customer_address_two'] ?? $customer->CustomerAddress2,
+                'ShipToAddress3' => $data['customer_address_three'] ?? $customer->CustomerAddress3,
+                'ShipToCity' => $data['customer_city'] ?? $customer->CustomerCity,
+                'ShipToState' => $data['customer_state'] ?? $customer->CustomerState,
+                'ShipToZipCode' => $data['customer_zipcode'] ?? $customer->CustomerZipCode,
                 'OrderType' => 'T',
                 'ReturnType' => 'D',
                 // "WarehouseID" => $customerDetails->DefaultWarehouse,
                 'Items' => $items,
             ],
         ];
-        try {
-            $attributes = match (config('amplify.client_code')) {
-                'ACT' => $this->post('/createOrder', $payload),
-                'RHS' => $this->post('/getOrderTotal', $payload),
-            };
 
-            return $this->adapter->getShippingOption($attributes);
-        } catch (\Exception $e) {
-            return new DefaultRhsException($e->getMessage());
+        if (in_array(config('amplify.client_code'), ['ACT', 'RHS'])) {
+            try {
+                $attributes = match (config('amplify.client_code')) {
+                    'ACT' => $this->post('/createOrder', $payload),
+                    'RHS' => $this->post('/getOrderTotal', $payload),
+                };
+
+                return $this->adapter->getShippingOption($attributes);
+            } catch (\Exception $e) {
+                $this->exceptionHandler($e);
+            }
         }
 
         $options = Shipping::enabled()->get()->toArray();
@@ -610,7 +612,7 @@ class FactsErpService implements ErpApiInterface
             ];
 
             $url = match (config('amplify.client_code')) {
-                'ACT', 'MW' => 'createOrder',
+                'ACT', 'MW', 'PLS' => 'createOrder',
                 default => 'getOrderTotal',
             };
 
@@ -643,7 +645,6 @@ class FactsErpService implements ErpApiInterface
             }
 
             return $this->adapter->getOrderTotal($response);
-
         } catch (Exception $exception) {
 
             $this->exceptionHandler($exception);
@@ -1051,7 +1052,6 @@ class FactsErpService implements ErpApiInterface
             $response['DefaultShipTo'] = $customer->shipto_address_code ?? null;
 
             return $this->adapter->contactValidation($response);
-
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1112,7 +1112,6 @@ class FactsErpService implements ErpApiInterface
             $response = $this->post("/{$url}", $query);
 
             return $this->adapter->getDocument($response);
-
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1191,7 +1190,6 @@ class FactsErpService implements ErpApiInterface
             $response = $this->post("/{$url}", $query);
 
             return $this->adapter->getTrackShipment($response);
-
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
