@@ -1696,20 +1696,18 @@ class CsdErpService implements ErpApiInterface
         try {
 
             $customer_number = $this->customerId($filters);
-
+            
             $payload = [
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
-                'fromMonth' => '09',
-                'fromYear' => '2024',
-                'toMonth' => '02',
-                'toYear' => '2025',
+                'startMonth' => $filters['start_month'] ?? '',
+                'endMonth' => $filters['end_month'] ?? '',
+                'startYear' => $filters['start_year'] ?? '',
+                'endYear' => $filters['end_year'] ?? '',
             ];
-            //sxapioegetshoplistpastsales
 
-
-            $response = $this->post('/sxapisfgetorderhistoryv2', $payload);
+            $response = $this->post('/sxapioegetshoplistpastsales', $payload);
 
             return $this->adapter->getPastItemList($response);
 

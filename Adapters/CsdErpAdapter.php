@@ -1422,7 +1422,7 @@ class CsdErpAdapter implements ErpApiInterface
         $pastItemList = new PastItemCollection;
 
         if (! empty($attributes)) {
-            foreach (($attributes['tOrderhdrtrans']['t-orderhdrtrans'] ?? []) as $attribute) {
+            foreach (($attributes['ttShop_list']['tt-shop_list'] ?? []) as $attribute) {
                 $pastItemList->push($this->renderSinglePastItem($attribute));
             }
         }
@@ -1435,9 +1435,9 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new PastItem($attributes);
 
         if (! empty($attributes)) {
-            $model->ItemNumber = $attributes['ItemNumber'];
-            $model->WebItem = $attributes['WebItem'];
-            $model->History = $attributes['History'];
+            $model->ItemNumber = $attributes['dsplprod'] ?? null;
+            $model->WebItem = $attributes['WebItem'] ?? null;
+            $model->History = $attributes['History'] ?? null;
         }
 
         return $model;
