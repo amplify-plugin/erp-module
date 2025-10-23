@@ -16,7 +16,7 @@ return [
         'facts-erp' => 'Facts ERP 9.3',
         'ecommerce-erp' => 'Commerce Gateway',
         'facts-erp-77' => 'Facts ERP 7.7',
-        'csd-erp' => 'CSD ERP (Steven Engineering)',
+        'csd-erp' => 'CSD ERP',
     ],
     'configurations' => [
         'default' => [
