@@ -36,6 +36,7 @@ use Amplify\ErpApi\Wrappers\Invoice;
 use Amplify\ErpApi\Wrappers\Order;
 use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
+use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TermsType;
 use Amplify\System\Backend\Models\Shipping;
@@ -118,10 +119,10 @@ class CsdErpService implements ErpApiInterface
             }
 
             $this->config['access_token'] = $response['access_token'];
-            $this->config['expires_at'] = (string) now()->addSeconds($response['expires_in']);
+            $this->config['expires_at'] = (string)now()->addSeconds($response['expires_in']);
 
             SystemConfiguration::setValue('erp', 'configurations.csd-erp.access_token', $response['access_token'], 'string');
-            SystemConfiguration::setValue('erp', 'configurations.csd-erp.expires_at', (string) now()->addSeconds($response['expires_in']), 'string');
+            SystemConfiguration::setValue('erp', 'configurations.csd-erp.expires_at', (string)now()->addSeconds($response['expires_in']), 'string');
         }
     }
 
@@ -149,7 +150,7 @@ class CsdErpService implements ErpApiInterface
     /**
      * Validate the API call response
      *
-     * @param  mixed  $response
+     * @param mixed $response
      *
      * @throws CsdErpException|Exception
      */
@@ -162,14 +163,14 @@ class CsdErpService implements ErpApiInterface
                     match ($response['error']) {
                         'Unauthorized' => throw new CsdErpException('Unauthorized', 403),
                         'invalid_grant' => throw new CsdErpException("Invalid ERP Credentials ({$response['error_description']})", 500),
-                        default => throw new CsdErpException('Unexpected Exception: '.$response['error'], 500),
+                        default => throw new CsdErpException('Unexpected Exception: ' . $response['error'], 500),
                     };
                 }
             }
 
             $response = $response['response'];
 
-            if (! empty($response['cErrorMessage'])) {
+            if (!empty($response['cErrorMessage'])) {
                 $friendlyMessage = $this->mapErpErrorMessage($response['cErrorMessage']);
                 throw new CsdErpException($friendlyMessage, 422);
             }
@@ -179,9 +180,13 @@ class CsdErpService implements ErpApiInterface
             return $response;
 
         } catch (CsdErpException $exception) {
-            $this->exceptionHandler($exception);
-
-            return [];
+            if ($exception->getCode() != 422) {
+                $this->exceptionHandler($exception);
+                return [];
+            }
+            return [
+                'error' => $exception->getMessage()
+            ];
         }
     }
 
@@ -256,7 +261,7 @@ class CsdErpService implements ErpApiInterface
                     'key2' => '', // customer shop-to code
                     'updateMode' => 'add', // add/chg
                     'fieldName' => $field,
-                    'fieldValue' => (string) $value,
+                    'fieldValue' => (string)$value,
                 ];
                 $count++;
             }
@@ -306,25 +311,25 @@ class CsdErpService implements ErpApiInterface
                 'operatorInit' => $this->operatorInit,
                 'includeInactiveCustomers' => true,
                 'recordLimit' => $limit,
-                'postalCode' => (string) ($filters['zip_code'] ?? null),
+                'postalCode' => (string)($filters['zip_code'] ?? null),
             ];
 
-            if (! empty($filters['customer_number'])) {
+            if (!empty($filters['customer_number'])) {
                 $payload['customerNumber'] = $filters['customer_number'];
             }
 
-            if (! empty($filters['customer_start'])) {
+            if (!empty($filters['customer_start'])) {
                 $payload['customerNumber'] = $filters['customer_start'];
             }
 
-            if (! empty($filters['customer_end'])) {
+            if (!empty($filters['customer_end'])) {
                 $payload['customerNumber'] = $filters['customer_end'];
             }
 
             if (isset($filters['street_address'])) {
                 $address = explode(' ', strtoupper($filters['street_address']), 5);
                 foreach ($address as $index => $addr) {
-                    $payload['keyWord'.($index + 1)] = $addr;
+                    $payload['keyWord' . ($index + 1)] = $addr;
                 }
             }
 
@@ -408,14 +413,16 @@ class CsdErpService implements ErpApiInterface
 
             $customer_number = $this->customerId($filters);
 
+            $addressName = $filters['ship_to_name'] ?? '';
+            $addressCode = $filters['ship_to_code'] ?? '';
+
             // taxi sing software in use
             $shipTo = [
                 'streetaddr' => $filters['ship_to_address1'] ?? null,
                 'streetaddr2' => $filters['ship_to_address2'] ?? null,
                 'streetaddr3' => $filters['ship_to_address3'] ?? null,
                 'city' => $filters['ship_to_city'] ?? null,
-                'country' => $filters['ship_to_country'] ?? null,
-                'county' => $filters['ship_to_country_code'] ?? null,
+                'country' => $filters['ship_to_country_code'] ?? null,
                 'state' => $filters['ship_to_state'] ?? null,
                 'zipcd' => $filters['ship_to_zip_code'] ?? null,
                 'addressoverfl' => true,
@@ -431,6 +438,9 @@ class CsdErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/sxapiaddressvalidation', $payload);
+
+            $response['name'] = $addressName;
+            $response['code'] = $addressCode;
 
             return $this->adapter->validateCustomerShippingLocation($response);
         } catch (Exception $exception) {
@@ -448,10 +458,10 @@ class CsdErpService implements ErpApiInterface
      *
      * @since 2024.12.8354871
      */
-    public function createCustomerShippingLocation(array $filters = []): ShippingLocationCollection
+    public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
     {
         try {
-            $customer_number = $this->customerId($filters);
+            $customer_number = $this->customerId($attributes);
 
             $fields['name'] = $attributes['address_name'] ?? '';
             $fields['addr1'] = $attributes['address_1'] ?? null;
@@ -461,11 +471,10 @@ class CsdErpService implements ErpApiInterface
             $fields['zipcd'] = $attributes['zip_code'] ?? '';
             $fields['state'] = Str::upper($attributes['state'] ?? '');
             $fields['countrycd'] = Str::upper($attributes['country_code'] ?? '');
-            $fields['phoneno'] = $attributes['phone_number'] ?? '';
+            $fields['phoneno'] = $attributes['phone_1'] ?? '';
+            $fields['email'] = $attributes['email_1'] ?? '';
             $fields['faxphoneno'] = '';
             $fields['statustype'] = $attributes['statustype'] ?? 'Active';
-
-            $fields['contact'] = $attributes['contact'] ?? '';
 
             $tMnTt = [];
 
@@ -479,7 +488,7 @@ class CsdErpService implements ErpApiInterface
                     'key2' => $attributes['address_code'] ?? '',
                     'updateMode' => 'add',
                     'fieldName' => $field,
-                    'fieldValue' => (string) $value,
+                    'fieldValue' => (string)$value,
                 ];
                 $count++;
             }
@@ -493,12 +502,26 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapiarcustomermnt', $payload);
 
-            return $this->adapter->getCustomerShippingLocationList($response);
+            if (empty($response['returnData'])) {
+                return $this->adapter->renderSingleCustomerShippingLocation([...$fields, 'shipto' => $attributes['address_code']]);
+            }
+
+            $search = [
+                'address_code' => $attributes['address_code'],
+            ];
+
+            $addresses = $this->getCustomerShippingLocationList($search);
+
+            if ($addresses->isEmpty()) {
+                return $this->adapter->renderSingleCustomerShippingLocation([...$fields, 'shipto' => $attributes['address_code']]);
+            }
+
+            return $addresses->first();
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
-            return $this->adapter->getCustomerShippingLocationList();
+            return $this->adapter->renderSingleCustomerShippingLocation([]);
         }
     }
 
@@ -519,7 +542,28 @@ class CsdErpService implements ErpApiInterface
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
+                'sort' => 'A'
             ];
+
+            if (!empty($filters['address_name'])) {
+                $payload['name'] = $filters['address_name'];
+            }
+
+            if (!empty($filters['city'])) {
+                $payload['city'] = $filters['city'];
+            }
+
+            if (!empty($filters['address_code'])) {
+                $payload['shipTo'] = $filters['address_code'];
+            }
+
+            if (!empty($filters['state'])) {
+                $payload['state'] = $filters['state'];
+            }
+
+            if (!empty($filters['zip_code'])) {
+                $payload['postalCode'] = $filters['zip_code'];
+            }
 
             $response = $this->post('/sxapiargetshiptolistv4', $payload);
 
@@ -548,7 +592,7 @@ class CsdErpService implements ErpApiInterface
             $items = $filters['items'] ?? [];
             $warehouses = array_filter(
                 explode(',', $filters['warehouse'] ?? 'MAIN'),
-                fn ($item) => strlen($item) > 0
+                fn($item) => strlen($item) > 0
             );
 
             $customer_number = $this->customerId($filters);
@@ -560,7 +604,7 @@ class CsdErpService implements ErpApiInterface
             foreach ($items as $itemIndex => $item) {
                 foreach ($warehouses as $warehouseIndex => $warehouse) {
                     $proddataprcavail[] = [
-                        'seqno' => (900+$itemIndex).(600+$warehouseIndex),
+                        'seqno' => (900 + $itemIndex) . (600 + $warehouseIndex),
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
                         'unit' => isset($item['uom']) ? $item['uom'] : 'ea',
@@ -718,7 +762,7 @@ class CsdErpService implements ErpApiInterface
 
         $noteText = trim($order['order_note'] ?? '');
 
-        if (! empty($noteText)) {
+        if (!empty($noteText)) {
             $cleanedNoteText = implode("\n", array_map('trim', explode("\n", $noteText)));
             $orderLine[] = [
                 'itemdesc1' => $cleanedNoteText,
@@ -738,7 +782,7 @@ class CsdErpService implements ErpApiInterface
                     [
                         'taxamount' => 0,
                         'authorizationamount' => 0,
-                        'customerid' => '00000000000'.$customerNumber,
+                        'customerid' => '00000000000' . $customerNumber,
                         'ordersource' => 'WEB',
                         'carriercode' => $order['shipping_method'],
                         'paymenttype' => 'PO',
@@ -830,18 +874,18 @@ class CsdErpService implements ErpApiInterface
         $orderNote = trim($order['order_note'] ?? '');
         $internalNote = trim($order['internal_note'] ?? '');
 
-        if (! empty($orderNote)) {
+        if (!empty($orderNote)) {
             $noteText .= "SEI Instructions: {$orderNote}";
         }
 
-        if (! empty($internalNote)) {
-            if (! empty($noteText)) {
+        if (!empty($internalNote)) {
+            if (!empty($noteText)) {
                 $noteText .= "\n\n* * * * * * * *\n\n";
             }
             $noteText .= "Customer Comments: {$internalNote}";
         }
 
-        if (! empty($noteText)) {
+        if (!empty($noteText)) {
             $cleanedNoteText = implode("\n", array_map('trim', explode("\n", $noteText)));
             $orderLine[] = [
                 'itemdesc1' => $cleanedNoteText,
@@ -850,7 +894,7 @@ class CsdErpService implements ErpApiInterface
             ];
         }
 
-        if (! empty($order['wtdo_note'])) {
+        if (!empty($order['wtdo_note'])) {
             // Clean leading/trailing spaces from each line of WTDO note
             $cleanedWtdoNote = implode("\n", array_map('trim', explode("\n", $order['wtdo_note'])));
             $orderLine[] = [
@@ -861,7 +905,7 @@ class CsdErpService implements ErpApiInterface
         }
 
         $tinfieldvalue = [];
-        if (! empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
+        if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
             $tinfieldvalue = [
                 [
                     'level' => 'SFOEOrderTotLoadV4',
@@ -934,7 +978,7 @@ class CsdErpService implements ErpApiInterface
                     [
                         'taxamount' => 0,
                         'authorizationamount' => 0,
-                        'customerid' => '0000'.$customer_number,
+                        'customerid' => '0000' . $customer_number,
                         'ordersource' => 'WEB',
                         'carriercode' => $order['shipping_method'],
                         'shiptoaddr1' => $order['ship_to_address1'],
@@ -991,14 +1035,14 @@ class CsdErpService implements ErpApiInterface
             ],
         ];
 
-        if (! empty($order['freight_account_number']) && $order['freight_terms_type'] == "C") {
+        if (!empty($order['freight_account_number']) && $order['freight_terms_type'] == "C") {
             $payload['tInputheaderextradata']['t-inputheaderextradata'][] = [
                 'fieldname' => 'frtbillacct',
                 'fieldvalue' => $order['freight_account_number'],
             ];
         }
 
-        if (! empty($order['freight_terms_type']) && $order['freight_terms_type'] !== 'CPU') {
+        if (!empty($order['freight_terms_type']) && $order['freight_terms_type'] !== 'CPU') {
             $payload['tInputheaderextradata']['t-inputheaderextradata'][] = [
                 'fieldname' => 'frtterms',
                 'fieldvalue' => $order['freight_terms_type'],
@@ -1030,7 +1074,7 @@ class CsdErpService implements ErpApiInterface
 
             // Handle types array as comma-separated string
             $transaction_types = $filters['transaction_types'] ?? [];
-            if (! empty($transaction_types) && is_array($transaction_types)) {
+            if (!empty($transaction_types) && is_array($transaction_types)) {
                 $transaction_types = implode(',', $transaction_types);
             } else {
                 $transaction_types = '';
@@ -1039,7 +1083,7 @@ class CsdErpService implements ErpApiInterface
             // Handle statuses for startStage and endStage
             $statuses = $filters['statuses'] ?? [];
             $startStage = $endStage = ''; // default value
-            if (! empty($statuses)) {
+            if (!empty($statuses)) {
                 $statuses = array_values($statuses); // ensure numeric keys
                 if (count($statuses) === 1) {
                     $startStage = $endStage = $statuses[0];
@@ -1062,7 +1106,7 @@ class CsdErpService implements ErpApiInterface
                 'endStage' => $endStage,
                 'orderNumber' => $filters['order_number'] ?? '',
                 'customerPurchaseOrder' => $filters['po_number'] ?? '',
-                'holdOnlyFlg' => (bool) $holdOnlyFlg,
+                'holdOnlyFlg' => (bool)$holdOnlyFlg,
             ];
 
             $response = $this->post('/sxapioegetlistofordersv5', $payload);
@@ -1144,7 +1188,7 @@ class CsdErpService implements ErpApiInterface
                         [
                             'taxamount' => 0,
                             'authorizationamount' => 0,
-                            'customerid' => '0000'.$customer_number,
+                            'customerid' => '0000' . $customer_number,
                             'ordersource' => 'WEB',
                             'carriercode' => '',
                             'shiptoaddr1' => $orderInfo['ship_to_address1'],
@@ -1174,7 +1218,7 @@ class CsdErpService implements ErpApiInterface
             $totalOrderValue = 0.00;
 
             // Get tax amount from tOrdtotextamt
-            if (! empty($response['tOrdtotextamt']['t-ordtotextamt'])) {
+            if (!empty($response['tOrdtotextamt']['t-ordtotextamt'])) {
                 foreach ($response['tOrdtotextamt']['t-ordtotextamt'] as $tax) {
                     if ($tax['type'] === 'tax') {
                         $salesTaxAmount = $tax['amount'];
@@ -1508,10 +1552,10 @@ class CsdErpService implements ErpApiInterface
 
             $payload = [
                 'content' => [
-                    'CustomerNumber' => $customer_number,
-                    'Type' => $type,
-                    'Invoices' => $invoices,
-                ] + $payment,
+                        'CustomerNumber' => $customer_number,
+                        'Type' => $type,
+                        'Invoices' => $invoices,
+                    ] + $payment,
             ];
 
             $response = $this->post('/arPayment', $payload);
@@ -1696,7 +1740,7 @@ class CsdErpService implements ErpApiInterface
         try {
 
             $customer_number = $this->customerId($filters);
-            
+
             $payload = [
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
@@ -1804,7 +1848,7 @@ class CsdErpService implements ErpApiInterface
             $fields['middlenm'] = '';
             $fields['lastnm'] = strtoupper($nameParts['last']);
             $fields['cotitle'] = $attributes['account_title_code'] ?? '';
-            $fields['comment'] = 'Created By Amplify. Id:'.($attributes['id'] ?? '');
+            $fields['comment'] = 'Created By Amplify. Id:' . ($attributes['id'] ?? '');
             $fields['priority'] = 1;
             $fields['salutation'] = '';
             $fields['groupcd'] = $attributes['groupcd'] ?? null;
@@ -1820,7 +1864,7 @@ class CsdErpService implements ErpApiInterface
             $fields['faxnumber'] = '';
             $fields['state'] = $customer->CustomerState ?? null;
             $fields['zipcd'] = $customer->CustomerZipCode ?? null;
-            $fields['addtiearsc'] = (string) $customer_number;
+            $fields['addtiearsc'] = (string)$customer_number;
             //            $fields['addtiearss'] = "{$customer_number},{$customer->DefaultShipTo}";
 
             $tMnTt = [];
@@ -1835,7 +1879,7 @@ class CsdErpService implements ErpApiInterface
                     'key2' => '',
                     'updateMode' => $action,
                     'fieldName' => $field,
-                    'fieldValue' => (string) $value,
+                    'fieldValue' => (string)$value,
                 ];
                 $count++;
             }
@@ -1886,20 +1930,20 @@ class CsdErpService implements ErpApiInterface
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
                 'subjectRoleType' => 'arsc',
-                'subjectPrimaryKey' => (string) $customer_number,
+                'subjectPrimaryKey' => (string)$customer_number,
             ];
 
-            if (! empty($filters['name'])) {
+            if (!empty($filters['name'])) {
                 $nameParts = split_full_name($filters['name'] ?? '');
                 $payload['firstName'] = strtoupper($nameParts['first']);
                 $payload['lastName'] = strtoupper($nameParts['last']);
             }
 
-            if (! empty($filters['limit'])) {
+            if (!empty($filters['limit'])) {
                 $payload['recordLimit'] = $filters['limit'];
             }
 
-            if (! empty($filters['contact_code'])) {
+            if (!empty($filters['contact_code'])) {
                 $payload['contactID'] = $filters['contact_code'];
             }
 
@@ -1940,7 +1984,7 @@ class CsdErpService implements ErpApiInterface
                 'operatorInit' => $this->operatorInit,
                 'contactID' => $contact_code,
                 'subjectRoleType' => 'arsc',
-                'subjectPrimaryKey' => (string) $customer_number,
+                'subjectPrimaryKey' => (string)$customer_number,
             ];
 
             $response = $this->post('/sxapicamgetcontactlistv4', $payload);
@@ -2033,7 +2077,7 @@ class CsdErpService implements ErpApiInterface
                     $sastfDataList = $sastfResponse['ttblsastf'] ?? [];
 
                     // Only override if second call returns results
-                    if (! empty($sastfDataList)) {
+                    if (!empty($sastfDataList)) {
                         $results = array_map(function ($item) use ($frttermscd) {
                             return [
                                 'frttermscd' => $frttermscd,
@@ -2117,7 +2161,7 @@ class CsdErpService implements ErpApiInterface
                 'customerNumber' => $this->customerId($inputs),
                 'invoiceType' => '',
                 'invoiceNumber' => $inputs['invoice_number'] ?? null,
-                'invoiceSuffix' => (string) $inputs['suffix'] ?? '0',
+                'invoiceSuffix' => (string)$inputs['suffix'] ?? '0',
                 'transactionType' => $inputs['transaction_type'] ?? 'O',
             ];
 

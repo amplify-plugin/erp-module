@@ -3,6 +3,7 @@
 namespace Amplify\ErpApi\Adapters;
 
 use Amplify\ErpApi\Wrappers\OrderPODetails;
+use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Amplify\ErpApi\Facades\ErpApi;
@@ -163,6 +164,40 @@ class CsdErpAdapter implements ErpApiInterface
         }
 
         return $collection;
+    }
+
+    /**
+     * This API is to get customer ship to locations entity information from the FACTS ERP
+     */
+    public function validateCustomerShippingLocation(array $location = []): ShippingLocationValidation
+    {
+        $error = $location['error'] ?? null;
+        $name = $location['name'] ?? null;
+        $code = $location['code'] ?? null;
+
+        $location = $location['tOutAddrValidation']['t-out-addr-validation'] ?? [];
+
+        $attributes = $location[0] ?? [];
+
+        $model = new ShippingLocationValidation([...$attributes, 'name' => $name, 'code' => $code]);
+
+        $model->Name = $name;
+        $model->Reference = $code;
+        $model->Message = $error;
+
+        if (!empty($attributes)) {
+            $model->Address1 = $attributes['streetaddr'] ?? null;
+            $model->Address2 = $attributes['streetaddr2'] ?? null;
+            $model->Address3 = $attributes['streetaddr3'] ?? null;
+            $model->City = $attributes['city'] ?? null;
+            $model->State = $attributes['state'] ?? null;
+            $model->ZipCode = $attributes['zipcd'] ?? null;
+            $model->Status = $attributes['addressoverfl'] ?? false;
+            $model->Response = (isset($attributes['addressoverfl']) && $attributes['addressoverfl']) ? 'Success' : 'Failed';
+            $model->Details = null;
+        }
+
+        return $model;
     }
 
     /*
@@ -415,7 +450,7 @@ class CsdErpAdapter implements ErpApiInterface
     public function createQuotation(array $orderInfo = []): CreateQuotationCollection
     {
         $quoteCollection = new CreateQuotationCollection;
-        if (! empty($orderInfo)) {
+        if (!empty($orderInfo)) {
             $customerOrders = $orderInfo['Orders'] ?? $orderInfo['Order'];
             foreach (($customerOrders ?? []) as $quote) {
                 $quoteCollection->push($this->renderSingleCreateQuotation($quote));
@@ -432,7 +467,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $quotes = new QuotationCollection;
 
-        if (! empty($customerOrders)) {
+        if (!empty($customerOrders)) {
             foreach (($customerOrders['tOeordV5']['t-oeordV5'] ?? []) as $quote) {
                 $quotes->push($this->renderSingleQuotation($quote));
             }
@@ -475,7 +510,7 @@ class CsdErpAdapter implements ErpApiInterface
             $orderInfo['tOelineitemV3']
         );
 
-        array_walk($orderInfo, fn (&$item, $key) => $item = (! is_array($item)) ? trim($item) : $item);
+        array_walk($orderInfo, fn(&$item, $key) => $item = (!is_array($item)) ? trim($item) : $item);
 
         return $this->renderSingleQuotation($orderInfo);
 
@@ -490,7 +525,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         $model = new CustomerAR($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $attributes = array_shift($attributes);
 
             $model->CustomerNum = $attributes['CustomerNum'] ?? null;
@@ -597,7 +632,7 @@ class CsdErpAdapter implements ErpApiInterface
             $orderInfo['tOelineitemV3']
         );
 
-        array_walk($orderInfo, fn (&$item, $key) => $item = (! is_array($item)) ? trim($item) : $item);
+        array_walk($orderInfo, fn(&$item, $key) => $item = (!is_array($item)) ? trim($item) : $item);
 
         return $this->renderSingleInvoice($orderInfo);
     }
@@ -609,7 +644,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new CreatePayment($paymentInfo);
 
-        if (! empty($paymentInfo['ArPayment'])) {
+        if (!empty($paymentInfo['ArPayment'])) {
             $attributes = $paymentInfo['ArPayment'] ?? [];
 
             $model->AuthorizationNumber = $attributes['AuthorizationNumber'] ?? null;
@@ -631,7 +666,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new CreateOrUpdateNote($noteInfo);
 
-        if (! empty($noteInfo['UpdateNotes'])) {
+        if (!empty($noteInfo['UpdateNotes'])) {
             $attributes = $noteInfo['UpdateNotes'] ?? [];
 
             $model->Status = $attributes['Status'] ?? null;
@@ -645,7 +680,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Customer($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
 
             $attributes['tFieldvaluepair'] = $this->mapFieldAttributes($attributes['tFieldvaluepair']['t-fieldvaluepair']);
 
@@ -670,7 +705,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->SuspendCode = $attributes['suspendCode'] ?? null;
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? null;
             $model->CreditCardOnly = $attributes['CreditCardOnly'] ?? null;
-            $model->FreightOptionAmount = ! empty($attributes['FreightOptionAmount']) ? floatval($attributes['FreightOptionAmount']) : null;
+            $model->FreightOptionAmount = !empty($attributes['FreightOptionAmount']) ? floatval($attributes['FreightOptionAmount']) : null;
             $model->PoRequired = $attributes['poRequired'] ?? null;
             $model->SalesPersonCode = $attributes['SalesPersonCode'] ?? null;
             $model->SalesPersonName = $attributes['SalesPersonName'] ?? null;
@@ -685,7 +720,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new ShippingLocation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ShipToNumber = $attributes['shipto'] ?? null;
             $model->ShipToName = $attributes['name'] ?? null;
             $model->ShipToCountryCode = $attributes['countrycd'] ?? null;
@@ -712,10 +747,10 @@ class CsdErpAdapter implements ErpApiInterface
 
         $model->Warehouses = ErpApi::getWarehouses();
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->Price = ! empty($attributes['price']) ? (float) str_replace([',', '$'], '', $attributes['price']) : 0;
+            $model->Price = !empty($attributes['price']) ? (float)str_replace([',', '$'], '', $attributes['price']) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
             $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
@@ -741,7 +776,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
             $model->OwnTruckOnly = isset($attributes['OwnTruckOnly']) && $attributes['OwnTruckOnly'] == 'Y';
 
-            $orderedQty = (float) ($attributes['qtyord'] ?? 0);
+            $orderedQty = (float)($attributes['qtyord'] ?? 0);
             $model->Price = $this->getPriceBasedOnQtyBreak($model, $orderedQty);
         }
 
@@ -759,9 +794,9 @@ class CsdErpAdapter implements ErpApiInterface
         ];
 
         foreach ($breaks as $break) {
-            if (! empty($break['qty']) && $orderedQty >= $break['qty']) {
-                return ! empty($break['price'])
-                    ? (float) str_replace([',', '$'], '', $break['price'])
+            if (!empty($break['qty']) && $orderedQty >= $break['qty']) {
+                return !empty($break['price'])
+                    ? (float)str_replace([',', '$'], '', $break['price'])
                     : 0;
             }
         }
@@ -815,7 +850,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Order($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['CustomerNumber'] ?? null;
             $model->OrderNumber = $attributes['OrderNumber'] ?? null;
             $model->OrderSuffix = $attributes['OrderSuffix'] ?? null;
@@ -863,7 +898,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->PdfAvailable = $attributes['PdfAvailable'] ?? null;
             $model->OrderDetail = new OrderDetailCollection;
 
-            if (! empty($attributes['OrderDetail'])) {
+            if (!empty($attributes['OrderDetail'])) {
                 foreach (($attributes['OrderDetail'] ?? []) as $orderDetail) {
                     $model->OrderDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
@@ -913,9 +948,9 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Order($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->FreightAmount = $attributes['actfreight'] ?? null;
-            $model->ContactId = (string) ($attributes['cono'] ?? null);
+            $model->ContactId = (string)($attributes['cono'] ?? null);
             $model->CustomerNumber = $attributes['custno'] ?? $attributes['custNo'] ?? null;
             $model->CustomerName = $attributes['name'] ?? null;
             $model->OrderNumber = $attributes['orderno'] ?? $attributes['orderNo'] ?? null;
@@ -955,15 +990,15 @@ class CsdErpAdapter implements ErpApiInterface
                     FILTER_FLAG_ALLOW_FRACTION
                 )
                 : null; // net amount (post-discount)
-            $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float) filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float) filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->InvoiceAmount = isset($attributes['totinvamt']) || isset($attributes['totInvAmt'])
-                ? (float) filter_var(
+                ? (float)filter_var(
                     $attributes['totinvamt'] ?? $attributes['totInvAmt'],
                     FILTER_SANITIZE_NUMBER_FLOAT,
                     FILTER_FLAG_ALLOW_FRACTION
                 ) : null;
-            $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float) filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->TotalOrderValue = isset($attributes['totlineord']) || isset($attributes['totLineOrd'])
                 ? (float)filter_var(
                     $attributes['totlineord'] ?? $attributes['totLineOrd'],
@@ -989,14 +1024,14 @@ class CsdErpAdapter implements ErpApiInterface
             //     $model->TotalOrderValue = floatval($model->InvoiceAmount) + floatval($model->SalesTaxAmount) + floatval($model->FreightAmount) + floatval($model->TotalSpecialCharges) - floatval($model->DiscountAmountTrading);
             // }
 
-            if (! empty($attributes['orderlines'])) {
+            if (!empty($attributes['orderlines'])) {
                 foreach (($attributes['orderlines'] ?? []) as $orderDetail) {
                     $orderDetail['inHouseDeliveryDateMap'] = $attributes['inHouseDeliveryDateMap'] ?? [];
                     $model->OrderDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
             }
 
-            if (! empty($attributes['OrderNotes'])) {
+            if (!empty($attributes['OrderNotes'])) {
                 foreach (($attributes['OrderNotes'] ?? []) as $orderNote) {
                     $model->OrderNotes->push($this->renderSingleOrderNote($orderNote));
                 }
@@ -1012,7 +1047,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new OrderNote($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Subject = $attributes['Subject'] ?? null;
             $model->Date = isset($attributes['Date']) ? CarbonImmutable::parse($attributes['Date']) : null;
             $model->NoteNum = $attributes['NoteNum'] ?? null;
@@ -1030,7 +1065,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new OrderDetail($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             // Basic line/item info
             $model->LineNumber = $attributes['lineNo'] ?? null;
             $model->ItemNumber = $attributes['prod'] ?? null;
@@ -1054,7 +1089,7 @@ class CsdErpAdapter implements ErpApiInterface
                 && $model->ActualSellPrice != 0)
                 ? $model->ActualSellPrice / $model->QuantityOrdered
                 : null;
-            $model->TiedOrder = ! empty($attributes['tiedorder']) ?
+            $model->TiedOrder = !empty($attributes['tiedorder']) ?
                 str_replace('PO# ', '', $attributes['tiedorder']) : '';
             $model->PODetails = $this->getPODetails([
                 'poNumber' => $attributes['tiedorder'],
@@ -1067,7 +1102,7 @@ class CsdErpAdapter implements ErpApiInterface
 
             // In-House Delivery Date based on seqNo mapping
             $model->InHouseDeliveryDate = null;
-            if (! empty($attributes['lineNo']) && ! empty($attributes['inHouseDeliveryDateMap'])) {
+            if (!empty($attributes['lineNo']) && !empty($attributes['inHouseDeliveryDateMap'])) {
                 $model->InHouseDeliveryDate = $attributes['inHouseDeliveryDateMap'][$attributes['lineNo']] ?? null;
             }
         }
@@ -1079,10 +1114,10 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new CreateQuotation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->OrderNumber = floatval(str_replace(['$', ','], '', ($attributes['OrderNumber'] ?? '')));
             $model->SalesTaxAmount = floatval(str_replace(['$', ','], '', ($attributes['SalesTaxAmount'] ?? '')));
-            $model->FreightAmount = ! empty($attributes['FreightAmount']) ? floatval($attributes['FreightAmount']) : null;
+            $model->FreightAmount = !empty($attributes['FreightAmount']) ? floatval($attributes['FreightAmount']) : null;
             $model->TotalOrderValue = floatval(str_replace(['$', ','], '', ($attributes['TotalOrderValue'] ?? '')));
         }
 
@@ -1093,7 +1128,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Quotation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['custno'] ?? $attributes['custNo'] ?? null;
             $model->QuoteNumber = $attributes['orderno'] ?? $attributes['orderNo'] ?? null;
             $model->Suffix = isset($attributes['ordersuf']) || isset($attributes['orderSuf'])
@@ -1183,7 +1218,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Invoice($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? 'No';
             $model->InvoiceNumber = $attributes['invnoraw'] ?? $attributes['orderno'] ?? null;
             $model->InvoiceSuffix = isset($attributes['ordersuf']) || isset($attributes['invsufraw'])
@@ -1219,10 +1254,10 @@ class CsdErpAdapter implements ErpApiInterface
             $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? null);
             $model->OrderDisposition = $attributes['orderdisp'] ?? null;
             $model->CarrierCode = $attributes['shipviaty'] ?? $attributes['shipviatydesc'] ?? null;
-            $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float) filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float) filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->FreightAmount = $attributes['actfreight'] ?? null;
-            $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float) filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->TotalOrderValue = isset($attributes['totlineord']) || isset($attributes['totLineOrd'])
                 ? (float)filter_var(
                     $attributes['totlineord'] ?? $attributes['totLineOrd'],
@@ -1246,7 +1281,7 @@ class CsdErpAdapter implements ErpApiInterface
             // }
             $model->InvoiceDetail = new OrderDetailCollection;
 
-            if (! empty($attributes['orderlines'])) {
+            if (!empty($attributes['orderlines'])) {
                 foreach (($attributes['orderlines'] ?? []) as $orderDetail) {
                     $orderDetail['inHouseDeliveryDateMap'] = $attributes['inHouseDeliveryDateMap'] ?? [];
                     $model->InvoiceDetail->push($this->renderSingleOrderDetail($orderDetail));
@@ -1270,7 +1305,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $campaignList = new CampaignCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['ItemPromoHeader'] ?? []) as $campaign) {
                 $campaignList->push($this->renderSingleCampaign($campaign));
             }
@@ -1290,7 +1325,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Campaign($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Promoid = $attributes['Promoid'] ?? null;
             $model->BegDate = $attributes['BegDate'] ?? null;
             $model->EndDate = $attributes['EndDate'] ?? null;
@@ -1306,7 +1341,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->Private = $attributes['Private'] ?? null;
             $model->CampaignDetail = new CampaignDetailCollection;
 
-            if (! empty($attributes['ItemPromoDetails'])) {
+            if (!empty($attributes['ItemPromoDetails'])) {
                 foreach (($attributes['ItemPromoDetails'] ?? []) as $campaignDetail) {
                     $model->CampaignDetail->push($this->renderSingleCampaignDetail($campaignDetail));
                 }
@@ -1320,7 +1355,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new CampaignDetail($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Promoid = $attributes['Promoid'] ?? null;
             $model->Item = $attributes['Item'] ?? null;
             $model->ItemDescription = $attributes['ItemDescription'] ?? null;
@@ -1368,7 +1403,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Cylinders($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Cylinder = $attributes['Cylinder'];
             $model->Beginning = $attributes['Beginning'];
             $model->Delivered = $attributes['Delivered'];
@@ -1385,7 +1420,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $cylinderList = new CylinderCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['Cylinders'] ?? []) as $cylinder) {
                 $cylinderList->push($this->getCylinderDetail($cylinder));
             }
@@ -1401,7 +1436,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $document = new Document($inputs);
 
-        if (! empty($inputs)) {
+        if (!empty($inputs)) {
 
             $attributes = $inputs['DocumentData'];
 
@@ -1421,7 +1456,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $pastItemList = new PastItemCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['ttShop_list']['tt-shop_list'] ?? []) as $attribute) {
                 $pastItemList->push($this->renderSinglePastItem($attribute));
             }
@@ -1434,7 +1469,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new PastItem($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ItemNumber = $attributes['dsplprod'] ?? null;
             $model->WebItem = $attributes['WebItem'] ?? null;
             $model->History = $attributes['History'] ?? null;
@@ -1462,7 +1497,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new TermsType($attributes);
 
         $termsTypeValue = null;
-        if (! empty($attributes['tFieldlist']['t-fieldlist'])) {
+        if (!empty($attributes['tFieldlist']['t-fieldlist'])) {
             foreach ($attributes['tFieldlist']['t-fieldlist'] as $field) {
                 if ($field['fieldName'] === 'termstype') {
                     $termsTypeValue = $field['fieldValue'];
@@ -1509,7 +1544,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         $attributes = $filters['tCamcontactv4']['t-camcontactv4'] ?? [];
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach ($attributes as $attribute) {
                 $collection->push($this->renderSingleContact($attribute));
             }
@@ -1522,8 +1557,8 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Contact($attributes);
 
-        if (! empty($attributes)) {
-            $model->ContactNumber = $attributes['contactid'] ? (string) intval($attributes['contactid']) : null;
+        if (!empty($attributes)) {
+            $model->ContactNumber = $attributes['contactid'] ? (string)intval($attributes['contactid']) : null;
             $model->ContactName = trim(implode(' ', [$attributes['firstnm'] ?? null, $attributes['middlenm'] ?? null, $attributes['lastnm'] ?? null]));
             $model->AccountTitle = $attributes['cotitle'] ?? null;
             $model->AccountTitleCode = $attributes['contacttype'] ?? null;
@@ -1555,7 +1590,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         $attributes = $filters['tCamcontactv4']['t-camcontactv4'] ?? [[]];
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             return $this->renderSingleContact(array_shift($attributes));
         }
 
@@ -1616,12 +1651,12 @@ class CsdErpAdapter implements ErpApiInterface
 
     private function getPODetails(array $inputs = [])
     {
-        if (! in_array(config('amplify.client_code'), ['NUX', 'DKL']) || empty($inputs['poNumber'])) {
+        if (!in_array(config('amplify.client_code'), ['NUX', 'DKL']) || empty($inputs['poNumber'])) {
             return [];
         }
 
         $poDetails = Cache::remember(
-            'po_details_'.$inputs['poNumber'],
+            'po_details_' . $inputs['poNumber'],
             now()->addMinutes(5),
             function () use ($inputs) {
                 return ErpApi::getPODetails($inputs);
@@ -1640,7 +1675,7 @@ class CsdErpAdapter implements ErpApiInterface
         $orderPODetails = array_shift($filteredPoDetails);
         $model = new OrderPODetails($orderPODetails);
 
-        if (! empty($orderPODetails)) {
+        if (!empty($orderPODetails)) {
             $model->BoType = $this->clearFix($orderPODetails['botype']);
             $model->CommentFl = $this->clearFix($orderPODetails['commentfl']);
             $model->ContNo = $this->clearFix($orderPODetails['contno']);

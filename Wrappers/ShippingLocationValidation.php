@@ -7,18 +7,18 @@ use Amplify\ErpApi\Interfaces\ErpApiWrapperInterface;
 use Amplify\ErpApi\Traits\ApiWrapperTrait;
 
 /**
- * @property $Name
- * @property $Address1
- * @property $Address2
- * @property $Address3
- * @property $City
- * @property $State
- * @property $ZipCode
- * @property $Status
- * @property $Response
- * @property $Message
- * @property $Details
- * @property $Reference
+ * @property string $Name
+ * @property string $Address1
+ * @property string $Address2
+ * @property string $Address3
+ * @property string $City
+ * @property string $State
+ * @property string $ZipCode
+ * @property bool $Status
+ * @property string $Response
+ * @property string $Message
+ * @property mixed $Details
+ * @property string|integer $Reference
  */
 class ShippingLocationValidation extends Wrapper implements ErpApiWrapperInterface
 {
