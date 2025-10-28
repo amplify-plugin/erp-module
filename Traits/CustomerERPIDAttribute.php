@@ -5,7 +5,7 @@ namespace Amplify\ErpApi\Traits;
 /**
  * Trait CustomerERPIDAttribute
  *
- * @property mixed $customer_erp_id
+ * @property mixed $erp_id
  */
 trait CustomerERPIDAttribute
 {
@@ -14,7 +14,7 @@ trait CustomerERPIDAttribute
      *
      * @return null|mixed
      */
-    public function getCustomerErpIdAttribute()
+    public function getErpIdAttribute()
     {
         $activeConfig = config('amplify.erp.default');
 

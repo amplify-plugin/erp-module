@@ -33,7 +33,7 @@ class CustomerAddressSyncJob implements ShouldQueue
 
         $customer = $this->customerAddress->customer;
 
-        $attributes['customer_number'] = $customer->customer_erp_id;
+        $attributes['customer_number'] = $customer->erp_id;
 
         ErpApi::createCustomerShippingLocation($attributes);
     }

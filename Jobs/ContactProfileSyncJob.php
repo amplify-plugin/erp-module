@@ -32,7 +32,7 @@ class ContactProfileSyncJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $customer_number = $this->contact->customer?->customer_erp_id;
+        $customer_number = $this->contact->customer?->erp_id;
 
         $attributes = $this->contact->toArray();
         $attributes['action'] = empty($attributes['contact_code']) ? 'add' : 'chg';

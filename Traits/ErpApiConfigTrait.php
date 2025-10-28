@@ -27,25 +27,12 @@ trait ErpApiConfigTrait
      */
     private function customerId(array $data = []): mixed
     {
-        if (! empty($data['customer_number'])) {
+        if (!empty($data['customer_number'])) {
             return $data['customer_number'];
         }
 
         if (customer_check()) {
-
-            $customer = customer();
-
-            $erp_customer_id_field = $this->config['customer_id_field'];
-
-            if (Schema::hasColumn($customer->getTable(), $erp_customer_id_field)) {
-                $id = $customer->{$erp_customer_id_field};
-
-                return ($id != null)
-                    ? $id
-                    : config('amplify.frontend.guest_default');
-            }
-
-            return null;
+            return customer()?->erp_id ?? null;
         }
 
         return (config('amplify.frontend.guest_default') != null && strlen(config('amplify.frontend.guest_default')) > 0)
@@ -80,9 +67,9 @@ trait ErpApiConfigTrait
         Log::channel('product-sync')
             ->debug(
                 "\n                    :: Product Sync API RAW Response ::                   "
-                ."\n--------------------------------------------------------------------------"
-                ."\n".(is_string($response) ? $response : json_encode($response, JSON_PRETTY_PRINT))
-                ."\n--------------------------------------------------------------------------\n");
+                . "\n--------------------------------------------------------------------------"
+                . "\n" . (is_string($response) ? $response : json_encode($response, JSON_PRETTY_PRINT))
+                . "\n--------------------------------------------------------------------------\n");
     }
 
     /**
@@ -100,7 +87,7 @@ trait ErpApiConfigTrait
 
         Log::debug("Error: {$exception->getMessage()} | Class ErpApi::{$method}({$args}) | Driver: {$class}");
 
-        if (! suppress_exception()) {
+        if (!suppress_exception()) {
             throw $exception;
         }
     }
