@@ -697,11 +697,19 @@ class CsdErpService implements ErpApiInterface
     public function getWarehouses(array $filters = []): WarehouseCollection
     {
         try {
-            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
 
-            $warehouses = $warehouseCollection->toArray();
+            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
+                return \Amplify\System\Backend\Models\Warehouse::all();
+            });
 
-            return $this->adapter->getWarehouses($warehouses);
+            foreach ($filters as $filter) {
+                if (in_array(count($filter), [2, 3])) {
+                    $warehouses = $warehouses->where(...$filter);
+                }
+            }
+
+            return $this->adapter->getWarehouses($warehouses->toArray());
+
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
