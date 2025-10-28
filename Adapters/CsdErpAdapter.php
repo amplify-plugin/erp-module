@@ -748,11 +748,14 @@ class CsdErpAdapter implements ErpApiInterface
         $model->Warehouses = ErpApi::getWarehouses();
 
         if (!empty($attributes)) {
+
+            $price = $attributes['extamt'] ?? $attributes['price'];
+
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->Price = !empty($attributes['price']) ? (float)str_replace([',', '$'], '', $attributes['price']) : 0;
+            $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
-            $model->StandardPrice = $attributes['baseprice'] ?? null;
+            $model->StandardPrice = $attributes['price'] ?? null;
             $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
             $model->QtyPrice_1 = $attributes['Price_1'] ?? null;
             $model->QtyBreak_1 = $attributes['quantitybreak1'] ?? null;
@@ -766,9 +769,10 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QtyBreak_5 = $attributes['quantitybreak5'] ?? null;
             $model->QtyPrice_6 = $attributes['Price_6'] ?? null;
             $model->QtyBreak_6 = $attributes['quantitybreak6'] ?? null;
-            $model->ExtendedPrice = $attributes['extamt'] ?? null;
-            $model->OrderPrice = $attributes['OrderPrice'] ?? null;
+            $model->ExtendedPrice = $attributes['baseprice'] ?? null;
+            $model->OrderPrice = $attributes['extamt'] ?? null;
             $model->UnitOfMeasure = $attributes['unit'] ?? null;
+            $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['price'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
             $model->AverageLeadTime = $attributes['AverageLeadTime'] ?? null;
