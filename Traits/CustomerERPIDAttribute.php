@@ -2,8 +2,6 @@
 
 namespace Amplify\ErpApi\Traits;
 
-use Illuminate\Support\Facades\Schema;
-
 /**
  * Trait CustomerERPIDAttribute
  *
@@ -20,12 +18,8 @@ trait CustomerERPIDAttribute
     {
         $activeConfig = config('amplify.erp.default');
 
-        $erp_customer_id_field = config('amplify.erp.configurations.'.$activeConfig.'.customer_id_field');
+        $erp_customer_id_field = config('amplify.erp.configurations.' . $activeConfig . '.customer_id_field');
 
-        if (Schema::hasColumn('customers', $erp_customer_id_field)) {
-            return $this->{$erp_customer_id_field};
-        } else {
-            return config('amplify.frontend.guest_default', null);
-        }
+        return $this->{$erp_customer_id_field} ?? config('amplify.frontend.guest_default', null);
     }
 }
