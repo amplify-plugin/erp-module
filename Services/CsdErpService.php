@@ -646,7 +646,7 @@ class CsdErpService implements ErpApiInterface
             $collection = new ProductPriceAvailabilityCollection();
 
             foreach ($responses as $response) {
-                if ($response->successful()) {
+                if ($response?->successful() ?? false) {
                     $res = $this->validate($response->json());
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
