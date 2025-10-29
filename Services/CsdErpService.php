@@ -597,13 +597,11 @@ class CsdErpService implements ErpApiInterface
 
             $customer_number = $this->customerId($filters);
 
-            $proddataprcavail = [];
-
-            $count = 1;
+            $entries = [];
 
             foreach ($items as $itemIndex => $item) {
                 foreach ($warehouses as $warehouseIndex => $warehouse) {
-                    $proddataprcavail[] = [
+                    $entries[$itemIndex % 5][] = [
                         'seqno' => (900 + $itemIndex) . (600 + $warehouseIndex),
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
@@ -613,29 +611,51 @@ class CsdErpService implements ErpApiInterface
                 }
             }
 
-            $payload = [
-                'companyNumber' => $this->companyNumber,
-                'operatorInit' => $this->operatorInit,
-                'customerNumber' => $customer_number,
-                'getPriceBreaks' => true,
-                'checkOtherWhseInventory' => true,
-                'tOemultprcinV2' => [
-                    't-oemultprcinV2' => $proddataprcavail,
-                ],
-                'tInfieldvalue' => [
-                    't-infieldvalue' => [
-                        'lineno' => 0,
+            $payloads = [];
+
+            foreach ($entries as $entry) {
+                $payloads[] = [
+                    'companyNumber' => $this->companyNumber,
+                    'operatorInit' => $this->operatorInit,
+                    'customerNumber' => $customer_number,
+                    'getPriceBreaks' => true,
+                    'checkOtherWhseInventory' => true,
+                    'tOemultprcinV2' => [
+                        't-oemultprcinV2' => $entry,
                     ],
-                ],
-            ];
+                    'tInfieldvalue' => [
+                        't-infieldvalue' => [
+                            'lineno' => 0,
+                        ],
+                    ],
+                ];
+            }
 
-            $response = $this->post('/sxapioepricingmultiplev5', $payload);
+            $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
+                foreach ($payloads as $index => $payload) {
+                    $pool->as($index)
+                        ->timeout(10)
+                        ->withoutVerifying()
+                        ->asJson()
+                        ->acceptJson()
+                        ->withToken($this->config['access_token'])
+                        ->post("{$this->config['url']}/sxapioepricingmultiplev5", ['request' => $payload]);
+                }
+            });
 
-            return $this->adapter->getProductPriceAvailability($response);
+            $collection = new ProductPriceAvailabilityCollection();
+
+            foreach ($responses as $response) {
+                if ($response->successful()) {
+                    $res = $this->validate($response->json());
+                    $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
+                }
+            }
+
+            return $collection;
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
-
             return $this->adapter->getProductPriceAvailability();
         }
     }
