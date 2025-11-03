@@ -18,6 +18,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $Response
  * @property string $Message
  * @property mixed $Details
+ * @property string $CountryCode
  * @property string|integer $Reference
  */
 class ShippingLocationValidation extends Wrapper implements ErpApiWrapperInterface
@@ -29,6 +30,7 @@ class ShippingLocationValidation extends Wrapper implements ErpApiWrapperInterfa
         'Address1',
         'Address2',
         'Address3',
+        'CountryCode',
         'City',
         'State',
         'ZipCode',

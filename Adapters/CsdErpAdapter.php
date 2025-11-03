@@ -189,6 +189,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->Address1 = $attributes['streetaddr'] ?? null;
             $model->Address2 = $attributes['streetaddr2'] ?? null;
             $model->Address3 = $attributes['streetaddr3'] ?? null;
+            $model->CountryCode = $attributes['country'] ?? null;
             $model->City = $attributes['city'] ?? null;
             $model->State = $attributes['state'] ?? null;
             $model->ZipCode = $attributes['zipcd'] ?? null;
