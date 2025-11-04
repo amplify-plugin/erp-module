@@ -136,9 +136,13 @@ class CsdErpService implements ErpApiInterface
             $payload['customerNumber'] = intval($payload['customerNumber']);
         }
 
+        if ($url == '/proxy/FetchWhere') {
+            $this->config['url'] = str_replace('web/sxapirestservice', 'rest/serviceinterface', $this->config['url']);
+        }
+
         $response = Http::withoutVerifying()
             ->timeout(60)
-            ->baseUrl("{$this->config['url']}")
+            ->baseUrl($this->config['url'])
             ->withHeaders($this->commonHeaders)
             ->withToken($this->config['access_token'])
             ->post($url, ['request' => $payload])
@@ -164,6 +168,7 @@ class CsdErpService implements ErpApiInterface
                     match ($response['error']) {
                         'Unauthorized' => throw new CsdErpException('Unauthorized', 403),
                         'invalid_grant' => throw new CsdErpException("Invalid ERP Credentials ({$response['error_description']})", 500),
+                        'unsupported_grant_type' => throw new CsdErpException($response['error_description'], 500),
                         default => throw new CsdErpException('Unexpected Exception: ' . $response['error'], 500),
                     };
                 }
@@ -2026,30 +2031,6 @@ class CsdErpService implements ErpApiInterface
         }
     }
 
-    /**
-     * Acts as a query builder to fetch specific fields from the CSD ARSC table.
-     */
-    public function getFetchWhere(array $payload): array
-    {
-        try {
-            $baseUrl = 'https://mingle-ionapi.inforcloudsuite.com/STEVENENGINEERIN_TRN/SX/rest/serviceinterface/';
-            $url = 'proxy/FetchWhere';
-
-            $response = Http::withoutVerifying()
-                ->timeout(60)
-                ->baseUrl($baseUrl)
-                ->withHeaders($this->commonHeaders)
-                ->withToken($this->config['access_token'])
-                ->post($url, $payload)
-                ->json();
-
-            return $response ?? [];
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return [];
-        }
-    }
 
     /**
      * Acts as a query builder to fetch specific fields from the CSD ARSC table.
@@ -2078,7 +2059,8 @@ class CsdErpService implements ErpApiInterface
                     'RestartRowID' => '',
                 ];
 
-                $arscResponse = $this->getFetchWhere($firstPayload);
+                //Acts as a query builder to fetch specific fields from the CSD ARSC table.
+                $arscResponse = $this->post('/proxy/FetchWhere', $firstPayload);
                 $arscData = $arscResponse['ttblarsc'][0] ?? [];
 
                 $frttermscd = strtoupper($arscData['frttermscd'] ?? '');
@@ -2101,8 +2083,8 @@ class CsdErpService implements ErpApiInterface
                         'BatchSize' => 50,
                         'RestartRowID' => '',
                     ];
-
-                    $sastfResponse = $this->getFetchWhere($secondPayload);
+                    //Acts as a query builder to fetch specific fields from the CSD ARSC table.
+                    $sastfResponse = $this->post('/proxy/FetchWhere', $secondPayload);
                     $sastfDataList = $sastfResponse['ttblsastf'] ?? [];
 
                     // Only override if second call returns results
@@ -2205,4 +2187,10 @@ class CsdErpService implements ErpApiInterface
             return $this->adapter->getInvoiceTransaction();
         }
     }
+
+    public function customerPartNumber(array $inputs = [])
+    {
+        dd();
+    }
+
 }
