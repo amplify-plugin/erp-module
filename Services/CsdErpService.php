@@ -603,11 +603,13 @@ class CsdErpService implements ErpApiInterface
 
             $customer_number = $this->customerId($filters);
 
+            $reminder = ceil(count($items) / 3);
+
             $entries = [];
 
             foreach ($items as $itemIndex => $item) {
                 foreach ($warehouses as $warehouseIndex => $warehouse) {
-                    $entries[$itemIndex % 5][] = [
+                    $entries[$itemIndex % $reminder][] = [
                         'seqno' => (900 + $itemIndex) . (600 + $warehouseIndex),
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
@@ -640,7 +642,7 @@ class CsdErpService implements ErpApiInterface
             $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
                 foreach ($payloads as $index => $payload) {
                     $pool->as($index)
-                        ->timeout(10)
+                        ->timeout(60)
                         ->withoutVerifying()
                         ->asJson()
                         ->acceptJson()
