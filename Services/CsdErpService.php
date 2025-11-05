@@ -796,6 +796,8 @@ class CsdErpService implements ErpApiInterface
             ];
         }, $items);
 
+        $warehouseId = ! empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
+
         $noteText = trim($order['order_note'] ?? '');
 
         if (!empty($noteText)) {
@@ -837,6 +839,7 @@ class CsdErpService implements ErpApiInterface
                         'shiptozip' => $order['ship_to_zip_code'],
                         'webtransactiontype' => 'LSF',
                         'ordertype' => $order['order_type'],
+                        'warehouseid' => $warehouseId,
                     ],
                 ],
             ],
@@ -1213,6 +1216,8 @@ class CsdErpService implements ErpApiInterface
                 ];
             }, $items);
 
+            $warehouseId = ! empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
+
             $payload = [
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
@@ -1247,6 +1252,10 @@ class CsdErpService implements ErpApiInterface
                     't-inputlinedata' => $orderLine,
                 ],
             ];
+
+            if (in_array(config('amplify.basic.client_code'), ['DKL', 'NUX'])) {
+                $payload['tInputheaderdata']['t-inputheaderdata'][0]['warehouseid'] = $warehouseId;
+            }
 
             $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
