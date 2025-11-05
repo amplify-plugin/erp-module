@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Amplify\ErpApi\Wrappers\Contact createUpdateContact(array $attributes = [])
  * @method static \Amplify\ErpApi\Collections\ContactCollection getContactList(array $filters = ['customer_start' => null, 'customer_end' => null])
  * @method static \Amplify\ErpApi\Wrappers\Contact getContactDetail(array $filters = ['customer_number' => null])
+ * @method static \Amplify\ErpApi\Wrappers\Contact createUpdateCustomerPartNumber(array $filters = [])
  *
  * @see \Amplify\ErpApi\ProductSyncService
  *

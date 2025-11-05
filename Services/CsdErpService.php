@@ -1795,7 +1795,7 @@ class CsdErpService implements ErpApiInterface
                 'fromYear' => $filters['start_year'] ?? '',
                 'toYear' => $filters['end_year'] ?? '',
             ];
-            
+
             $response = $this->post('/sxapisfgetoeorderhistory', $payload);
 
             return $this->adapter->getPastItemList($response);
@@ -2199,9 +2199,27 @@ class CsdErpService implements ErpApiInterface
         }
     }
 
-    public function customerPartNumber(array $inputs = [])
+    public function createUpdateCustomerPartNumber(array $inputs = [])
     {
-        dd();
+        $customer_number = $this->customerId($inputs);
+
+
+        $payload = [
+            'companyNumber' => $this->companyNumber,
+            'operatorInit' => $this->operatorInit,
+            'customerNumber' => $customer_number,
+            'productCode' => $inputs['item_number'] ?? '',
+            'alternateProductCode' => $inputs['customer_product_code'],
+            'unitSell' => $inputs['item_uom'] ?? 'ea',
+            'orderQuantity' => 1,
+        ];
+
+        $payload['updateType'] = $inputs['action'] == 'delete' ? 'd' : 'c';
+
+
+        $response = $this->post('/sxapiiccustprodmnt', $payload);
+
+       logger("Customer Part Number: {$inputs['action']}", $response);
     }
 
 }

@@ -25,6 +25,12 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $QtyBreak_5
  * @property $QtyPrice_6
  * @property $QtyBreak_6
+ * @property $QtyPrice_7
+ * @property $QtyBreak_7
+ * @property $QtyPrice_8
+ * @property $QtyBreak_8
+ * @property $QtyPrice_9
+ * @property $QtyBreak_9
  * @property $ExtendedPrice
  * @property $OrderPrice
  * @property $UnitOfMeasure
@@ -62,6 +68,12 @@ class ProductPriceAvailability extends Wrapper implements ErpApiWrapperInterface
         'QtyBreak_5',
         'QtyPrice_6',
         'QtyBreak_6',
+        'QtyPrice_7',
+        'QtyBreak_7',
+        'QtyPrice_8',
+        'QtyBreak_8',
+        'QtyPrice_9',
+        'QtyBreak_9',
         'ExtendedPrice',
         'OrderPrice',
         'UnitOfMeasure',

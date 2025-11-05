@@ -770,6 +770,12 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QtyBreak_5 = $attributes['quantitybreak5'] ?? null;
             $model->QtyPrice_6 = $attributes['Price_6'] ?? null;
             $model->QtyBreak_6 = $attributes['quantitybreak6'] ?? null;
+            $model->QtyPrice_7 = $attributes['Price_7'] ?? null;
+            $model->QtyBreak_7 = $attributes['quantitybreak7'] ?? null;
+            $model->QtyPrice_8 = $attributes['Price_8'] ?? null;
+            $model->QtyBreak_8 = $attributes['quantitybreak8'] ?? null;
+            $model->QtyPrice_9 = $attributes['Price_9'] ?? null;
+            $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
             $model->ExtendedPrice = $attributes['baseprice'] ?? null;
             $model->OrderPrice = $attributes['extamt'] ?? null;
             $model->UnitOfMeasure = $attributes['unit'] ?? null;
@@ -791,6 +797,10 @@ class CsdErpAdapter implements ErpApiInterface
     private function getPriceBasedOnQtyBreak(ProductPriceAvailability $model, float $orderedQty): float
     {
         $breaks = [
+            ['qty' => $model->QtyBreak_9, 'price' => $model->QtyPrice_9],
+            ['qty' => $model->QtyBreak_8, 'price' => $model->QtyPrice_8],
+            ['qty' => $model->QtyBreak_7, 'price' => $model->QtyPrice_7],
+            ['qty' => $model->QtyBreak_6, 'price' => $model->QtyPrice_6],
             ['qty' => $model->QtyBreak_5, 'price' => $model->QtyPrice_5],
             ['qty' => $model->QtyBreak_4, 'price' => $model->QtyPrice_4],
             ['qty' => $model->QtyBreak_3, 'price' => $model->QtyPrice_3],
