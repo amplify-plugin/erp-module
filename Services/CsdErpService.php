@@ -1781,13 +1781,13 @@ class CsdErpService implements ErpApiInterface
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
-                'startMonth' => $filters['start_month'] ?? '',
-                'endMonth' => $filters['end_month'] ?? '',
-                'startYear' => $filters['start_year'] ?? '',
-                'endYear' => $filters['end_year'] ?? '',
+                'fromMonth' => $filters['start_month'] ?? '',
+                'toMonth' => $filters['end_month'] ?? '',
+                'fromYear' => $filters['start_year'] ?? '',
+                'toYear' => $filters['end_year'] ?? '',
             ];
-
-            $response = $this->post('/sxapioegetshoplistpastsales', $payload);
+            
+            $response = $this->post('/sxapisfgetoeorderhistory', $payload);
 
             return $this->adapter->getPastItemList($response);
 
