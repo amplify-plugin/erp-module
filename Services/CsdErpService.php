@@ -174,7 +174,7 @@ class CsdErpService implements ErpApiInterface
                 }
             }
 
-            $response = $response['response'];
+            $response = $response['response'] ?? [];
 
             if (!empty($response['cErrorMessage'])) {
                 $friendlyMessage = $this->mapErpErrorMessage($response['cErrorMessage']);
