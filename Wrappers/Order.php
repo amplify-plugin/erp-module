@@ -66,6 +66,8 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property OrderDetailCollection $OrderDetail
  * @property OrderNoteCollection $OrderNotes
  * @property array $ExtraCharges
+ * @property string $FreightAccountNumber
+ * @property string $RestockFee
  */
 class Order extends Wrapper implements ErpApiWrapperInterface
 {
@@ -78,6 +80,6 @@ class Order extends Wrapper implements ErpApiWrapperInterface
         'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToContact', 'EntryDate', 'PromiseDate', 'RequestedShipDate', 'CustomerPurchaseOrdernumber', 'ItemSalesAmount',
         'DiscountAmountTrading', 'SalesTaxAmount', 'InvoiceAmount', 'FreightAmount', 'TotalOrderValue', 'TotalSpecialCharges', 'CarrierCode', 'WarehouseID',
         'InvoiceNumber', 'EmailAddress', 'BillToCountryName', 'ShipToCountryName', 'PdfAvailable', 'OrderDetail', 'OrderNotes', 'SignedDoc', 'SignedType',
-        'HazMatCharge', 'InHouseDeliveryDate', 'OrderDisposition', 'InvoiceDate', 'TrackingShipments', 'NoteList', 'ExtraCharges',
+        'HazMatCharge', 'InHouseDeliveryDate', 'OrderDisposition', 'InvoiceDate', 'TrackingShipments', 'NoteList', 'ExtraCharges', 'FreightAccountNumber', 'RestockFee'
     ];
 }

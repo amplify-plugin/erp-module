@@ -22,6 +22,10 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $ShipWhse
  * @property $ConvertedToOrder
  * @property $InHouseDeliveryDate
+ * @property $LineShipVia
+ * @property $LineFrtTerms
+ * @property $LineFrtBillAcct
+ * @property $DirectOrder
  */
 class OrderDetail extends Wrapper implements ErpApiWrapperInterface
 {
@@ -45,5 +49,9 @@ class OrderDetail extends Wrapper implements ErpApiWrapperInterface
         'InHouseDeliveryDate',
         'PODetails',
         'TiedOrder',
+        'LineShipVia',
+        'LineFrtTerms',
+        'LineFrtBillAcct',
+        'DirectOrder',
     ];
 }

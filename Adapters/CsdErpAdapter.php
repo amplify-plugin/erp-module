@@ -90,16 +90,30 @@ class CsdErpAdapter implements ErpApiInterface
      * @param array $orderInfo
      * @return array [seqNo => inHouseDeliveryDate]
      */
-    private function extractInHouseDeliveryDateMap(array $orderInfo): array
+    private function extractLineLevelFieldMap(array $orderInfo): array
     {
         $map = [];
 
         foreach ($orderInfo['tFieldlist']['t-fieldlist'] ?? [] as $field) {
-            if (($field['fieldName'] ?? null) === 'linelevel-user9') {
-                $seqNo = $field['seqNo'] ?? null;
-                if ($seqNo !== null) {
-                    $map[$seqNo] = $field['fieldValue'] ?? null;
+            $fieldName = $field['fieldName'] ?? null;
+            $seqNo = $field['seqNo'] ?? null;
+            $fieldValue = $field['fieldValue'] ?? null;
+
+            // Only process fields with seqNo
+            if ($seqNo === null || $fieldName === null) {
+                continue;
+            }
+
+            // only interested in linelevel- prefixed fields
+            if (str_starts_with($fieldName, 'linelevel-')) {
+                // Initialize sequence entry if not present
+                if (!isset($map[$seqNo])) {
+                    $map[$seqNo] = [];
                 }
+
+                // Strip prefix "linelevel-" and store field
+                $cleanName = str_replace('linelevel-', '', $fieldName);
+                $map[$seqNo][$cleanName] = $fieldValue;
             }
         }
 
@@ -401,7 +415,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         $taxes = $orderInfo['tOetaxsa']['t-oetaxsa'] ?? [];
 
-        $headers['inHouseDeliveryDateMap'] = $this->extractInHouseDeliveryDateMap($orderInfo);
+        $headers['lineLevelFieldMap'] = $this->extractLineLevelFieldMap($orderInfo);
 
         foreach ($taxes as $index => $orderTax) {
             foreach (($orderInfo['tOetaxar']['t-oetaxar'] ?? []) as $item) {
@@ -424,7 +438,7 @@ class CsdErpAdapter implements ErpApiInterface
         );
 
         array_walk($orderInfo, fn(&$item, $key) => $item = (!is_array($item)) ? trim($item) : $item);
-
+       
         return $this->renderSingleOrder($orderInfo);
     }
 
@@ -965,6 +979,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
             $model->FreightAmount = $attributes['actfreight'] ?? null;
+            $model->FreightAccountNumber = $attributes['zFreightAccount'] ?? null;
             $model->ContactId = (string)($attributes['cono'] ?? null);
             $model->CustomerNumber = $attributes['custno'] ?? $attributes['custNo'] ?? null;
             $model->CustomerName = $attributes['name'] ?? null;
@@ -985,7 +1000,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->BillToContact = $attributes['contactid'] ?? null;
             $model->ShipToNumber = $attributes['shipto'] ?? null;
             $model->ShipToName = $attributes['shiptonm'] ?? null;
-            $model->ShipToCountry = mb_strtoupper($attributes['shiptocountrycd'] ?? null);
+            $model->ShipToCountry = mb_strtoupper($attributes['zCountryCd'] ?? $attributes['shiptocountrycd'] ?? null);
             $model->ShipToAddress1 = $attributes['shiptoaddr1'] ?? null;
             $model->ShipToAddress2 = $attributes['shiptoaddr2'] ?? null;
             $model->ShipToAddress3 = $attributes['shiptoaddr3'] ?? null;
@@ -1034,6 +1049,13 @@ class CsdErpAdapter implements ErpApiInterface
             $model->InvoiceDate = $attributes['invoicedt'] ?? $attributes['invoiceDt'] ?? null;
             $model->OrderDetail = new OrderDetailCollection;
             $model->OrderNotes = new OrderNoteCollection;
+            $model->RestockFee = isset($attributes['zRestockAmt'])
+                ? (float)filter_var(
+                    $attributes['zRestockAmt'],
+                    FILTER_SANITIZE_NUMBER_FLOAT,
+                    FILTER_FLAG_ALLOW_FRACTION
+                )
+                : null;
 
             // if ($model->TotalOrderValue == null) {
             //     $model->TotalOrderValue = floatval($model->InvoiceAmount) + floatval($model->SalesTaxAmount) + floatval($model->FreightAmount) + floatval($model->TotalSpecialCharges) - floatval($model->DiscountAmountTrading);
@@ -1041,7 +1063,7 @@ class CsdErpAdapter implements ErpApiInterface
 
             if (!empty($attributes['orderlines'])) {
                 foreach (($attributes['orderlines'] ?? []) as $orderDetail) {
-                    $orderDetail['inHouseDeliveryDateMap'] = $attributes['inHouseDeliveryDateMap'] ?? [];
+                    $orderDetail['lineLevelFieldMap'] = $attributes['lineLevelFieldMap'] ?? [];
                     $model->OrderDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
             }
@@ -1110,16 +1132,21 @@ class CsdErpAdapter implements ErpApiInterface
                 'poNumber' => $attributes['tiedorder'],
                 'productCode' => $attributes['prod'],
             ]);
-
+            $model->DirectOrder = $attributes['botype'] ?? null;
             // Shipping & order info
             $model->ConvertedToOrder = $attributes['ConvertedToOrder'] ?? null;
             $model->ShipWhse = $attributes['ShipWhse'] ?? null;
 
             // In-House Delivery Date based on seqNo mapping
-            $model->InHouseDeliveryDate = null;
-            if (!empty($attributes['lineNo']) && !empty($attributes['inHouseDeliveryDateMap'])) {
-                $model->InHouseDeliveryDate = $attributes['inHouseDeliveryDateMap'][$attributes['lineNo']] ?? null;
+            if (!empty($attributes['lineNo']) && !empty($attributes['lineLevelFieldMap'])) {
+                $lineMap = $attributes['lineLevelFieldMap'][$attributes['lineNo']] ?? [];
+
+                $model->InHouseDeliveryDate = $lineMap['user9'] ?? null;
+                $model->LineShipVia = $lineMap['zLineShipVia'] ?? null;
+                $model->LineFrtTerms = $lineMap['zLineFrtTerms'] ?? null;
+                $model->LineFrtBillAcct = $lineMap['zLineFrtBillAcct'] ?? null;
             }
+
         }
 
         return $model;
