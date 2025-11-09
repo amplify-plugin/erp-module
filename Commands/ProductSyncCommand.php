@@ -15,7 +15,7 @@ class ProductSyncCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'product:sync {--updatesOnly=Y} {--processUpdates=N} {--limit=null}';
+    protected $signature = 'amplify:product-sync {--updatesOnly=Y} {--processUpdates=N} {--limit=null}';
 
     /**
      * The console command description.
