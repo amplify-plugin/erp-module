@@ -609,7 +609,8 @@ class CsdErpService implements ErpApiInterface
 
             foreach ($items as $itemIndex => $item) {
                 foreach ($warehouses as $warehouseIndex => $warehouse) {
-                    $entries[$itemIndex % $reminder][] = [
+//                    $entries[$itemIndex % $reminder][] = [
+                    $entries[] = [
                         'seqno' => (900 + $itemIndex) . (600 + $warehouseIndex),
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
@@ -621,7 +622,7 @@ class CsdErpService implements ErpApiInterface
 
             $payloads = [];
 
-            foreach ($entries as $entry) {
+//            foreach ($entries as $entry) {
                 $payloads[] = [
                     'companyNumber' => $this->companyNumber,
                     'operatorInit' => $this->operatorInit,
@@ -629,7 +630,7 @@ class CsdErpService implements ErpApiInterface
                     'getPriceBreaks' => true,
                     'checkOtherWhseInventory' => true,
                     'tOemultprcinV2' => [
-                        't-oemultprcinV2' => $entry,
+                        't-oemultprcinV2' => $entries,
                     ],
                     'tInfieldvalue' => [
                         't-infieldvalue' => [
@@ -637,7 +638,7 @@ class CsdErpService implements ErpApiInterface
                         ],
                     ],
                 ];
-            }
+//            }
 
             $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
                 foreach ($payloads as $index => $payload) {
