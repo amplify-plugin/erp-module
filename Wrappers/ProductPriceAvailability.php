@@ -44,6 +44,9 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property bool $QtyBreakExist
  * @property null|float $MinOrderQuantity
  * @property null|float $DiscountAmount
+ * @property null|float $QuantityInterval
+ * @property bool $ItemRestricted
+ * @property bool $AllowBackOrder
  */
 class ProductPriceAvailability extends Wrapper implements ErpApiWrapperInterface
 {
@@ -86,5 +89,8 @@ class ProductPriceAvailability extends Wrapper implements ErpApiWrapperInterface
         'OwnTruckOnly',
         'MinOrderQuantity',
         'DiscountAmount',
+        'QuantityInterval',
+        'ItemRestricted',
+        'AllowBackOrder'
     ];
 }

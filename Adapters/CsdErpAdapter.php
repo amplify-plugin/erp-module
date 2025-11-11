@@ -309,7 +309,15 @@ class CsdErpAdapter implements ErpApiInterface
 
         $tOemultprcoutV3 = collect($filters['tOemultprcoutV3']['t-oemultprcoutV3'] ?? [])->groupBy('seqno')->toArray();
         $tOemultprcoutbrk = collect($filters['tOemultprcoutbrk']['t-oemultprcoutbrk'] ?? [])->groupBy('seqno')->toArray();
-        $tOutfieldvalue = collect($filters['tOutfieldvalue']['t-outfieldvalue'] ?? [])->groupBy('seqno')->toArray();
+        $tOutfieldValue = $filters['tOutfieldvalue']['t-outfieldvalue'] ?? [];
+
+        foreach ($tOutfieldValue as $index => $value) {
+            if (preg_match('/(\d{6})\|(.+)\|(.+)/', $value['level']) !== 0) {
+                $tOutfieldValue[$index]['seqno'] = intval($value['level']);
+            }
+        }
+
+        $tOutfieldValue = collect($tOutfieldValue)->groupBy('seqno')->toArray();
 
         $items = [];
 
@@ -317,7 +325,7 @@ class CsdErpAdapter implements ErpApiInterface
             $items[$seqno] = array_merge(
                 array_shift($entry),
                 empty($tOemultprcoutbrk[$seqno]) ? [] : array_shift($tOemultprcoutbrk[$seqno]),
-                empty($tOutfieldvalue[$seqno]) ? [] : $this->mapFieldAttributes($tOutfieldvalue[$seqno])
+                empty($tOutfieldValue[$seqno]) ? [] : $this->mapFieldAttributes($tOutfieldValue[$seqno])
             );
         }
 
@@ -438,7 +446,7 @@ class CsdErpAdapter implements ErpApiInterface
         );
 
         array_walk($orderInfo, fn(&$item, $key) => $item = (!is_array($item)) ? trim($item) : $item);
-       
+
         return $this->renderSingleOrder($orderInfo);
     }
 
@@ -796,11 +804,13 @@ class CsdErpAdapter implements ErpApiInterface
             $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['price'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
-            $model->AverageLeadTime = $attributes['AverageLeadTime'] ?? null;
+            $model->AverageLeadTime = $attributes['leadtmavg'] ?? null;
             $model->QuantityAvailable = $attributes['netavail'] ?? null;
             $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
-            $model->OwnTruckOnly = isset($attributes['OwnTruckOnly']) && $attributes['OwnTruckOnly'] == 'Y';
-
+            $model->MinOrderQuantity = $attributes['MOQ'] ?? 1;
+            $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
+            $model->QuantityInterval = $attributes['SellMult'] ?? null;
+            $model->ItemRestricted = isset($attributes['Restricted']) && $attributes['Restricted'] == 'Y';
             $orderedQty = (float)($attributes['qtyord'] ?? 0);
             $model->Price = $this->getPriceBasedOnQtyBreak($model, $orderedQty);
         }
