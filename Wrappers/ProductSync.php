@@ -19,6 +19,8 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $PricingUnitOfMeasure
  * @property $Manufacturer
  * @property $PrimaryVendor
+ * @property $RHSpartscomNotes
+ * @property $Brand
  */
 class ProductSync extends Wrapper implements ErpApiWrapperInterface
 {

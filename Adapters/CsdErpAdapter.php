@@ -848,7 +848,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new ProductSync($attributes);
 
         $model->ItemNumber = $attributes['prod'] ?? null;
-        $model->UpdateAction = 'UPDATE';
+        $model->UpdateAction = isset($attributes['preventfl']) && $attributes['preventfl'] == 'y' ? 'DELETE' :'UPDATE';
         $model->SubAction = $attributes['SubAction'] ?? null;
         $model->Description1 = $attributes['descrip1'] ?? null;
         $model->Description2 = $attributes['descrip2'] ?? null;
