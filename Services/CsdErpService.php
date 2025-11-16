@@ -2208,10 +2208,12 @@ class CsdErpService implements ErpApiInterface
         }
     }
 
-    public function createUpdateCustomerPartNumber(array $inputs = [])
+    /**
+     * @throws CsdErpException
+     */
+    public function createUpdateCustomerPartNumber(array $inputs = []): array
     {
         $customer_number = $this->customerId($inputs);
-
 
         $payload = [
             'companyNumber' => $this->companyNumber,
@@ -2227,6 +2229,9 @@ class CsdErpService implements ErpApiInterface
 
         $response = $this->post('/sxapiiccustprodmnt', $payload);
 
-        return $response;
+        return [
+            'success' => isset($response['outputCustomParameter']) && empty($response['outputCustomParameter']),
+            'error' => $response['error'] ?? ''
+        ];
     }
 }
