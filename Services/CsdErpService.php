@@ -2217,18 +2217,16 @@ class CsdErpService implements ErpApiInterface
             'companyNumber' => $this->companyNumber,
             'operatorInit' => $this->operatorInit,
             'customerNumber' => $customer_number,
-            'productCode' => $inputs['item_number'] ?? '',
-            'alternateProductCode' => $inputs['customer_product_code'],
+            'productCode' => $inputs['customer_product_code'] ?? '',
+            'alternateProductCode' => $inputs['item_number'] ?? '',
             'unitSell' => $inputs['item_uom'] ?? 'ea',
-            'orderQuantity' => 1,
+            'orderQuantity' => $inputs['min_qty'] ?? 1,
         ];
 
         $payload['updateType'] = $inputs['action'] == 'delete' ? 'd' : 'c';
 
-
         $response = $this->post('/sxapiiccustprodmnt', $payload);
 
-       logger("Customer Part Number: {$inputs['action']}", $response);
+        return $response;
     }
-
 }
