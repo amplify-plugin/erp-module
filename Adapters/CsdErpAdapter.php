@@ -1000,12 +1000,12 @@ class CsdErpAdapter implements ErpApiInterface
                 : null;
             $model->OrderType = $this->orderType($attributes['transtype'] ?? $attributes['transType'] ?? null);
             $model->OrderStatus = $this->orderStatus($attributes['stage'] ?? $attributes['stageCd'] ?? null);
-            $model->CustomerAddress1 = $attributes['addr1'] ?? null;
-            $model->CustomerAddress2 = $attributes['addr2'] ?? null;
-            $model->CustomerAddress3 = $attributes['addr3'] ?? null;
-            $model->BillToCity = $attributes['city'] ?? null;
-            $model->BillToState = $attributes['state'] ?? null;
-            $model->BillToZipCode = $attributes['zipcd'] ?? null;
+            $model->CustomerAddress1 = $attributes['addr1'] ?? $attributes['soldtoaddr1'] ?? null;
+            $model->CustomerAddress2 = $attributes['addr2'] ?? $attributes['soldtoaddr2'] ?? null;
+            $model->CustomerAddress3 = $attributes['addr3'] ?? $attributes['soldtoaddr3'] ?? null;
+            $model->BillToCity = $attributes['city'] ?? $attributes['soldtocity'] ?? null;
+            $model->BillToState = $attributes['state'] ?? $attributes['soldtost'] ?? null;
+            $model->BillToZipCode = $attributes['zipcd'] ?? $attributes['soldtozipcd'] ?? null;
             $model->BillToCountry = mb_strtoupper($attributes['countrycd'] ?? null);
             $model->BillToContact = $attributes['contactid'] ?? null;
             $model->ShipToNumber = $attributes['shipto'] ?? null;
