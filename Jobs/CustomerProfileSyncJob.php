@@ -54,22 +54,29 @@ class CustomerProfileSyncJob implements ShouldQueue
     private function syncCustomerInfo()
     {
 
-        $customer_erp_data = ErpApi::getCustomerDetail(['customer_number' => $this->customer->customer_code]);
-        $warehouse = Warehouse::where('code', $customer_erp_data['DefaultWarehouse'])->first();
+        $erpCustomer = ErpApi::getCustomerDetail(['customer_number' => $this->customer->customer_code]);
+        $warehouse = Warehouse::where('code', $erpCustomer->DefaultWarehouse)->first();
 
         $customer_modified_data = [
-            'ar_number' => $customer_erp_data['ArCustomerNumber'] ?? null,
-            'class' => $customer_erp_data['CustomerClass'] ?? null,
-            'shipto_address_code' => $customer_erp_data['DefaultShipTo'] ?? null,
-            'suspend_code' => $customer_erp_data['SuspendCode'] ?? null,
+            'ar_number' => $erpCustomer->ArCustomerNumber ?? null,
+            'class' => $erpCustomer->CustomerClass ?? null,
+            'shipto_address_code' => $erpCustomer->DefaultShipTo ?? null,
+            'suspend_code' => $erpCustomer->SuspendCode ?? null,
             'warehouse_id' => ! empty($warehouse) ? $warehouse->id : null,
-            'carrier_code' => $customer_erp_data['CarrierCode'] ?? null,
-            'business_contact' => $customer_erp_data['SalesPersonEmail'] ?? null,
-            'customer_po_required' => $customer_erp_data['PoRequired'] == 'Y',
-            'allow_backorder' => $customer_erp_data['BackorderCode'] == 'Y',
-            'credit_card_only' => $customer_erp_data['CreditCardOnly'] == 'Y',
-            'free_shipment_amount' => empty($customer_erp_data['FreightOptionAmount']) ? null : filter_var($customer_erp_data['FreightOptionAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
-            'own_truck_ship_charge' => empty($customer_erp_data['OTShipPrice']) ? null : filter_var($customer_erp_data['OTShipPrice'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
+            'carrier_code' => $erpCustomer->CarrierCode ?? null,
+            'business_contact' => $erpCustomer->SalesPersonEmail ?? null,
+            'customer_po_required' => $erpCustomer->PoRequired == 'Y',
+            'allow_backorder' => $erpCustomer->BackorderCode == 'Y',
+            'credit_card_only' => $erpCustomer->CreditCardOnly == 'Y',
+            'free_shipment_amount' => empty($erpCustomer->FreightOptionAmount) ? null : filter_var($erpCustomer->FreightOptionAmount, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
+            'own_truck_ship_charge' => empty($erpCustomer->OTShipPrice) ? null : filter_var($erpCustomer->OTShipPrice, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
+            'address_1' => $erpCustomer->CustomerAddress1 ?? null,
+            'address_2' => $erpCustomer->CustomerAddress2 ?? null,
+            'address_3' => $erpCustomer->CustomerAddress3 ?? null,
+            'city' => $erpCustomer->CustomerCity ?? null,
+            'state' => $erpCustomer->CustomerState ?? null,
+            'zip_code' => $erpCustomer->CustomerZipCode ?? null,
+            'country_code' => $erpCustomer->CustomerCountry ?? null,
         ];
 
         $this->customer->fill($customer_modified_data);
@@ -85,7 +92,7 @@ class CustomerProfileSyncJob implements ShouldQueue
     private function syncShippingAddress()
     {
         try {
-            $erp_shipping_addresses = ErpApi::getCustomerShippingLocationList(['customer_number' => $this->customer->customer_code]);
+            $erp_shipping_addresses = ErpApi::getCustomerShippingLocationList(['customer_number' => $this->customer->erp_id]);
             $local_shipping_addresses = CustomerAddress::where('customer_id', $this->customer->id)->get();
             $ignore_to_delete = [];
 
