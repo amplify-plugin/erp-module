@@ -20,6 +20,7 @@ use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\CsdErpException;
+use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
@@ -597,14 +598,14 @@ class CsdErpService implements ErpApiInterface
         try {
             $items = $filters['items'] ?? [];
 
-            $shipTo = $filters['ship_to_address'] ?? null;
-
             $warehouses = array_filter(
                 explode(',', $filters['warehouse'] ?? 'MAIN'),
-                fn($item) => strlen($item) > 0
+                fn($item) => !empty($item)
             );
 
             $customer_number = $this->customerId($filters);
+
+            $shipTo = $filters['ship_to_address'] ?? session('ship_to_address.ShipToNumber',ErpApi::getCustomerDetail()->DefaultShipTo ?? null);
 
             $reminder = ceil(count($items) / 3);
 
