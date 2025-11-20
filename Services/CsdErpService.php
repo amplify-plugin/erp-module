@@ -141,11 +141,8 @@ class CsdErpService implements ErpApiInterface
             $this->config['url'] = str_replace('web/sxapirestservice', 'rest/serviceinterface', $this->config['url']);
         }
 
-        $response = Http::withoutVerifying()
-            ->timeout(60)
+        $response = Http::csdErp()
             ->baseUrl($this->config['url'])
-            ->withHeaders($this->commonHeaders)
-            ->withToken($this->config['access_token'])
             ->post($url, ['request' => $payload])
             ->json();
 
@@ -652,12 +649,9 @@ class CsdErpService implements ErpApiInterface
                     }
 
                     $pool->as($index)
-                        ->timeout(60)
-                        ->withoutVerifying()
-                        ->asJson()
-                        ->acceptJson()
-                        ->withToken($this->config['access_token'])
-                        ->post("{$this->config['url']}/sxapioepricingmultiplev5", ['request' => $payload]);
+                        ->withOptions(Http::csdErp()->getOptions())
+                        ->baseUrl($this->config['url'])
+                        ->post("/sxapioepricingmultiplev5", ['request' => $payload]);
                 }
             });
 

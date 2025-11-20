@@ -41,20 +41,15 @@ class ErpApiServiceProvider extends ServiceProvider
             ]);
         }
 
-//        Http::macro('factErp', function () {
-//            $username = config('amplify.erp.configurations.facts-erp.username');
-//            $password = config('amplify.erp.configurations.facts-erp.password');
-//
-//            return Http::timeout(10)
-//                ->withoutVerifying()
-//                ->contentType('application/json')
-//                ->withUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
-//                ->acceptJson()
-//                ->withHeaders([
-//                    'Consumerkey' => $username,
-//                    'Password' => $password,
-//                ]);
-//        });
+        Http::macro('csdErp', function () {
+
+            return Http::timeout(10)
+                ->withoutVerifying()
+                ->contentType('application/json')
+                ->withUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
+                ->acceptJson()
+                ->withToken(config('amplify.erp.configurations.csd-erp.access_token'));
+        });
 
         Http::macro('factErp', function () {
             return Http::withoutVerifying()
