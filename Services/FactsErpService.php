@@ -381,7 +381,10 @@ class FactsErpService implements ErpApiInterface
 
             $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
                 foreach ($payloads as $index => $payload) {
-                    $pool->as($index)->factErp()->post('/priceandavailability', $payload);
+                    $pool->as($index)
+                        ->baseUrl($this->config['url'])
+                        ->withOptions(Http::factErp()->getOptions())
+                        ->post('/priceandavailability', $payload);
                 }
             });
 
@@ -389,7 +392,7 @@ class FactsErpService implements ErpApiInterface
 
             foreach ($responses as $response) {
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
-                    $res = $this->validate($response->json());
+                    $res = $this->validate($response->body());
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
             }
