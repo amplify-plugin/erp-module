@@ -705,7 +705,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
 
-            $attributes['tFieldvaluepair'] = $this->mapFieldAttributes($attributes['tFieldvaluepair']['t-fieldvaluepair']);
+            $attributes['tFieldvaluepair'] = $this->mapFieldAttributes($attributes['tFieldvaluepair']['t-fieldvaluepair'] ?? []);
 
             $model->CustomerNumber = $attributes['customerNumber'] ?? null;
             $model->ArCustomerNumber = $attributes['arCustomerNumber'] ?? null;
