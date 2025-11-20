@@ -13,7 +13,7 @@
     "minimum-stability": "dev",
     "require": {
         "ext-gd": "*",
-        "amplify/sayt" : "*"
+        "amplify/sayt": "*"
     },
     "autoload": {
         "psr-4": {
@@ -27,7 +27,10 @@
         "laravel": {
             "providers": [
                 "Amplify\\ErpApi\\ErpApiServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "ErpApi": "Amplify\\ErpApi\\Facades\\ErpApi"
+            }
         }
     }
 }

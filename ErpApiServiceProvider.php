@@ -3,8 +3,7 @@
 namespace Amplify\ErpApi;
 
 use Amplify\ErpApi\Commands\ProductSyncCommand;
-use Amplify\ErpApi\Facades\ErpApi;
-use Illuminate\Foundation\AliasLoader;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
 
@@ -18,7 +17,7 @@ class ErpApiServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/Config/erp.php',
+            __DIR__ . '/Config/erp.php',
             'amplify.erp'
         );
 
@@ -36,13 +35,38 @@ class ErpApiServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        AliasLoader::getInstance()->alias('ErpApi', ErpApi::class);
-
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ProductSyncCommand::class,
             ]);
         }
+
+        Http::macro('factErp', function () {
+            $username = config('amplify.erp.configurations.facts-erp.username');
+            $password = config('amplify.erp.configurations.facts-erp.password');
+
+            return Http::timeout(10)
+                ->withoutVerifying()
+                ->contentType('application/json')
+                ->withUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
+                ->acceptJson()
+                ->withHeaders([
+                    'Consumerkey' => $username,
+                    'Password' => $password,
+                ]);
+        });
+
+        Http::macro('csdErp', function () {
+            return Http::withoutVerifying()
+                ->contentType('application/json')
+                ->withUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
+                ->acceptJson()
+                ->baseUrl(config('amplify.erp.configurations.facts-erp.url'))
+                ->withHeaders([
+                    'Consumerkey' => config('amplify.erp.configurations.facts-erp.username'),
+                    'Password' => config('amplify.erp.configurations.facts-erp.password'),
+                ]);
+        });
     }
 
     private function registerBladeDirectives()
@@ -80,10 +104,5 @@ class ErpApiServiceProvider extends ServiceProvider
                 return '<?php endif; ?>';
             });
         });
-    }
-
-    public function provides()
-    {
-        return ['ErpApi', ErpApi::class];
     }
 }

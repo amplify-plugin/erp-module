@@ -14,8 +14,6 @@ return [
     'labels' => [
         'default' => 'Default',
         'facts-erp' => 'Facts ERP 9.3',
-        'ecommerce-erp' => 'Commerce Gateway',
-        'facts-erp-77' => 'Facts ERP 7.7',
         'csd-erp' => 'CSD ERP',
     ],
     'configurations' => [
@@ -41,28 +39,8 @@ return [
             'multiple_warehouse' => false,
             'use_single_warehouse_cart' => false,
         ],
-        'facts-erp-77' => [ // SPI SAFETY
-            'version' => '7.7',
-            'adapter' => \Amplify\ErpApi\Services\FactsErp77Service::class,
-            'customer_id_field' => 'customer_code',
-            'url' => 'http://remote.spisafety.com:9088/seq_api',
-            'username' => '',
-            'password' => '',
-            'enabled' => true,
-            'multiple_warehouse' => false,
-            'use_single_warehouse_cart' => false,
-        ],
-        'ecommerce-erp' => [
-            'adapter' => \Amplify\ErpApi\Services\CommerceGatewayService::class,
-            'customer_id_field' => 'customer_code',
-            'url' => 'http://gatewaydemo.rbscorp.com/gatewayAdmin/GatewayClient',
-            'username' => '',
-            'password' => '',
-            'enabled' => true,
-            'multiple_warehouse' => true,
-            'use_single_warehouse_cart' => false,
-        ],
-        'csd-erp' => [ // Steven Engineering
+
+        'csd-erp' => [
             'version' => '2024.12.8354871',
             'adapter' => \Amplify\ErpApi\Services\CsdErpService::class,
             'customer_id_field' => 'customer_code',

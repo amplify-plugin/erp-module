@@ -77,10 +77,7 @@ class FactsErpService implements ErpApiInterface
      */
     private function post(string $url, array $payload = []): array
     {
-        $response = Http::timeout(10)
-            ->withoutVerifying()
-            ->withHeaders($this->commonHeaders)
-            ->post(($this->config['url'] . $url), $payload);
+        $response = Http::factErp()->post($url, $payload);
 
         // Item Master API Response RAW Logging
         if ($url == '/itemMaster') {
@@ -95,12 +92,7 @@ class FactsErpService implements ErpApiInterface
      */
     private function get(string $url, $query = null): array
     {
-
-        $response = Http::timeout(10)
-            ->withoutVerifying()
-            ->withHeaders($this->commonHeaders)
-            ->baseUrl($this->config['url'])
-            ->get($url, $query);
+        $response = Http::factErp()->get($url, $query);
 
         return $this->validate($response->body());
     }
@@ -369,21 +361,41 @@ class FactsErpService implements ErpApiInterface
         try {
             $items = $filters['items'] ?? [];
 
-            $warehouse = $filters['warehouse'] ?? null;
+            $warehouse = trim(str_replace(',', '', $filters['warehouse'] ?? ''));
 
             $customer_number = $filters['customer_number'] ?? $this->getCustomerDetail()->CustomerNumber;
 
-            $payload = [
-                'content' => [
-                    'Customer' => $customer_number,
-                    'WarehouseList' => $warehouse,
-                    'Items' => $items,
-                ],
-            ];
+            $items = array_chunk($items, 3);
 
-            $response = $this->post('/priceandavailability', $payload);
+            $payloads = [];
 
-            return $this->adapter->getProductPriceAvailability($response);
+            foreach ($items as $item) {
+                $payloads[] = [
+                    'content' => [
+                        'Customer' => $customer_number,
+                        'WarehouseList' => $warehouse,
+                        'Items' => $item,
+                    ],
+                ];
+            }
+
+            $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
+                foreach ($payloads as $index => $payload) {
+                    $pool->as($index)->factErp()->post('/priceandavailability', $payload);
+                }
+            });
+
+            $collection = new ProductPriceAvailabilityCollection();
+
+            foreach ($responses as $response) {
+                if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
+                    $res = $this->validate($response->json());
+                    $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
+                }
+            }
+
+            return $collection;
+
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 

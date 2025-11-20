@@ -562,6 +562,12 @@ class FactsErpAdapter implements ErpApiInterface
             $model->QtyBreak_5 = $attributes['QtyBreak_5'] ?? null;
             $model->QtyPrice_6 = $attributes['QtyPrice_6'] ?? null;
             $model->QtyBreak_6 = $attributes['QtyBreak_6'] ?? null;
+            $model->QtyPrice_7 = $attributes['QtyPrice_7'] ?? null;
+            $model->QtyBreak_7 = $attributes['QtyBreak_7'] ?? null;
+            $model->QtyPrice_8 = $attributes['QtyPrice_8'] ?? null;
+            $model->QtyBreak_8 = $attributes['QtyBreak_8'] ?? null;
+            $model->QtyPrice_9 = $attributes['QtyPrice_9'] ?? null;
+            $model->QtyBreak_9 = $attributes['QtyBreak_9'] ?? null;
             $model->ExtendedPrice = $attributes['ExtendedPrice'] ?? null;
             $model->OrderPrice = $attributes['OrderPrice'] ?? null;
             $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
@@ -570,7 +576,7 @@ class FactsErpAdapter implements ErpApiInterface
             $model->AverageLeadTime = $attributes['AverageLeadTime'] ?? null;
             $model->QuantityAvailable = $attributes['QuantityAvailable'] ?? null;
             $model->QuantityOnOrder = $attributes['QuantityOnOrder'] ?? null;
-            $model->OwnTruckOnly = isset($attributes['OwnTruckOnly']) ? $attributes['OwnTruckOnly'] == 'Y' : false;
+            $model->OwnTruckOnly = isset($attributes['OwnTruckOnly']) && $attributes['OwnTruckOnly'] == 'Y';
         }
 
         return $model;
