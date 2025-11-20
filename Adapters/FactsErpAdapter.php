@@ -21,6 +21,7 @@ use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\InvalidBase64Data;
+use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\CampaignDetail;
@@ -541,6 +542,8 @@ class FactsErpAdapter implements ErpApiInterface
     private function renderSingleProductPriceAvailability($attributes): ProductPriceAvailability
     {
         $model = new ProductPriceAvailability($attributes);
+
+        $model->Warehouses = ErpApi::getWarehouses();
 
         if (! empty($attributes)) {
             $attributes = (! empty($attributes['Item'])) ? array_shift($attributes['Item']) : [];
