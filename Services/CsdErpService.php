@@ -137,14 +137,21 @@ class CsdErpService implements ErpApiInterface
             $payload['customerNumber'] = intval($payload['customerNumber']);
         }
 
+        $attchedPayload = ['request' => $payload];
+
         if ($url == '/proxy/FetchWhere') {
             $this->config['url'] = str_replace('web/sxapirestservice', 'rest/serviceinterface', $this->config['url']);
+            $attchedPayload = $payload;
         }
 
         $response = Http::csdErp()
             ->baseUrl($this->config['url'])
-            ->post($url, ['request' => $payload])
+            ->post($url, $attchedPayload)
             ->json();
+
+        if ($url == '/proxy/FetchWhere') {
+            return $response;
+        }
 
         return $this->validate($response, $url);
 
