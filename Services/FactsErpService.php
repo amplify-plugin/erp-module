@@ -393,12 +393,16 @@ class FactsErpService implements ErpApiInterface
             foreach ($responses as $response) {
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
                     $res = $this->validate($response->body());
+
+                    if (isset($res['Items'][0]['Item'][0], $items[0][0]['qty'])) {
+                        $res['Items'][0]['Item'][0]['QuantityOnOrder'] = $items[0][0]['qty'];
+                    }
+
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
             }
 
             return $collection;
-
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
