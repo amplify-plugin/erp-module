@@ -68,13 +68,14 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property array $ExtraCharges
  * @property string $FreightAccountNumber
  * @property string $RestockFee
+ * @property string $Message
  */
 class Order extends Wrapper implements ErpApiWrapperInterface
 {
     use ApiWrapperTrait;
 
     protected array $fillable = [
-        'CustomerNumber', 'ContactId', 'OrderNumber', 'OrderSuffix', 'OrderType',
+        'Message','CustomerNumber', 'ContactId', 'OrderNumber', 'OrderSuffix', 'OrderType',
         'OrderStatus', 'CustomerName', 'BillToCountry', 'CustomerAddress1', 'CustomerAddress2', 'CustomerAddress3', 'BillToCity', 'BillToState',
         'BillToZipCode', 'BillToContact', 'ShipToNumber', 'ShipToName', 'ShipToCountry', 'ShipToAddress1', 'ShipToAddress2', 'ShipToAddress3',
         'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToContact', 'EntryDate', 'PromiseDate', 'RequestedShipDate', 'CustomerPurchaseOrdernumber', 'ItemSalesAmount',
