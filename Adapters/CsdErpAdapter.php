@@ -463,6 +463,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model->SalesTaxAmount = !empty($attributes['SalesTaxAmount']) ? (float)filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightAmount = !empty($attributes['FreightAmount']) ? (float)filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightRate = !empty($attributes['FreightRate']) ? $attributes['FreightRate'] : [];
+        $model->WireTrasnsferFee = !empty($attributes['WireTrasnsferFee']) ? (float)filter_var($attributes['WireTrasnsferFee'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
 
         return $model;
     }

@@ -25,5 +25,6 @@ class OrderTotal extends Wrapper implements ErpApiWrapperInterface
         'FreightAmount',
         'FreightRate',
         'HazMatCharge',
+        'WireTrasnsferFee',
     ];
 }

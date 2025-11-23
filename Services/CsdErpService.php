@@ -1271,14 +1271,25 @@ class CsdErpService implements ErpApiInterface
             $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
             $salesTaxAmount = '0.00';
+            $wireTrasnsferFee = '0.00';
             $totalOrderValue = 0.00;
 
-            // Get tax amount from tOrdtotextamt
             if (!empty($response['tOrdtotextamt']['t-ordtotextamt'])) {
                 foreach ($response['tOrdtotextamt']['t-ordtotextamt'] as $tax) {
-                    if ($tax['type'] === 'tax') {
+
+                    // Tax amount
+                    if (!empty($tax['type']) && strtolower($tax['type']) === 'tax') {
                         $salesTaxAmount = $tax['amount'];
-                        break;
+                    }
+
+                    // Wire Transfer addon
+                    if (
+                        !empty($tax['type']) &&
+                        !empty($tax['descrip']) &&
+                        strtolower($tax['type']) === 'addon' &&
+                        trim(strtolower($tax['descrip'])) === 'wire trnsfer'
+                    ) {
+                        $wireTrasnsferFee = $tax['amount'];
                     }
                 }
             }
@@ -1305,6 +1316,7 @@ class CsdErpService implements ErpApiInterface
                             'OrderNumber' => '',
                             'TotalOrderValue' => $totalOrderValue,
                             'SalesTaxAmount' => $salesTaxAmount,
+                            'WireTrasnsferFee' => $wireTrasnsferFee,
                             'FreightAmount' => $freightAmount,
                             'FreightRate' => $freightRate,
                         ],
@@ -1320,6 +1332,7 @@ class CsdErpService implements ErpApiInterface
                         'OrderNumber' => '',
                         'TotalOrderValue' => $totalOrderValue,
                         'SalesTaxAmount' => $salesTaxAmount,
+                        'WireTrasnsferFee' => $wireTrasnsferFee,
                         'FreightAmount' => '0.00',
                         'FreightRate' => [],
                     ],
