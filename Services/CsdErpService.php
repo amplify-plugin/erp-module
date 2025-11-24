@@ -1510,7 +1510,7 @@ class CsdErpService implements ErpApiInterface
             $invoice_status = $filters['invoice_status'] ?? 'All';
             $to_entry_date = $filters['to_entry_date'] ?? null;
             $from_entry_date = $filters['from_entry_date'] ?? null;
-            $invoice_number = $filters['invoice_number'] ?? null;
+            $invoice_number = $filters['invoice_number'] ?? 0;
             $record_limit = $filters['limit'] ?? 0;
 
             if ($invoice_status == 'PAST') {
@@ -1551,7 +1551,7 @@ class CsdErpService implements ErpApiInterface
                 'cStatus' => $invoice_status,
                 'startDate' => $from_entry_date,
                 'endDate' => $to_entry_date,
-                'invoiceNumber' => 0,
+                'invoiceNumber' => $invoice_number,
                 'checkNumber' => 0,
                 'recordLimit' => $record_limit,
             ], $includePeriods);

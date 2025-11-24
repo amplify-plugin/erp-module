@@ -52,6 +52,8 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $InvoiceDueDate
  * @property string $ItemSalesAmount
  * @property string $DaysOpen
+ * @property string $FreightAccountNumber
+ * @property string $RestockFee
  */
 class Invoice extends Wrapper implements ErpApiWrapperInterface
 {
@@ -62,6 +64,6 @@ class Invoice extends Wrapper implements ErpApiWrapperInterface
         'PayDays', 'CustomerPONumber', 'InvoiceDetail', 'HasInvoiceDetail', 'OrderNumber', 'InvoiceStatus', 'InvoiceSuffix', 'ShipToName', 'ShipToAddress1',
         'ShipToAddress2', 'ShipToAddress3', 'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToCountry', 'WarehouseID', 'OrderDisposition', 'CarrierCode',
         'DiscountAmountTrading', 'TotalSpecialCharges', 'FreightAmount', 'SalesTaxAmount', 'TotalOrderValue', 'NoteList', 'ExtraCharges', 'InvoiceDueDate',
-        'ItemSalesAmount', 'DaysOpen',
+        'ItemSalesAmount', 'DaysOpen', 'FreightAccountNumber ','RestockFee',
     ];
 }
