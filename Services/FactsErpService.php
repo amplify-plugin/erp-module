@@ -361,6 +361,11 @@ class FactsErpService implements ErpApiInterface
         try {
             $items = $filters['items'] ?? [];
 
+            $quantities = [];
+            foreach($items as $i) {
+                $quantities[$i['item']] = $i['qty'];
+            }
+
             $warehouse = trim(str_replace(',', '', $filters['warehouse'] ?? ''));
 
             $customer_number = $filters['customer_number'] ?? $this->getCustomerDetail()->CustomerNumber;
@@ -394,14 +399,17 @@ class FactsErpService implements ErpApiInterface
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
                     $res = $this->validate($response->body());
 
-                    if (isset($res['Items'][0]['Item'][0], $items[0][0]['qty'])) {
-                        $res['Items'][0]['Item'][0]['QuantityOnOrder'] = $items[0][0]['qty'];
+                    foreach ($res['Items'] as $index => $item) {
+                        if (isset($res['Items'][$index]['Item'][0]['ItemNumber'])) {
+                            $res['Items'][$index]['Item'][0]['QuantityOnOrder'] =
+                                $quantities[$res['Items'][$index]['Item'][0]['ItemNumber']] ?? 1;
+                        }
                     }
-
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
             }
 
+            dd($collection);
             return $collection;
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
