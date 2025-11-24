@@ -409,7 +409,6 @@ class FactsErpService implements ErpApiInterface
                 }
             }
 
-            dd($collection);
             return $collection;
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
