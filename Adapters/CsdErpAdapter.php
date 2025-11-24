@@ -380,7 +380,13 @@ class CsdErpAdapter implements ErpApiInterface
      */
     public function createOrder(array $orderInfo = []): Order
     {
+        $model = new Order($orderInfo);
         $erpData = $orderInfo ?? [];
+        if(isset($erpData['error'])) {
+            // Handle error scenario if needed
+            $model->Message = $erpData['error'];
+            return $model;
+        }
 
         $header = $erpData['tOrdloadhdrdata']['t-ordloadhdrdata'][0] ?? [];
         $lines = $erpData['tOrdloadlinedata']['t-ordloadlinedata'] ?? [];
@@ -392,7 +398,7 @@ class CsdErpAdapter implements ErpApiInterface
             $totals,
         );
 
-        $model = new Order([]);
+
         $model->OrderNumber = $flattened['orderno'] ?? null;
         $model->OrderStatus = 'Accepted';
 
