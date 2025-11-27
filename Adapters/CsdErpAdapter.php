@@ -640,7 +640,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $headers = $this->mapFieldAttributes($orderInfo['tFieldlist']['t-fieldlist'] ?? []);
         $taxes = $orderInfo['tOetaxsa']['t-oetaxsa'] ?? [];
-        $headers['inHouseDeliveryDateMap'] = $this->extractInHouseDeliveryDateMap($orderInfo);
+        $headers['lineLevelFieldMap'] = $this->extractLineLevelFieldMap($orderInfo);
 
         foreach ($taxes as $index => $orderTax) {
             foreach (($orderInfo['tOetaxar']['t-oetaxar'] ?? []) as $item) {
@@ -1278,6 +1278,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new Invoice($attributes);
 
         if (!empty($attributes)) {
+            $model->FreightAccountNumber = $attributes['zFreightAccount'] ?? null;
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? 'No';
             $model->InvoiceNumber = $attributes['invnoraw'] ?? $attributes['orderno'] ?? null;
             $model->InvoiceSuffix = isset($attributes['ordersuf']) || isset($attributes['invsufraw'])
@@ -1309,7 +1310,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->ShipToState = $attributes['shiptost'] ?? null;
             $model->ShipToZipCode = $attributes['shiptozip'] ?? null;
             $model->ShipToAddress3 = $attributes['shiptoaddr3'] ?? null;
-            $model->ShipToCountry = mb_strtoupper($attributes['shiptocountrycd'] ?? null);
+            $model->ShipToCountry = mb_strtoupper($attributes['zCountryCd'] ?? $attributes['shiptocountrycd'] ?? null);
             $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? null);
             $model->OrderDisposition = $attributes['orderdisp'] ?? null;
             $model->CarrierCode = $attributes['shipviaty'] ?? $attributes['shipviatydesc'] ?? null;
@@ -1335,6 +1336,14 @@ class CsdErpAdapter implements ErpApiInterface
                 ? Carbon::parse($model->InvoiceDate)->diffInDays(Carbon::now())
                 : null;
 
+            $model->RestockFee = isset($attributes['zRestockAmt'])
+                ? (float)filter_var(
+                    $attributes['zRestockAmt'],
+                    FILTER_SANITIZE_NUMBER_FLOAT,
+                    FILTER_FLAG_ALLOW_FRACTION
+                )
+                : null;
+
             // if ($model->TotalOrderValue == null) {
             //     $model->TotalOrderValue = floatval($model->InvoiceAmount) + floatval($model->SalesTaxAmount) + floatval($model->FreightAmount) + floatval($model->TotalSpecialCharges) - floatval($model->DiscountAmountTrading);
             // }
@@ -1342,7 +1351,7 @@ class CsdErpAdapter implements ErpApiInterface
 
             if (!empty($attributes['orderlines'])) {
                 foreach (($attributes['orderlines'] ?? []) as $orderDetail) {
-                    $orderDetail['inHouseDeliveryDateMap'] = $attributes['inHouseDeliveryDateMap'] ?? [];
+                    $orderDetail['lineLevelFieldMap'] = $attributes['lineLevelFieldMap'] ?? [];
                     $model->InvoiceDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
             }
