@@ -2,48 +2,50 @@
 
 namespace Amplify\ErpApi\Services;
 
-use Amplify\ErpApi\Adapters\DefaultErpAdapter;
-use Amplify\ErpApi\Collections\CampaignCollection;
-use Amplify\ErpApi\Collections\ContactCollection;
-use Amplify\ErpApi\Collections\CreateQuotationCollection;
-use Amplify\ErpApi\Collections\CustomerCollection;
-use Amplify\ErpApi\Collections\InvoiceCollection;
-use Amplify\ErpApi\Collections\OrderCollection;
-use Amplify\ErpApi\Collections\PastItemCollection;
-use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
-use Amplify\ErpApi\Collections\ProductSyncCollection;
-use Amplify\ErpApi\Collections\QuotationCollection;
-use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
-use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
-use Amplify\ErpApi\Interfaces\ErpApiInterface;
-use Amplify\ErpApi\Traits\BackendShippingCostTrait;
-use Amplify\ErpApi\Traits\ErpApiConfigTrait;
-use Amplify\ErpApi\Wrappers\Campaign;
-use Amplify\ErpApi\Wrappers\Contact;
-use Amplify\ErpApi\Wrappers\ContactValidation;
-use Amplify\ErpApi\Wrappers\CreateCustomer;
-use Amplify\ErpApi\Wrappers\CreateOrUpdateNote;
-use Amplify\ErpApi\Wrappers\CreatePayment;
-use Amplify\ErpApi\Wrappers\Customer;
-use Amplify\ErpApi\Wrappers\CustomerAR;
-use Amplify\ErpApi\Wrappers\Document;
-use Amplify\ErpApi\Wrappers\Invoice;
-use Amplify\ErpApi\Wrappers\Order;
-use Amplify\ErpApi\Wrappers\OrderTotal;
-use Amplify\ErpApi\Wrappers\Quotation;
-use Amplify\ErpApi\Wrappers\ShippingLocation;
-use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
-use Amplify\System\Backend\Models\CustomerAddress;
-use Amplify\System\Backend\Models\CustomerOrder;
-use Amplify\System\Backend\Models\CustomerOrderNote;
-use Amplify\System\Backend\Models\Product;
-use Amplify\System\Backend\Models\ProductAvailability;
-use Amplify\System\Backend\Models\ProductSync;
-use Amplify\System\Backend\Models\Shipping;
-use Amplify\System\Backend\Models\Warehouse;
 use Exception;
+use Amplify\ErpApi\Wrappers\Order;
+use Amplify\ErpApi\Wrappers\Contact;
+use Amplify\ErpApi\Wrappers\Invoice;
+use Amplify\ErpApi\Wrappers\Campaign;
+use Amplify\ErpApi\Wrappers\Customer;
+use Amplify\ErpApi\Wrappers\Document;
+use Amplify\ErpApi\Wrappers\Quotation;
+use Amplify\ErpApi\Wrappers\TermsType;
+use Amplify\ErpApi\Wrappers\CustomerAR;
+use Amplify\ErpApi\Wrappers\OrderTotal;
+use Amplify\ErpApi\Wrappers\CreatePayment;
+use Amplify\System\Backend\Models\Product;
+use Amplify\ErpApi\Wrappers\CreateCustomer;
+use Amplify\System\Backend\Models\Shipping;
+use Amplify\ErpApi\Traits\ErpApiConfigTrait;
+use Amplify\System\Backend\Models\Warehouse;
+use Amplify\ErpApi\Wrappers\ShippingLocation;
+use Amplify\ErpApi\Adapters\DefaultErpAdapter;
+use Amplify\ErpApi\Interfaces\ErpApiInterface;
+use Amplify\ErpApi\Wrappers\ContactValidation;
+use Amplify\System\Backend\Models\ProductSync;
+use Amplify\ErpApi\Collections\OrderCollection;
+use Amplify\ErpApi\Wrappers\CreateOrUpdateNote;
+use Amplify\System\Backend\Models\CustomerOrder;
+use Amplify\ErpApi\Collections\ContactCollection;
+use Amplify\ErpApi\Collections\InvoiceCollection;
+use Amplify\ErpApi\Collections\CampaignCollection;
+use Amplify\ErpApi\Collections\CustomerCollection;
+use Amplify\ErpApi\Collections\PastItemCollection;
+use Amplify\System\Backend\Models\CustomerAddress;
+use Amplify\ErpApi\Collections\QuotationCollection;
+use Amplify\ErpApi\Collections\WarehouseCollection;
+use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\System\Backend\Models\CustomerOrderNote;
+use Amplify\ErpApi\Collections\ProductSyncCollection;
+use Amplify\System\Backend\Models\ProductAvailability;
+use Amplify\ErpApi\Collections\TrackShipmentCollection;
+use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
+use Amplify\ErpApi\Collections\ShippingOptionCollection;
+use Amplify\ErpApi\Collections\CreateQuotationCollection;
+use Amplify\ErpApi\Collections\ShippingLocationCollection;
+use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
+
 
 class DefaultErpService implements ErpApiInterface
 {
@@ -144,7 +146,7 @@ class DefaultErpService implements ErpApiInterface
     {
         try {
             $customer_number = $filters['customer_number'] ?? $this->customerId();
-            $locationList = CustomerAddress::whereHas('customer', fn ($q) => $q->where('customer_code', $customer_number))->get();
+            $locationList = CustomerAddress::whereHas('customer', fn ($q) => $q->where('customer_id', $customer_number))->get();
             $locationList = $locationList ? $locationList->toArray() : [];
 
             return $this->adapter->getCustomerShippingLocationList($locationList);
@@ -193,7 +195,7 @@ class DefaultErpService implements ErpApiInterface
                         'item_number' => $item->product_code,
                         'warehouse_id' => $warehouse,
                         'price' => $selling_price,
-                        'list_price' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
+                        'list_price_1' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
                         'standard_price' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
                         'extended_price' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
                         'order_price' => $selling_price,
@@ -767,5 +769,28 @@ class DefaultErpService implements ErpApiInterface
     public function getContactDetail(array $filters = []): Contact
     {
         return new Contact($filters);
+    }
+
+    /**
+     * To get customer terms type
+     * Terms are CRCD-credit card only or COD-cash only
+     * Or CIA-ACH only, MAN-blocked
+     */
+    public function getTermsType(array $filters = []): TermsType
+    {
+        try {
+            $data = ['CRCD', 'COD', 'CIA', 'MAN'];
+            $termsTypeValue = array_rand(array_flip($data), 1);
+            $model = new TermsType($termsTypeValue);
+            $model->TermsType = $termsTypeValue;
+
+            return $model;
+
+        } catch (Exception $exception) {
+
+            $this->exceptionHandler($exception);
+
+            return $model;
+        }
     }
 }
