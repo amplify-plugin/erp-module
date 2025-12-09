@@ -908,6 +908,7 @@ class CsdErpService implements ErpApiInterface
         $items = $orderInfo['items'] ?? [];
         $customer_number = $this->customerId($orderInfo);
         $contact_code = $order['contact_code'] ?? null;
+        $review_order_hold = $order['review_order_hold'] ?? 'V';
 
         $orderLine = array_map(function ($item) {
             return [
@@ -1046,7 +1047,7 @@ class CsdErpService implements ErpApiInterface
                         'webtransactiontype' => 'LSF',
                         'ordertype' => $order['order_type'],
                         'ponumber' => $order['po_number'],
-                        'revieworderhold' => 'V',
+                        'revieworderhold' => $review_order_hold,
                     ],
                 ],
             ],
