@@ -2,50 +2,50 @@
 
 namespace Amplify\ErpApi\Services;
 
-use Exception;
-use Amplify\ErpApi\Wrappers\Order;
-use Amplify\ErpApi\Wrappers\Contact;
-use Amplify\ErpApi\Wrappers\Invoice;
-use Amplify\ErpApi\Wrappers\Campaign;
-use Amplify\ErpApi\Wrappers\Customer;
-use Amplify\ErpApi\Wrappers\Document;
-use Amplify\ErpApi\Wrappers\Quotation;
-use Amplify\ErpApi\Wrappers\TermsType;
-use Amplify\ErpApi\Wrappers\CustomerAR;
-use Amplify\ErpApi\Wrappers\OrderTotal;
-use Amplify\ErpApi\Wrappers\CreatePayment;
-use Amplify\System\Backend\Models\Product;
-use Amplify\ErpApi\Wrappers\CreateCustomer;
-use Amplify\System\Backend\Models\Shipping;
-use Amplify\ErpApi\Traits\ErpApiConfigTrait;
-use Amplify\System\Backend\Models\Warehouse;
-use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Adapters\DefaultErpAdapter;
-use Amplify\ErpApi\Interfaces\ErpApiInterface;
-use Amplify\ErpApi\Wrappers\ContactValidation;
-use Amplify\System\Backend\Models\ProductSync;
-use Amplify\ErpApi\Collections\OrderCollection;
-use Amplify\ErpApi\Wrappers\CreateOrUpdateNote;
-use Amplify\System\Backend\Models\CustomerOrder;
-use Amplify\ErpApi\Collections\ContactCollection;
-use Amplify\ErpApi\Collections\InvoiceCollection;
 use Amplify\ErpApi\Collections\CampaignCollection;
-use Amplify\ErpApi\Collections\CustomerCollection;
-use Amplify\ErpApi\Collections\PastItemCollection;
-use Amplify\System\Backend\Models\CustomerAddress;
-use Amplify\ErpApi\Collections\QuotationCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
-use Amplify\ErpApi\Traits\BackendShippingCostTrait;
-use Amplify\System\Backend\Models\CustomerOrderNote;
-use Amplify\ErpApi\Collections\ProductSyncCollection;
-use Amplify\System\Backend\Models\ProductAvailability;
-use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
+use Amplify\ErpApi\Collections\ContactCollection;
 use Amplify\ErpApi\Collections\CreateQuotationCollection;
-use Amplify\ErpApi\Collections\ShippingLocationCollection;
+use Amplify\ErpApi\Collections\CustomerCollection;
+use Amplify\ErpApi\Collections\InvoiceCollection;
+use Amplify\ErpApi\Collections\OrderCollection;
+use Amplify\ErpApi\Collections\PastItemCollection;
 use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
-
+use Amplify\ErpApi\Collections\ProductSyncCollection;
+use Amplify\ErpApi\Collections\QuotationCollection;
+use Amplify\ErpApi\Collections\ShippingLocationCollection;
+use Amplify\ErpApi\Collections\ShippingOptionCollection;
+use Amplify\ErpApi\Collections\TrackShipmentCollection;
+use Amplify\ErpApi\Collections\WarehouseCollection;
+use Amplify\ErpApi\Interfaces\ErpApiInterface;
+use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\ErpApi\Traits\ErpApiConfigTrait;
+use Amplify\ErpApi\Wrappers\Campaign;
+use Amplify\ErpApi\Wrappers\Contact;
+use Amplify\ErpApi\Wrappers\ContactValidation;
+use Amplify\ErpApi\Wrappers\CreateCustomer;
+use Amplify\ErpApi\Wrappers\CreateOrUpdateNote;
+use Amplify\ErpApi\Wrappers\CreatePayment;
+use Amplify\ErpApi\Wrappers\Customer;
+use Amplify\ErpApi\Wrappers\CustomerAR;
+use Amplify\ErpApi\Wrappers\Document;
+use Amplify\ErpApi\Wrappers\Invoice;
+use Amplify\ErpApi\Wrappers\Order;
+use Amplify\ErpApi\Wrappers\OrderTotal;
+use Amplify\ErpApi\Wrappers\Quotation;
+use Amplify\ErpApi\Wrappers\ShippingLocation;
+use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
+use Amplify\ErpApi\Wrappers\TermsType;
+use Amplify\System\Backend\Models\CustomerAddress;
+use Amplify\System\Backend\Models\CustomerOrder;
+use Amplify\System\Backend\Models\CustomerOrderNote;
+use Amplify\System\Backend\Models\Product;
+use Amplify\System\Backend\Models\ProductAvailability;
+use Amplify\System\Backend\Models\ProductSync;
+use Amplify\System\Backend\Models\Shipping;
+use Amplify\System\Backend\Models\Warehouse;
+use Exception;
+use Illuminate\Support\Facades\Cache;
 
 class DefaultErpService implements ErpApiInterface
 {
@@ -146,7 +146,13 @@ class DefaultErpService implements ErpApiInterface
     {
         try {
             $customer_number = $filters['customer_number'] ?? $this->customerId();
-            $locationList = CustomerAddress::whereHas('customer', fn ($q) => $q->where('customer_id', $customer_number))->get();
+
+            $activeConfig = config('amplify.erp.default');
+
+            $erp_customer_id_field = config('amplify.erp.configurations.' . $activeConfig . '.customer_id_field');
+
+            $locationList = CustomerAddress::whereHas('customer', fn($q) => $q->where($erp_customer_id_field, $customer_number))->get();
+
             $locationList = $locationList ? $locationList->toArray() : [];
 
             return $this->adapter->getCustomerShippingLocationList($locationList);
@@ -169,7 +175,7 @@ class DefaultErpService implements ErpApiInterface
             $warehouses = [];
             $item_list = [];
 
-            if (isset($filters['warehouse']) && ! empty($filters['warehouse'])) {
+            if (isset($filters['warehouse']) && !empty($filters['warehouse'])) {
                 $warehouseStr = $filters['warehouse'];
                 $warehouseCollection->each(function ($wh) use (&$warehouses, &$warehouseStr) {
                     if (stripos($warehouseStr, $wh->WarehouseNumber) !== false) {
@@ -183,24 +189,35 @@ class DefaultErpService implements ErpApiInterface
                 });
             }
 
-            $products = Product::select('id', 'product_code', 'selling_price', 'msrp', 'uom')->whereIn('product_code', array_map(fn ($item) => trim($item['item']), $items))->get();
+            $products = Product::select('id', 'product_code', 'selling_price', 'msrp', 'uom')->whereIn('product_code', array_map(fn($item) => trim($item['item']), $items))->get();
 
             foreach ($products ?? [] as $item) {
                 foreach ($warehouses as $warehouse) {
                     $selling_price = $this->customerSpecialPrice(floatval(preg_replace('/[^\d\.]/', '', $item->selling_price)), $item->id);
                     $availability = ProductAvailability::firstOrCreate([
+                        'product_id' => $item->id,
                         'item_number' => $item->product_code,
                         'warehouse_id' => $warehouse,
                     ], [
+                        'product_id' => $item->id,
                         'item_number' => $item->product_code,
                         'warehouse_id' => $warehouse,
                         'price' => $selling_price,
                         'list_price_1' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
+                        'list_price_2' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
+                        'list_price_3' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
+                        'list_price_4' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
+                        'list_price_5' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
                         'standard_price' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
                         'extended_price' => floatval(preg_replace('/[^\d\.]/', '', $item->msrp)),
+                        'suspended' => false,
+                        'status' => 'Active',
+                        'allow_backorder' => 1,
                         'order_price' => $selling_price,
                         'average_lead_time' => rand(1, 50),
                         'unit_of_measure' => $item->uom ?? 'EA',
+                        'pricing_unit_of_measure' => $item->uom ?? 'EA',
+                        'default_selling_unit_of_measure' => $item->uom ?? 'EA',
                         'quantity_available' => rand(0, 500),
                         'quantity_on_order' => 1,
                     ]);
@@ -258,7 +275,7 @@ class DefaultErpService implements ErpApiInterface
             $q->with('addresses');
         }])->latest();
 
-        if (! empty($filters['start_date'])) {
+        if (!empty($filters['start_date'])) {
             $query->whereDate('created_at', '>=', $filters['start_date']);
             $query->whereDate('created_at', '<=', $filters['end_date']);
         }
@@ -386,13 +403,13 @@ class DefaultErpService implements ErpApiInterface
     public function getInvoiceList(array $filters = []): InvoiceCollection
     {
         $invoices = \Amplify\System\Backend\Models\Invoice::where('customer_id', $this->customerId())
-            ->when(! empty($filters['invoice_status']), function ($query) use ($filters) {
+            ->when(!empty($filters['invoice_status']), function ($query) use ($filters) {
                 $query->where('invoice_status', $filters['invoice_status']);
             })
-            ->when(! empty($filters['from_entry_date']), function ($query) use ($filters) {
+            ->when(!empty($filters['from_entry_date']), function ($query) use ($filters) {
                 $query->where('entry_date', '>=', $filters['from_entry_date']);
             })
-            ->when(! empty($filters['to_entry_date']), function ($query) use ($filters) {
+            ->when(!empty($filters['to_entry_date']), function ($query) use ($filters) {
                 $query->where('entry_date', '<=', $filters['to_entry_date']);
             })
             ->get()
@@ -497,7 +514,25 @@ class DefaultErpService implements ErpApiInterface
      */
     public function getWarehouses(array $filters = []): WarehouseCollection
     {
-        return $this->adapter->getWarehouses(Warehouse::all()->toArray());
+        try {
+
+            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
+                return Warehouse::all();
+            });
+
+            foreach ($filters as $filter) {
+                if (in_array(count($filter), [2, 3])) {
+                    $warehouses = $warehouses->where(...$filter);
+                }
+            }
+
+            return $this->adapter->getWarehouses($warehouses->toArray());
+
+        } catch (Exception $exception) {
+            $this->exceptionHandler($exception);
+
+            return $this->adapter->getWarehouses();
+        }
     }
 
     /**
@@ -583,7 +618,7 @@ class DefaultErpService implements ErpApiInterface
             $customer = \Amplify\System\Backend\Models\Customer::whereCustomerCode($customer_number)->first();
             $contact = \Amplify\System\Backend\Models\Contact::whereEmail($contact_email)->first();
 
-            if (! $customer->is_assignable) {
+            if (!$customer->is_assignable) {
                 throw new \Exception('This customer does not have Assignable option enabled.');
             }
 
@@ -790,7 +825,16 @@ class DefaultErpService implements ErpApiInterface
 
             $this->exceptionHandler($exception);
 
-            return $model;
+            return new TermsType([]);
         }
+    }
+
+    public function getFreightDetails()
+    {
+        return [[
+            'frttermscd' => null,
+            'accountnumber' => null,
+            'carrierid' => null,
+        ]];
     }
 }
