@@ -2109,8 +2109,8 @@ class CsdErpService implements ErpApiInterface
                     'carrierid' => null,
                 ]];
 
-                // If freight is collect and rowpointer exists, do second call
-                if ($frttermscd === 'C' && $rowpointer) {
+                // rowpointer exists, do second call
+                if ($rowpointer) {
                     $secondPayload = [
                         'CompanyNumber' => $this->companyNumber,
                         'Operator' => $this->operatorInit,
