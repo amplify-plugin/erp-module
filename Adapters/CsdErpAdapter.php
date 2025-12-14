@@ -753,7 +753,7 @@ class CsdErpAdapter implements ErpApiInterface
         if (!empty($attributes)) {
             $model->ShipToNumber = $attributes['shipto'] ?? null;
             $model->ShipToName = $attributes['name'] ?? null;
-            $model->ShipToCountryCode = $attributes['countrycd'] ?? null;
+            $model->ShipToCountryCode = strtoupper($attributes['countrycd'] ?? null);
             $model->ShipToAddress1 = $attributes['addr1'] ?? null;
             $model->ShipToAddress2 = $attributes['addr2'] ?? null;
             $model->ShipToAddress3 = $attributes['addr3'] ?? null;
