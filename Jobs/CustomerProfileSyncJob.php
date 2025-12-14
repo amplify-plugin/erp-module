@@ -33,12 +33,17 @@ class CustomerProfileSyncJob implements ShouldQueue
      * Execute the job.
      *
      * @return void
+     * @throws \Exception
      */
     public function handle()
     {
         if (config('amplify.client_code') != 'ACP') {
-            $this->syncCustomerInfo();
-            $this->syncShippingAddress();
+            $canParallel = (PHP_OS_FAMILY == 'Linux' && function_exists('pcntl_fork'));
+
+            ($canParallel)
+                ? $this->parallelProfileSync()
+                : $this->sequentialProfileSync();
+
             // set last synced datetime
             $this->customer->refresh();
             $this->customer->synced_at = now();
@@ -128,4 +133,51 @@ class CustomerProfileSyncJob implements ShouldQueue
             \Illuminate\Support\Facades\Log::error($th);
         }
     }
+
+    /**
+     * @throws \Exception
+     */
+    private function parallelProfileSync()
+    {
+        $tasks = [
+            fn() => $this->syncCustomerInfo(),
+            fn() => $this->syncShippingAddress(),
+        ];
+
+        $pids = [];
+
+        foreach ($tasks as $task) {
+            $pid = pcntl_fork();
+
+            if ($pid === -1) {
+                throw new \Exception("Failed to fork process");
+            }
+
+            if ($pid === 0) {
+                // CHILD PROCESS
+                try {
+                    $task();
+                } catch (\Throwable $e) {
+                    \Log::error("Customer Profile Sync Child process error: " . $e->getMessage());
+                    \Log::error($e);
+                }
+                exit;
+            }
+
+            // Parent
+            $pids[] = $pid;
+        }
+
+        // Parent waits for all children
+        foreach ($pids as $pid) {
+            pcntl_waitpid($pid, $status);
+        }
+    }
+
+    private function sequentialProfileSync()
+    {
+        $this->syncCustomerInfo();
+        $this->syncShippingAddress();
+    }
+
 }
