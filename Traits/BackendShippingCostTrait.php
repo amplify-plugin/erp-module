@@ -53,10 +53,12 @@ trait BackendShippingCostTrait
 
         $orderTotal = [
             'OrderNumber' => '',
+            'TotalLineAmount' => $cart->sub_total ?? 0,
             'TotalOrderValue' => $cart->total ?? 0,
-            'SalesTaxAmount' => '',
-            'FreightAmount' => '',
+            'SalesTaxAmount' => $cart->tax_amount ?? 0,
+            'FreightAmount' => null,
             'FreightRate' => [],
+            'OrderLines' => []
         ];
 
         $this->clientCode = strtoupper(config('amplify.client_code'));

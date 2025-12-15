@@ -1274,6 +1274,7 @@ class CsdErpService implements ErpApiInterface
             $salesTaxAmount = '0.00';
             $wireTrasnsferFee = '0.00';
             $totalOrderValue = 0.00;
+            $totalLineAmount = 0.00;
 
             if (!empty($response['tOrdtotextamt']['t-ordtotextamt'])) {
                 foreach ($response['tOrdtotextamt']['t-ordtotextamt'] as $tax) {
@@ -1297,6 +1298,7 @@ class CsdErpService implements ErpApiInterface
 
             // Get total order amount from tOrdtotdata
             $totalOrderValue = $response['tOrdtotdata']['t-ordtotdata'][0]['totordamt'] ?? 0.00;
+            $totalLineAmount = $response['tOrdtotdata']['t-ordtotdata'][0]['totlineamt'] ?? 0.00;
 
             if (config('amplify.erp.use_amplify_shipping')) {
                 if (config('amplify.client_code') === 'STV') {
@@ -1315,11 +1317,13 @@ class CsdErpService implements ErpApiInterface
                     'Order' => [
                         [
                             'OrderNumber' => '',
+                            'TotalLineAmount' => $totalLineAmount,
                             'TotalOrderValue' => $totalOrderValue,
                             'SalesTaxAmount' => $salesTaxAmount,
                             'WireTrasnsferFee' => $wireTrasnsferFee,
                             'FreightAmount' => $freightAmount,
                             'FreightRate' => $freightRate,
+                            'OrderLines' => []
                         ],
                     ],
                 ];
@@ -1327,15 +1331,19 @@ class CsdErpService implements ErpApiInterface
                 return $this->adapter->getOrderTotal($mergedResponse);
             }
 
+            $orderLines = $response['tOrdtodata']['t-ordloadlinedata'] ?? [];
+
             $mergedResponse = [
                 'Order' => [
                     [
                         'OrderNumber' => '',
+                        'TotalLineAmount' => $totalLineAmount,
                         'TotalOrderValue' => $totalOrderValue,
                         'SalesTaxAmount' => $salesTaxAmount,
                         'WireTrasnsferFee' => $wireTrasnsferFee,
                         'FreightAmount' => '0.00',
                         'FreightRate' => [],
+                        'OrderLines' => $orderLines
                     ],
                 ],
             ];

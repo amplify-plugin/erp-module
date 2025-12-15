@@ -54,6 +54,7 @@ use Amplify\ErpApi\Collections\CreateQuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\InvoiceTransactionCollection;
 use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -382,7 +383,7 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Order($orderInfo);
         $erpData = $orderInfo ?? [];
-        if(isset($erpData['error'])) {
+        if (isset($erpData['error'])) {
             // Handle error scenario if needed
             $model->Message = $erpData['error'];
             return $model;
@@ -465,11 +466,26 @@ class CsdErpAdapter implements ErpApiInterface
             : [];
 
         $model->OrderNumber = !empty($attributes['OrderNumber']) ? $attributes['OrderNumber'] : null;
+        $model->TotalLineAmount = !empty($attributes['TotalLineAmount']) ? (float)filter_var($attributes['TotalLineAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->TotalOrderValue = !empty($attributes['TotalOrderValue']) ? (float)filter_var($attributes['TotalOrderValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->SalesTaxAmount = !empty($attributes['SalesTaxAmount']) ? (float)filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightAmount = !empty($attributes['FreightAmount']) ? (float)filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightRate = !empty($attributes['FreightRate']) ? $attributes['FreightRate'] : [];
         $model->WireTrasnsferFee = !empty($attributes['WireTrasnsferFee']) ? (float)filter_var($attributes['WireTrasnsferFee'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+        $model->OrderLines = new Collection();
+
+        if (!empty($orderInfo['OrderLines'])) {
+            foreach ($orderInfo['OrderLines'] as $line) {
+                $model->OrderLines->push((object)[
+                    'ItemNumber' => $line['shipprod'],
+                    'ItemDesc' => $line['descrip'],
+                    'Quantity' => $line['qtyord'],
+                    'UoM' => $line['unit'],
+                    'UnitPrice' => $line['price'],
+                    'TotalLineAmount' => $line['netamt'],
+                ]);
+            }
+        }
 
         return $model;
     }
@@ -855,7 +871,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new ProductSync($attributes);
 
         $model->ItemNumber = $attributes['prod'] ?? null;
-        $model->UpdateAction = isset($attributes['preventfl']) && $attributes['preventfl'] == 'y' ? 'DELETE' :'UPDATE';
+        $model->UpdateAction = isset($attributes['preventfl']) && $attributes['preventfl'] == 'y' ? 'DELETE' : 'UPDATE';
         $model->SubAction = $attributes['SubAction'] ?? null;
         $model->Description1 = $attributes['descrip1'] ?? null;
         $model->Description2 = $attributes['descrip2'] ?? null;
