@@ -834,8 +834,6 @@ class CsdErpAdapter implements ErpApiInterface
             $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
             $model->QuantityInterval = $attributes['SellMult'] ?? null;
             $model->ItemRestricted = isset($attributes['Restricted']) && $attributes['Restricted'] == 'Y';
-            $orderedQty = (float)($attributes['qtyord'] ?? 0);
-            $model->Price = $this->getPriceBasedOnQtyBreak($model, $orderedQty);
         }
 
         return $model;
