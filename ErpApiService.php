@@ -2,8 +2,11 @@
 
 namespace Amplify\ErpApi;
 
+use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
+use Amplify\ErpApi\Wrappers\Customer;
 use Amplify\System\Backend\Models\ProductSync;
+use Illuminate\Support\Facades\Cache;
 
 class ErpApiService
 {
@@ -50,6 +53,59 @@ class ErpApiService
         $this->init($adapter);
     }
 
+    /**
+     * Dynamically handle calls to the class.
+     *
+     * @param string $method
+     * @param array $parameters
+     * @return mixed
+     *
+     * @throws \BadMethodCallException
+     * @throws \ErrorException
+     */
+    public function __call($method, $parameters)
+    {
+        $this->checkErpIsEnabled();
+
+        if (method_exists($this->serviceInstance, $method)) {
+            return $this->forwardCallTo($this->serviceInstance, $method, $parameters);
+        }
+
+        if (!static::hasMacro($method)) {
+            throw new \BadMethodCallException(sprintf(
+                'Macro method %s::%s does not exist.', static::class, $method
+            ));
+        }
+
+        $macro = static::$macros[$method];
+
+        if ($macro instanceof \Closure) {
+            $macro = $macro->bindTo($this->serviceInstance, static::class);
+        }
+
+        return $macro(...$parameters);
+    }
+
+    /**
+     * @throws \ErrorException
+     */
+    private function checkErpIsEnabled()
+    {
+        if (!$this->enabled()) {
+            throw new \ErrorException(class_basename($this->serviceInstance) . ' is disabled.', 500);
+        }
+    }
+
+    /*
+|--------------------------------------------------------------------------
+| PRODUCT SYNCHRONIZATION SERVICE
+|--------------------------------------------------------------------------
+*/
+    private function productSyncInstance(): ProductSyncService
+    {
+        return new ProductSyncService;
+    }
+
     public function init(string $adapter = null): self
     {
         $adapter = $adapter ?? config('amplify.erp.default');
@@ -94,29 +150,9 @@ class ErpApiService
         return $this->serviceInstance->config['enabled'] ?? false;
     }
 
-    /**
-     * @throws \ErrorException
-     */
-    private function checkErpIsEnabled()
-    {
-        if (!$this->enabled()) {
-            throw new \ErrorException(class_basename($this->serviceInstance) . ' is disabled.', 500);
-        }
-    }
-
     public function adapter(): mixed
     {
         return $this->serviceInstance->adapter;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | PRODUCT SYNCHRONIZATION SERVICE
-    |--------------------------------------------------------------------------
-    */
-    private function productSyncInstance(): ProductSyncService
-    {
-        return new ProductSyncService;
     }
 
     /**
@@ -143,36 +179,34 @@ class ErpApiService
         $this->productSyncInstance()->updateProductWithSyncData($productSync, $approveId);
     }
 
-    /**
-     * Dynamically handle calls to the class.
-     *
-     * @param string $method
-     * @param array $parameters
-     * @return mixed
-     *
-     * @throws \BadMethodCallException
-     * @throws \ErrorException
-     */
-    public function __call($method, $parameters)
+    public function getCustomerDetail(array $filters = []): Customer
     {
-        $this->checkErpIsEnabled();
+        $customer_number = $filters['customer_number'] ?? null;
 
-        if (method_exists($this->serviceInstance, $method)) {
-            return $this->forwardCallTo($this->serviceInstance, $method, $parameters);
+        if (empty($customer_number)) {
+            $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
+            $filters['customer_number'] = $customer_number;
         }
 
-        if (!static::hasMacro($method)) {
-            throw new \BadMethodCallException(sprintf(
-                'Macro method %s::%s does not exist.', static::class, $method
-            ));
+        return Cache::remember(
+            "getCustomerDetails-{$customer_number}",
+            2 * HOUR,
+            fn() => $this->serviceInstance->getCustomerDetail($filters)
+        );
+    }
+
+    public function getCustomerShippingLocationList(array $filters = []): ShippingLocationCollection
+    {
+        if (!empty($filters['customer_number'])) {
+            return $this->serviceInstance->getCustomerShippingLocationList($filters);
         }
 
-        $macro = static::$macros[$method];
+        $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
 
-        if ($macro instanceof \Closure) {
-            $macro = $macro->bindTo($this->serviceInstance, static::class);
-        }
-
-        return $macro(...$parameters);
+        return Cache::remember(
+            "getCustomerShippingLocationList-{$customer_number}",
+            2 * HOUR,
+            fn() => $this->serviceInstance->getCustomerShippingLocationList($filters)
+        );
     }
 }
