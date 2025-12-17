@@ -1271,18 +1271,10 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
-            $salesTaxAmount = '0.00';
-            $wireTrasnsferFee = '0.00';
-            $totalOrderValue = 0.00;
+            $wireTrasnsferFee = 0.00;
 
             if (!empty($response['tOrdtotextamt']['t-ordtotextamt'])) {
                 foreach ($response['tOrdtotextamt']['t-ordtotextamt'] as $tax) {
-
-                    // Tax amount
-                    if (!empty($tax['type']) && strtolower($tax['type']) === 'tax') {
-                        $salesTaxAmount = $tax['amount'];
-                    }
-
                     // Wire Transfer addon
                     if (
                         !empty($tax['type']) &&
@@ -1296,7 +1288,10 @@ class CsdErpService implements ErpApiInterface
             }
 
             // Get total order amount from tOrdtotdata
+            $salesTaxAmount = $response['tOrdtotdata']['t-ordtotdata'][0]['tottaxamt'] ?? 0.00;
             $totalOrderValue = $response['tOrdtotdata']['t-ordtotdata'][0]['totordamt'] ?? 0.00;
+            $totalLineAmount = $response['tOrdtotdata']['t-ordtotdata'][0]['totlineamt'] ?? 0.00;
+            $orderLines = $response['tOrdloadlinedata']['t-ordloadlinedata'] ?? [];
 
             if (config('amplify.erp.use_amplify_shipping')) {
                 if (config('amplify.client_code') === 'STV') {
@@ -1310,37 +1305,25 @@ class CsdErpService implements ErpApiInterface
 
                 $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? '0.00';
                 $freightRate = $responseBackEnd['Order'][0]['FreightRate'] ?? [];
-
-                $mergedResponse = [
-                    'Order' => [
-                        [
-                            'OrderNumber' => '',
-                            'TotalOrderValue' => $totalOrderValue,
-                            'SalesTaxAmount' => $salesTaxAmount,
-                            'WireTrasnsferFee' => $wireTrasnsferFee,
-                            'FreightAmount' => $freightAmount,
-                            'FreightRate' => $freightRate,
-                        ],
-                    ],
-                ];
-
-                return $this->adapter->getOrderTotal($mergedResponse);
             }
 
             $mergedResponse = [
                 'Order' => [
                     [
                         'OrderNumber' => '',
+                        'TotalLineAmount' => $totalLineAmount,
                         'TotalOrderValue' => $totalOrderValue,
                         'SalesTaxAmount' => $salesTaxAmount,
                         'WireTrasnsferFee' => $wireTrasnsferFee,
-                        'FreightAmount' => '0.00',
-                        'FreightRate' => [],
+                        'FreightAmount' => $freightAmount,
+                        'FreightRate' => $freightRate,
+                        'OrderLines' => $orderLines
                     ],
                 ],
             ];
 
             return $this->adapter->getOrderTotal($mergedResponse);
+
 
         } catch (Exception $exception) {
 
