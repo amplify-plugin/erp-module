@@ -643,6 +643,9 @@ class CsdErpAdapter implements ErpApiInterface
         $invoiceList = new InvoiceCollection;
 
         foreach (($attributes['tArtransV3']['t-artransV3'] ?? []) as $invoice) {
+            if($invoice['transcdraw'] !== 11 && config('amplify.client_code') === 'STV') {
+                continue;
+            }
             $invoiceList->push($this->renderSingleInvoice($invoice));
         }
 
