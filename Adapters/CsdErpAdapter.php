@@ -198,7 +198,8 @@ class CsdErpAdapter implements ErpApiInterface
 
         $model->Name = $name;
         $model->Reference = $code;
-        $model->Message = $error;
+        $model->Message = isset($location['cErrorMessage']) ? trim($location['cErrorMessage']) : null;
+        $model->Response = !isset($location['cErrorMessage']) ? 'Success' : 'Failed';
 
         if (!empty($attributes)) {
             $model->Address1 = $attributes['streetaddr'] ?? null;
@@ -209,7 +210,6 @@ class CsdErpAdapter implements ErpApiInterface
             $model->State = $attributes['state'] ?? null;
             $model->ZipCode = $attributes['zipcd'] ?? null;
             $model->Status = $attributes['addressoverfl'] ?? false;
-            $model->Response = (isset($attributes['addressoverfl']) && $attributes['addressoverfl']) ? 'Success' : 'Failed';
             $model->Details = null;
         }
 
