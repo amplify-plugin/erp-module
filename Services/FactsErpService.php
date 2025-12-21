@@ -647,22 +647,25 @@ class FactsErpService implements ErpApiInterface
             if (config('amplify.erp.use_amplify_shipping')) {
                 $responseBackEnd = $this->getOrderTotalUsingBackend();
 
-                $totalOrderValue = $response['Order'][0]['TotalOrderValue'] ?? 0;
+                $totalLineAmount = $response['Order'][0]['TotalOrderValue'] ?? 0;
                 $salesTaxAmount = $response['Order'][0]['SalesTaxAmount'] ?? '0.00';
                 $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? '0.00';
 
                 $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? '0.00';
                 $freightRate = $responseBackEnd['Order'][0]['FreightRate'] ?? [];
+                $totalOrderValue = array_sum([$totalLineAmount ?? 0, $salesTaxAmount ?? 0, $hazMatCharge ?? 0, $freightAmount ?? 0]);
 
                 $mergedResponse = [
                     'Order' => [
                         [
                             'OrderNumber' => '',
+                            'TotalLineAmount' => $totalLineAmount,
                             'TotalOrderValue' => $totalOrderValue,
                             'SalesTaxAmount' => $salesTaxAmount,
                             'FreightAmount' => $freightAmount,
                             'FreightRate' => $freightRate,
                             'HazMatCharge' => $hazMatCharge,
+                            'OrderLines' => []
                         ],
                     ],
                 ];
@@ -781,14 +784,14 @@ class FactsErpService implements ErpApiInterface
             $customer_number = $this->getCustomerNumber($orderInfo);
             $shippingList = [];
 
-            if (! empty($orderInfo['GetShipVias']) && ! empty($customer_number)) {
+            if (!empty($orderInfo['GetShipVias']) && !empty($customer_number)) {
                 $customerList = $this->getCustomerList([
                     'customer_start' => $customer_number,
                     'customer_end' => $customer_number,
                     'GetShipVias' => $orderInfo['GetShipVias'],
                 ]);
 
-                if (! empty($customerList)) {
+                if (!empty($customerList)) {
                     $shippingList = $customerList[0]['ShipVias'];
                 }
             }
@@ -806,7 +809,7 @@ class FactsErpService implements ErpApiInterface
 
             $response = $this->post("/{$url}", $payload);
 
-            if (! empty($response['Quotes']) && ! empty($shippingList)) {
+            if (!empty($response['Quotes']) && !empty($shippingList)) {
                 $response['Quotes'][0] = $response['Quotes'][0] + ['shippingList' => $shippingList];
             }
 
@@ -939,10 +942,10 @@ class FactsErpService implements ErpApiInterface
 
             $payload = [
                 'content' => [
-                    'CustomerNumber' => $customer_number,
-                    'Type' => $type,
-                    'Invoices' => $invoices,
-                ] + $payment,
+                        'CustomerNumber' => $customer_number,
+                        'Type' => $type,
+                        'Invoices' => $invoices,
+                    ] + $payment,
             ];
 
             $response = $this->post('/arPayment', $payload);
@@ -1066,7 +1069,7 @@ class FactsErpService implements ErpApiInterface
             $customer = \Amplify\System\Backend\Models\Customer::whereCustomerCode($customer_number)->first();
             $contact = \Amplify\System\Backend\Models\Contact::whereEmail($contact_email)->first();
 
-            if (! $customer->is_assignable) {
+            if (!$customer->is_assignable) {
                 throw new \Exception('This customer does not have Assignable option enabled.');
             }
 
@@ -1186,7 +1189,7 @@ class FactsErpService implements ErpApiInterface
 
     private function getCustomerNumber($orderInfo)
     {
-        if (! empty($orderInfo['customer_number'])) {
+        if (!empty($orderInfo['customer_number'])) {
             return $orderInfo['customer_number'];
         }
 

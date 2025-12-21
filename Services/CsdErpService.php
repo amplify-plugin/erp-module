@@ -1317,7 +1317,8 @@ class CsdErpService implements ErpApiInterface
                         'WireTrasnsferFee' => $wireTrasnsferFee,
                         'FreightAmount' => $freightAmount,
                         'FreightRate' => $freightRate,
-                        'OrderLines' => $orderLines
+                        'OrderLines' => $orderLines,
+                        'HazMatCharge' => 0
                     ],
                 ],
             ];
