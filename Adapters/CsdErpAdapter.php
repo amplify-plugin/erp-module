@@ -1565,6 +1565,111 @@ class CsdErpAdapter implements ErpApiInterface
     }
 
     /**
+     * Map raw FetchWhere `ttblsmsew` response into month-by-month sales summary.
+     *
+     * Returns an array of 12 month rows with keys:
+     * - month: Month name
+     * - year: 4-digit year
+     * - quantity_purchased: total qty for that month
+     * - average_purchase_price: numeric (float) average price (sales/qty) or 0.0
+     * - average_purchase_price_formatted: string like "$0.00"
+     */
+    public function getPastSalesHistory(array $attributes = []): array
+    {
+        $rows = [];
+
+        $monthNames = [
+            'January','February','March','April','May','June',
+            'July','August','September','October','November','December'
+        ];
+
+        // Initialize accumulators
+        $qtyByMonth = array_fill(1, 12, 0.0);
+        $salesByMonth = array_fill(1, 12, 0.0);
+
+        $records = $attributes['ttblsmsew'] ?? [];
+
+        // Determine year fallback
+        $detectedYear = null;
+
+        foreach ($records as $rec) {
+            if (isset($rec['yr']) && $rec['yr'] !== null) {
+                $yr = intval($rec['yr']);
+                if ($yr < 100) {
+                    $detectedYear = 2000 + $yr;
+                } elseif ($yr > 999) {
+                    $detectedYear = $yr;
+                } else {
+                    $detectedYear = $yr;
+                }
+                break;
+            }
+            if (!empty($rec['lastpurdt'])) {
+                try {
+                    $d = new \DateTime($rec['lastpurdt']);
+                    $detectedYear = intval($d->format('Y'));
+                    break;
+                } catch (\Exception $e) {
+                }
+            }
+            if (!empty($rec['transdt'])) {
+                try {
+                    $d = new \DateTime($rec['transdt']);
+                    $detectedYear = intval($d->format('Y'));
+                    break;
+                } catch (\Exception $e) {
+                }
+            }
+        }
+
+        $detectedYear = $detectedYear ?? intval(date('Y'));
+
+        // Aggregate qty and sales per month index
+        foreach ($records as $rec) {
+            $qtysold = $rec['qtysold'] ?? [];
+            $salesamt = $rec['salesamt'] ?? [];
+
+            for ($i = 0; $i < 12; $i++) {
+                $mIndex = $i + 1;
+                $q = isset($qtysold[$i]) ? floatval($qtysold[$i]) : 0.0;
+                $s = isset($salesamt[$i]) ? floatval($salesamt[$i]) : 0.0;
+
+                $qtyByMonth[$mIndex] += $q;
+                $salesByMonth[$mIndex] += $s;
+            }
+        }
+
+        // Build rows
+        for ($i = 1; $i <= 12; $i++) {
+            $qty = $qtyByMonth[$i];
+            $sales = $salesByMonth[$i];
+            $avg = 0.0;
+            if ($qty > 0) {
+                $avg = $sales / $qty;
+            }
+
+            // If average is zero, show two decimals ($0.00). Otherwise show three decimals.
+            if (abs($avg) < 0.0000001) {
+                $avgNumeric = 0.0;
+                $avgFormatted = '$' . number_format(0, 2);
+            } else {
+                $avgNumeric = round($avg, 3);
+                $avgFormatted = '$' . number_format($avgNumeric, 3);
+            }
+
+            $rows[] = [
+                'month' => $monthNames[$i - 1],
+                'year' => $detectedYear,
+                'quantity_purchased' => (int) round($qty),
+                'average_purchase_price' => $avgNumeric,
+                'average_purchase_price_formatted' => $avgFormatted,
+            ];
+        }
+
+        return ['months' => $rows, 'raw' => $attributes];
+    }
+
+    /**
      * This API is to get shipping tracking URL
      */
     public function getTrackShipment(array $attributes = []): TrackShipmentCollection
