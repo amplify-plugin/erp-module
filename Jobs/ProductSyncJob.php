@@ -4,16 +4,17 @@ namespace Amplify\ErpApi\Jobs;
 
 use Amplify\System\Backend\Models\ProductSync;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class ProductSyncJob implements ShouldQueue
+class ProductSyncJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $productSyncId;
+    public ProductSync $productSync;
 
     public $approverId;
 
@@ -24,7 +25,11 @@ class ProductSyncJob implements ShouldQueue
      */
     public function __construct($id, $user_id)
     {
-        $this->productSyncId = $id;
+        $this->productSync = ProductSync::find($id);
+
+        $this->productSync->is_processing = true;
+        $this->productSync->save();
+
         $this->approverId = $user_id;
     }
 
@@ -35,8 +40,14 @@ class ProductSyncJob implements ShouldQueue
      */
     public function handle()
     {
-        if ($productSync = ProductSync::findOrFail($this->productSyncId)) {
-            \ErpApi::updateProductWithSyncData($productSync, $this->approverId);
-        }
+        \ErpApi::updateProductWithSyncData($this->productSync, $this->approverId);
+    }
+
+    /**
+     * Get the unique ID for the job.
+     */
+    public function uniqueId(): string
+    {
+        return $this->productSync->item_number;
     }
 }
