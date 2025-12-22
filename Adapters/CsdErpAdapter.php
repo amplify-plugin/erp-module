@@ -475,8 +475,8 @@ class CsdErpAdapter implements ErpApiInterface
         $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
         $model->OrderLines = new Collection();
 
-        if (!empty($orderInfo['OrderLines'])) {
-            foreach ($orderInfo['OrderLines'] as $line) {
+        if (!empty($attributes['OrderLines'])) {
+            foreach ($attributes['OrderLines'] as $line) {
                 $model->OrderLines->push((object)[
                     'ItemNumber' => $line['shipprod'],
                     'ItemDesc' => $line['descrip'],
