@@ -680,6 +680,62 @@ class CsdErpService implements ErpApiInterface
     }
 
     /**
+     * Fetch past sales history from ERP using FetchWhere proxy call.
+     *
+     * Expected filters:
+     * - prod / product : product code (required)
+     * - year : two-digit or four-digit year (optional, defaults to current year)
+     * - warehouses : comma separated warehouse list for CAN-DO (optional)
+     * - batch_size : number (optional, defaults to 100)
+     * - restart_row_id : string (optional)
+     *
+     * This calls the /proxy/FetchWhere endpoint with the payload shape the ERP expects.
+     */
+    public function getPastSalesHistory(array $filters = []): array
+    {
+        try {
+            $prod = $filters['prod'] ?? $filters['product'] ?? null;
+
+            if (empty($prod)) {
+                throw new CsdErpException('Product code is missing.');
+            }
+
+            $year = $filters['year'] ?? date('Y');
+            if (is_numeric($year) && intval($year) > 999) {
+                $year = intval(substr((string)$year, -2));
+            } else {
+                $year = intval($year);
+            }
+
+            $warehouses = $filters['warehouses'] ?? 'MAIN,COR1,ORE1,CEL1';
+
+            $customer_number = $this->customerId($filters);
+
+            $whereClause = "smsew.cono = {$this->companyNumber} and smsew.yr = {$year} and smsew.prod = '{$prod}' and CAN-DO('{$warehouses}', smsew.whse)and smsew.custno = {$customer_number}";
+
+            $payload = [
+                'CompanyNumber' => $this->companyNumber,
+                'Operator' => $this->operatorInit,
+                'TableName' => 'smsew',
+                'WhereClause' => $whereClause,
+                'BatchSize' => $filters['batch_size'] ?? 100,
+                'RestartRowID' => $filters['restart_row_id'] ?? '',
+            ];
+
+            $response = $this->post('/proxy/FetchWhere', $payload);
+
+            return $this->adapter->getPastSalesHistory($response);
+
+        } catch (Exception $exception) {
+
+            $this->exceptionHandler($exception);
+
+            return $this->adapter->getPastSalesHistory();
+
+        }
+    }
+
+    /**
      * This function will check if the ERP has Any changes on inventory
      * of items between filters and data range
      *
@@ -1317,7 +1373,8 @@ class CsdErpService implements ErpApiInterface
                         'WireTrasnsferFee' => $wireTrasnsferFee,
                         'FreightAmount' => $freightAmount,
                         'FreightRate' => $freightRate,
-                        'OrderLines' => $orderLines
+                        'OrderLines' => $orderLines,
+                        'HazMatCharge' => 0
                     ],
                 ],
             ];

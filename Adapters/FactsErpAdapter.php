@@ -48,6 +48,7 @@ use Amplify\ErpApi\Wrappers\ShippingOption;
 use Amplify\ErpApi\Wrappers\TrackShipment;
 use Amplify\ErpApi\Wrappers\Warehouse;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 class FactsErpAdapter implements ErpApiInterface
 {
@@ -258,12 +259,27 @@ class FactsErpAdapter implements ErpApiInterface
             : [];
 
         $model->OrderNumber = $attributes['OrderNumber'] ?? null;
+        $model->TotalLineAmount = $attributes['TotalLineAmount'] ? (float) filter_var($attributes['TotalLineAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->TotalOrderValue = $attributes['TotalOrderValue'] ? (float) filter_var($attributes['TotalOrderValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->SalesTaxAmount = $attributes['SalesTaxAmount'] ? (float) filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightAmount = $attributes['FreightAmount'] ? (float) filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightRate = $attributes['FreightRate'] ?? [];
+        $model->WireTrasnsferFee = !empty($attributes['WireTrasnsferFee']) ? (float)filter_var($attributes['WireTrasnsferFee'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
-
+        $model->OrderLines = new Collection();
+        //no use case
+        if (!empty($orderInfo['OrderLines'])) {
+            foreach ($orderInfo['OrderLines'] as $line) {
+                $model->OrderLines->push((object)[
+                    'ItemNumber' => $line['shipprod'],
+                    'ItemDesc' => $line['descrip'],
+                    'Quantity' => $line['qtyord'],
+                    'UoM' => $line['unit'],
+                    'UnitPrice' => $line['price'],
+                    'TotalLineAmount' => $line['netamt'],
+                ]);
+            }
+        }
         return $model;
     }
 
