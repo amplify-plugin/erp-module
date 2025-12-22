@@ -478,12 +478,12 @@ class CsdErpAdapter implements ErpApiInterface
         if (!empty($attributes['OrderLines'])) {
             foreach ($attributes['OrderLines'] as $line) {
                 $model->OrderLines->push((object)[
-                    'ItemNumber' => $line['shipprod'],
-                    'ItemDesc' => $line['descrip'],
-                    'Quantity' => $line['qtyord'],
-                    'UoM' => $line['unit'],
-                    'UnitPrice' => $line['price'],
-                    'TotalLineAmount' => $line['netamt'],
+                    'ItemNumber' => $line['shipprod'] ?? '',
+                    'ItemDesc' => $line['descrip'] ?? '',
+                    'Quantity' => $line['qtyord'] ?? 0,
+                    'UoM' => $line['unit'] ?? '',
+                    'UnitPrice' => $line['price'] ?? 0,
+                    'TotalLineAmount' => $line['netamt'] ?? 0,
                 ]);
             }
         }
