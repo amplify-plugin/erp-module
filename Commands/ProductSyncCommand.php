@@ -3,6 +3,7 @@
 namespace Amplify\ErpApi\Commands;
 
 use Amplify\System\Backend\Models\Event;
+use Amplify\System\Events\ProductSynced;
 use Amplify\System\Factories\NotificationFactory;
 use Exception;
 use Illuminate\Console\Command;
@@ -45,6 +46,7 @@ class ProductSyncCommand extends Command
 
                 if (count($syncData) > 0) {
                     NotificationFactory::call(Event::CATALOG_CHANGED, $syncData);
+                    \event( new ProductSynced($syncData));
                 }
 
                 $this->info(now()->format('r').'Product Sync Report : '.json_encode($syncData));
