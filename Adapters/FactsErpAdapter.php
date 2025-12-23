@@ -268,15 +268,15 @@ class FactsErpAdapter implements ErpApiInterface
         $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
         $model->OrderLines = new Collection();
         //no use case
-        if (!empty($orderInfo['OrderLines'])) {
-            foreach ($orderInfo['OrderLines'] as $line) {
+        if (!empty($attributes['OrderLines'])) {
+            foreach ($attributes['OrderLines'] as $line) {
                 $model->OrderLines->push((object)[
-                    'ItemNumber' => $line['shipprod'],
-                    'ItemDesc' => $line['descrip'],
-                    'Quantity' => $line['qtyord'],
-                    'UoM' => $line['unit'],
-                    'UnitPrice' => $line['price'],
-                    'TotalLineAmount' => $line['netamt'],
+                    'ItemNumber' => $line['ItemNumber'],
+                    'ItemDesc' => $line['ItemDesc'],
+                    'Quantity' => $line['OrderQty'],
+                    'UoM' => $line['UnitOfMeasure'],
+                    'UnitPrice' => $line['Price'],
+                    'TotalLineAmount' => $line['TotalLineAmount'],
                 ]);
             }
         }

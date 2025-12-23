@@ -1275,12 +1275,12 @@ class CsdErpService implements ErpApiInterface
             $items = $orderInfo['items'] ?? [];
             $orderLine = array_map(function ($item) {
                 return [
-                    'itemnumber' => $item['ItemNumber'],
-                    'orderqty' => $item['OrderQty'],
-                    'unitofmeasure' => $item['UnitOfMeasure'],
-                    'warehouseid' => $item['WarehouseID'],
-                    'itemdesc1' => $item['ItemComment'] ?? '',
-                    'shipinstrty' => $item['OrderQty'],
+                    'itemnumber' => $item['product_code'],
+                    'orderqty' => $item['quantity'],
+                    'unitofmeasure' => $item['uom'],
+                    'warehouseid' => $item['product_warehouse_code'],
+                    'itemdesc1' => $item['ItemComment'] ?? $item['product_name'] ?? '',
+                    'shipinstrty' => $item['quantity'],
                 ];
             }, $items);
 
@@ -1357,7 +1357,7 @@ class CsdErpService implements ErpApiInterface
                         'default_warehouse' => $orderInfo['customer_default_warehouse'],
                     ]);
                 }
-                $responseBackEnd = $this->getOrderTotalUsingBackend();
+                $responseBackEnd = $this->getOrderTotalUsingBackend($orderInfo);
 
                 $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? '0.00';
                 $freightRate = $responseBackEnd['Order'][0]['FreightRate'] ?? [];

@@ -25,7 +25,7 @@ trait BackendShippingCostTrait
     private function hasPickUpItems(): bool
     {
         if ($cartFirstItem = $this->cartItems->first()) {
-            if ($warehouse = $cartFirstItem->warehouse) {
+            if ($warehouse = Warehouse::find($cartFirstItem['warehouse_id'])) {
                 return $warehouse->pickup_location == true;
             }
         }
@@ -36,7 +36,9 @@ trait BackendShippingCostTrait
     private function hasOwnTruckItems(): bool
     {
         foreach ($this->cartItems as $cartItem) {
-            $data = $cartItem->additional_info;
+
+            $data = $cartItem['additional_info'] ?? [];
+
             if (isset($data['own_truck_only']) && $data['own_truck_only'] === true) {
                 return true;
             }
@@ -45,20 +47,19 @@ trait BackendShippingCostTrait
         return false;
     }
 
-    public function getOrderTotalUsingBackend(): array
+    public function getOrderTotalUsingBackend(array $orderInfo = []): array
     {
         $shippingOptions = $this->getShippingOption();
-        $cart = getCart();
-        $this->cartItems = $cart->cartItems->isNotEmpty() ? $cart->cartItems : collect();
+        $this->cartItems = collect($orderInfo['items'] ?? []);
 
         $orderTotal = [
             'OrderNumber' => '',
-            'TotalLineAmount' => $cart->sub_total ?? 0,
-            'TotalOrderValue' => $cart->total ?? 0,
-            'SalesTaxAmount' => $cart->tax_amount ?? 0,
-            'FreightAmount' => null,
+            'TotalLineAmount' => $orderInfo['sub_total'] ?? 0,
+            'TotalOrderValue' => $orderInfo['total'] ?? 0,
+            'SalesTaxAmount' => $orderInfo['tax_amount'] ?? 0,
+            'FreightAmount' => $orderInfo['ship_charge'] ?? 0,
             'FreightRate' => [],
-            'OrderLines' => []
+            'OrderLines' => $orderInfo['items'] ?? []
         ];
 
         $this->clientCode = strtoupper(config('amplify.client_code'));
@@ -71,7 +72,7 @@ trait BackendShippingCostTrait
         if ($this->clientCode === 'STV') {
             $freightDetailsList = $this->getFreightDetails();
 
-            if (! empty($freightDetailsList)) {
+            if (!empty($freightDetailsList)) {
                 $freightMeta['frttermscd'] = strtoupper($freightDetailsList[0]['frttermscd'] ?? '');
 
                 $shipVia = strtoupper($this->shippingInfo['ship_via'] ?? '');
@@ -122,8 +123,8 @@ trait BackendShippingCostTrait
         // Move priority shipping tab to top
         if ($priorityKey && isset($orderTotal['FreightRate'][$priorityKey])) {
             $orderTotal['FreightRate'] = [
-                $priorityKey => $orderTotal['FreightRate'][$priorityKey],
-            ] + array_diff_key($orderTotal['FreightRate'], [$priorityKey => null]);
+                    $priorityKey => $orderTotal['FreightRate'][$priorityKey],
+                ] + array_diff_key($orderTotal['FreightRate'], [$priorityKey => null]);
         }
 
         return ['Order' => [$orderTotal]];
@@ -137,7 +138,7 @@ trait BackendShippingCostTrait
         // Case 1: Config enables showing all pickup-enabled warehouses
         if (config('amplify.order.use_pickup_enable_warehouses_as_shipping_methods')) {
             foreach ($this->getWarehouses() as $warehouse) {
-                if (! $warehouse->IsPickUpLocation) {
+                if (!$warehouse->IsPickUpLocation) {
                     continue;
                 }
 
@@ -159,24 +160,26 @@ trait BackendShippingCostTrait
 
         // Case 2: At least one item in cart is from a pickup location
         if ($this->hasPickUpItems()) {
-            $warehouse = $this->cartItems->first()->warehouse;
+            $cartFirstItem = $this->cartItems->first();
+
+            $warehouse = Warehouse::find($cartFirstItem['warehouse_id']);
 
             $orderTotal['FreightRate'][$driverLabel][] = [
                 $warehouse->id => [
                     'name' => Str::upper($warehouse->name),
-                    'shipvia' => $warehouse->code,
-                    'code' => '',
+                    'shipvia' => $warehouse->ship_via,
+                    'code' => $warehouse->code,
                     'fullday' => '',
                     'date' => '',
                     'nrates' => '',
                     'amount' => currency_format('0.00'),
-                    'address1' => '',
+                    'address1' => $warehouse->address,
                     'address2' => '',
                     'city' => '',
                     'state' => '',
-                    'zip' => '',
-                    'email' => '',
-                    'telephone' => '',
+                    'zip' => $warehouse->zip_code,
+                    'email' => $warehouse->email,
+                    'telephone' => $warehouse->telephone,
                 ],
             ];
 
@@ -188,7 +191,7 @@ trait BackendShippingCostTrait
     {
         if ($this->hasOwnTruckItems()) {
             $customer = customer();
-            if (ErpApi::getCustomerDetail()->CarrierCode == 'OT' && ! empty($customer->own_truck_ship_charge)) {
+            if (ErpApi::getCustomerDetail()->CarrierCode == 'OT' && !empty($customer->own_truck_ship_charge)) {
 
                 $method = $option->CarrierCode;
 
@@ -218,7 +221,7 @@ trait BackendShippingCostTrait
     private function getDefaultShipOption(array &$orderTotal, ShippingOption $option): void
     {
 
-        if (! $this->hasOwnTruckItems()) {
+        if (!$this->hasOwnTruckItems()) {
 
             $thresholdSlot = ThresholdRange::query()
                 ->where('from', '<=', $orderTotal['TotalOrderValue'])
@@ -226,7 +229,7 @@ trait BackendShippingCostTrait
                 ->where('shipping_id', $option->InternalId)
                 ->first();
 
-            $frightAmount = ! empty($thresholdSlot) ? currency_format($thresholdSlot->amount) : 0;
+            $frightAmount = !empty($thresholdSlot) ? currency_format($thresholdSlot->amount) : 0;
 
             $method = $option->CarrierCode;
 
@@ -381,7 +384,7 @@ trait BackendShippingCostTrait
                 }
             } elseif ($countryCode === 'CA') {
                 $allowedMethodsCanada = ['canada', 'ups', 'fedex'];
-                if (! in_array($valueLower, $allowedMethodsCanada)) {
+                if (!in_array($valueLower, $allowedMethodsCanada)) {
                     return;
                 }
             } else {
@@ -391,7 +394,7 @@ trait BackendShippingCostTrait
                 if ($carrierId === 'FEDEX' && $valueLower !== 'fedex') {
                     return;
                 }
-                if (empty($carrierId) && ! in_array($valueLower, ['ups', 'fedex'])) {
+                if (empty($carrierId) && !in_array($valueLower, ['ups', 'fedex'])) {
                     return;
                 }
             }
@@ -448,6 +451,6 @@ trait BackendShippingCostTrait
     {
         $domesticCountries = ['US', 'CA', 'MX'];
 
-        return ! in_array(strtoupper($countryCode), $domesticCountries);
+        return !in_array(strtoupper($countryCode), $domesticCountries);
     }
 }

@@ -5,11 +5,14 @@ namespace Amplify\ErpApi;
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Jobs\ProductSyncJob;
 use Amplify\ErpApi\Wrappers\ProductSync as ProductSyncWrapper;
+use Amplify\System\Backend\Models\Brand;
 use Amplify\System\Backend\Models\Manufacturer;
 use Amplify\System\Backend\Models\Product;
 use Amplify\System\Backend\Models\ProductSync as ProductSyncModel;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class ProductSyncService
@@ -49,7 +52,7 @@ class ProductSyncService
             }
         } catch (Exception $exception) {
             if (suppress_exception()) {
-                Log::error(now()->format('r').' Product Sync Exception : '.$exception->getMessage());
+                Log::error(now()->format('r') . ' Product Sync Exception : ' . $exception->getMessage());
             } else {
                 throw new RuntimeException($exception->getMessage(), 500, $exception);
             }
@@ -75,14 +78,12 @@ class ProductSyncService
     {
         $this->approveId = $approveId ?? self::DEFAULT_APPROVE_USER_ID;
 
-        if ($productSync->update_action === self::ACTION_DELETE) {
-            $this->archiveDeletedItem($productSync);
-        } elseif ($productSync->update_action === self::ACTION_UPDATE
-            || $productSync->update_action == self::ACTION_CHANGE) {
-            $this->updateItemData($productSync);
-        } elseif ($productSync->update_action === self::ACTION_NEW) {
-            $this->createNewItem($productSync);
-        }
+        match ($productSync->update_action) {
+            self::ACTION_DELETE => $this->archiveDeletedItem($productSync),
+            self::ACTION_CHANGE, self::ACTION_UPDATE => $this->updateItemData($productSync),
+            self::ACTION_NEW => $this->createNewItem($productSync),
+            default => null,
+        };
     }
 
     private function storeApiResponse(ProductSyncWrapper $productSync): ?ProductSyncModel
@@ -118,22 +119,32 @@ class ProductSyncService
     }
 
     /**
+     * @param ProductSyncModel $productSync
      * @return void
      */
-    private function archiveDeletedItem(ProductSyncModel $productSync)
+    private function archiveDeletedItem(ProductSyncModel $productSync): void
     {
         try {
-            $item = Product::productCode($productSync->item_number)->firstOrFail();
+            $items = Product::productCode($productSync->item_number)->get();
 
-            $item->update([
-                'status' => 'archived',
-                'previous_status' => $item->status,
-                'archived_at' => now(),
-            ]);
+            if ($items->isEmpty()) {
+                throw (new ModelNotFoundException())->setModel(Product::class, 'code:' . $productSync->item_number);
+            }
+
+            foreach ($items as $item) {
+                $item->update([
+                    'status' => 'archived',
+                    'previous_status' => $item->status,
+                    'archived_at' => now(),
+                ]);
+            }
 
             $this->setProcessedFlag($productSync);
+
         } catch (\Throwable $th) {
-            Log::error('Product Sync Delete Exception : '.$th->getMessage());
+            Log::debug($th);
+
+            $this->setProcessedFlag($productSync, $th->getMessage());
         }
     }
 
@@ -147,60 +158,88 @@ class ProductSyncService
     }
 
     /**
+     * @param ProductSyncModel $productSync
      * @return void
      */
-    private function updateItemData(ProductSyncModel $productSync)
+    private function updateItemData(ProductSyncModel $productSync): void
     {
         try {
-            $item = Product::productCode($productSync->item_number)->firstOrFail();
-            $manufacturerId = $this->getManufacturerId($productSync);
+            $items = Product::productCode($productSync->item_number)->get();
 
-            $data = [
-                'is_updated' => true,
-                'uom' => $productSync->unit_of_measure,
-                'description' => $this->getProductDescription($productSync),
-                'short_description' => $productSync->description_1 ?? ' ',
-                'msrp' => $productSync->list_price ?? null,
-                'manufacturer' => ! empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null),
-            ];
-
-            if (! empty($manufacturerId)) {
-                $data['manufacturer_id'] = $manufacturerId;
+            if ($items->isEmpty()) {
+                throw (new ModelNotFoundException())->setModel(Product::class, 'code:' . $productSync->item_number);
             }
 
-            $item->update($data);
+            foreach ($items as $item) {
+                $manufacturerId = $this->getManufacturerId($productSync);
+                $brand = $this->getBrand($productSync);
+
+                $data = [
+                    'is_updated' => true,
+                    'uom' => $productSync->unit_of_measure,
+                    'description' => $this->getProductDescription($productSync),
+                    'short_description' => $productSync->description_1 ?? ' ',
+                    'msrp' => $productSync->list_price ?? null,
+                    'vendornum' => $productSync->primary_vendor ?? null,
+                    'brand_name' => $brand?->title ?? null,
+                    'brand_id' => $brand?->id ?? null,
+                    'manufacturer' => !empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null),
+                ];
+
+                if (!empty($manufacturerId)) {
+                    $data['manufacturer_id'] = $manufacturerId;
+                }
+
+                $item->update($data);
+            }
 
             $this->setProcessedFlag($productSync);
+
         } catch (\Throwable $th) {
-            Log::error('Product Sync Update Exception : '.$th->getMessage());
+            Log::debug($th);
+
+            $this->setProcessedFlag($productSync, $th->getMessage());
         }
     }
 
     /**
+     * @param ProductSyncModel $productSync
+     * @param string $error
      * @return void
      */
-    private function setProcessedFlag(ProductSyncModel $productSync)
+    private function setProcessedFlag(ProductSyncModel $productSync, string $error = ''): void
     {
-        $productSync->update([
+        $changes = [
+            'is_processing' => false,
             'is_processed' => true,
-        ]);
+        ];
+
+        if (!empty($error)) {
+            $changes['error'] = $error;
+        }
+
+        $productSync->update($changes);
     }
 
     /**
+     * @param ProductSyncModel $productSync
      * @return void
      */
-    private function createNewItem(ProductSyncModel $productSync)
+    private function createNewItem(ProductSyncModel $productSync): void
     {
         try {
             $item = new Product;
             $manufacturerId = $this->getManufacturerId($productSync);
-            $manufacturerPartNo = ! empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null);
+            $manufacturerPartNo = !empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null);
 
             $item->product_name = $productSync->description_1;
             $item->product_code = $productSync->item_number;
             $item->description = $this->getProductDescription($productSync);
             $item->short_description = $productSync->description_1;
             $item->msrp = $productSync->list_price ?? null;
+            $item->vendornum = $productSync->primary_vendor ?? null;
+            $item->brand_name = $brand?->title ?? null;
+            $item->brand_id = $brand?->id ?? null;
             $item->is_new = true;
             $item->uom = $productSync->unit_of_measure;
             $item->manufacturer = $manufacturerPartNo;
@@ -212,14 +251,15 @@ class ProductSyncService
 
             $this->setProcessedFlag($productSync);
         } catch (\Throwable $th) {
-            Log::error('Line: '.$th->getLine());
-            Log::error('Product Sync Create Exception : '.$th->getMessage());
+            Log::debug($th);
+
+            $this->setProcessedFlag($productSync, $th->getMessage());
         }
     }
 
     private function getManufacturerId(ProductSyncModel $productSync)
     {
-        if (! empty($productSync->brand)) {
+        if (!empty($productSync->brand)) {
             $manufacturer = Manufacturer::where('name', $productSync->brand)->first();
 
             if (empty($brand)) {
@@ -229,6 +269,27 @@ class ProductSyncService
             }
 
             return $manufacturer->id;
+        }
+
+        return null;
+    }
+
+    private function getBrand(ProductSyncModel $productSync): ?Brand
+    {
+        if (!empty($productSync->brand)) {
+
+            $slug = preg_replace_callback('/(^|-)([a-z])/',
+                fn($matches) => $matches[1] . strtoupper($matches[2]),
+                Str::slug($productSync->brand)
+            );
+
+            return Brand::firstOrCreate(['title' => $productSync->brand],
+                [
+                    'title' => $productSync->brand,
+                    'slug' => $slug,
+                    'image' => asset(config('amplify.frontend.fallback_image_path')),
+                ]);
+
         }
 
         return null;

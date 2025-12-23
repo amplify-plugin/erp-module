@@ -617,6 +617,15 @@ class FactsErpService implements ErpApiInterface
         try {
             $customer_number = $orderInfo['customer_number'] ?? $this->getCustomerDetail()->CustomerNumber;
 
+            $orderLines = array_map(function ($item) {
+                return [
+                    'ItemNumber' => $item['product_code'],
+                    'WarehouseID' => $item['product_warehouse_code'],
+                    'OrderQty' => $item['quantity'],
+                    'UnitOfMeasure' => $item['uom'],
+                ];
+            }, $orderInfo['items'] ?? []);
+
             $payload = [
                 'content' => [
                     'CustomerNumber' => $customer_number,
@@ -633,7 +642,7 @@ class FactsErpService implements ErpApiInterface
                     'ShipToZipCode' => $orderInfo['ship_to_zip_code'] ?? '',
                     'OrderType' => $orderInfo['order_type'] ?? 'T',
                     'ReturnType' => $orderInfo['return_type'] ?? 'D',
-                    'Items' => $orderInfo['items'] ?? [],
+                    'Items' => $orderLines,
                 ],
             ];
 
@@ -648,10 +657,10 @@ class FactsErpService implements ErpApiInterface
                 $responseBackEnd = $this->getOrderTotalUsingBackend();
 
                 $totalLineAmount = $response['Order'][0]['TotalOrderValue'] ?? 0;
-                $salesTaxAmount = $response['Order'][0]['SalesTaxAmount'] ?? '0.00';
-                $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? '0.00';
+                $salesTaxAmount = $response['Order'][0]['SalesTaxAmount'] ?? 0;
+                $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? 0;
 
-                $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? '0.00';
+                $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? 0;
                 $freightRate = $responseBackEnd['Order'][0]['FreightRate'] ?? [];
                 $totalOrderValue = array_sum([$totalLineAmount ?? 0, $salesTaxAmount ?? 0, $hazMatCharge ?? 0, $freightAmount ?? 0]);
 
@@ -665,7 +674,16 @@ class FactsErpService implements ErpApiInterface
                             'FreightAmount' => $freightAmount,
                             'FreightRate' => $freightRate,
                             'HazMatCharge' => $hazMatCharge,
-                            'OrderLines' => []
+                            'OrderLines' => array_map(function ($item) {
+                                return [
+                                    'ItemNumber' => $item['product_code'] ?? '',
+                                    'ItemDesc' => $item['product_name'] ?? '',
+                                    'OrderQty' => $item['quantity'] ?? 0,
+                                    'UnitOfMeasure' => $item['uom'] ?? '',
+                                    'Price' => $item['unitprice'] ?? 0,
+                                    'TotalLineAmount' => $item['subtotal'] ?? 0,
+                                ];
+                            }, $orderInfo['items'] ?? [])
                         ],
                     ],
                 ];
