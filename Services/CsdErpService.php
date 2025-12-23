@@ -139,13 +139,15 @@ class CsdErpService implements ErpApiInterface
 
         $attchedPayload = ['request' => $payload];
 
+        $baseUrl = $this->config['url'];
+
         if ($url == '/proxy/FetchWhere') {
-            $this->config['url'] = str_replace('web/sxapirestservice', 'rest/serviceinterface', $this->config['url']);
+            $baseUrl = str_replace('web/sxapirestservice', 'rest/serviceinterface', $baseUrl);
             $attchedPayload = $payload;
         }
 
         $response = Http::csdErp()
-            ->baseUrl($this->config['url'])
+            ->baseUrl($baseUrl)
             ->post($url, $attchedPayload)
             ->json();
 
@@ -1345,6 +1347,7 @@ class CsdErpService implements ErpApiInterface
             $orderLines = $response['tOrdloadlinedata']['t-ordloadlinedata'] ?? [];
 
             if (config('amplify.erp.use_amplify_shipping')) {
+
                 if (config('amplify.client_code') === 'STV') {
                     $this->setShippingInfo([
                         'country_code' => $orderInfo['ship_to_country_code'],
@@ -1352,6 +1355,7 @@ class CsdErpService implements ErpApiInterface
                         'default_warehouse' => $orderInfo['customer_default_warehouse'],
                     ]);
                 }
+
                 $responseBackEnd = $this->getOrderTotalUsingBackend($orderInfo);
 
                 $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? '0.00';
