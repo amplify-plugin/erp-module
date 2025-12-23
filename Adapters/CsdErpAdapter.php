@@ -1056,6 +1056,7 @@ class CsdErpAdapter implements ErpApiInterface
                 )
                 : null; // net amount (post-discount)
             $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->OrderDiscount = isset($attributes['wodiscamt']) ? (float)filter_var($attributes['wodiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->InvoiceAmount = isset($attributes['totinvamt']) || isset($attributes['totInvAmt'])
                 ? (float)filter_var(
@@ -1334,7 +1335,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->CarrierCode = $attributes['shipviaty'] ?? $attributes['shipviatydesc'] ?? null;
             $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->FreightAmount = $attributes['actfreight'] ?? null;
+            $model->FreightAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->TotalOrderValue = isset($attributes['totlineord']) || isset($attributes['totLineOrd'])
                 ? (float)filter_var(

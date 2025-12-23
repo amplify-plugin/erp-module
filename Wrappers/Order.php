@@ -62,6 +62,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $OrderDisposition
  * @property string $InvoiceDate
  * @property string|null $TrackingShipments
+ * @property string|null $OrderDiscount
  * @property array $NoteList
  * @property OrderDetailCollection $OrderDetail
  * @property OrderNoteCollection $OrderNotes
@@ -75,12 +76,13 @@ class Order extends Wrapper implements ErpApiWrapperInterface
     use ApiWrapperTrait;
 
     protected array $fillable = [
-        'Message','CustomerNumber', 'ContactId', 'OrderNumber', 'OrderSuffix', 'OrderType',
+        'Message', 'CustomerNumber', 'ContactId', 'OrderNumber', 'OrderSuffix', 'OrderType',
         'OrderStatus', 'CustomerName', 'BillToCountry', 'CustomerAddress1', 'CustomerAddress2', 'CustomerAddress3', 'BillToCity', 'BillToState',
         'BillToZipCode', 'BillToContact', 'ShipToNumber', 'ShipToName', 'ShipToCountry', 'ShipToAddress1', 'ShipToAddress2', 'ShipToAddress3',
         'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToContact', 'EntryDate', 'PromiseDate', 'RequestedShipDate', 'CustomerPurchaseOrdernumber', 'ItemSalesAmount',
         'DiscountAmountTrading', 'SalesTaxAmount', 'InvoiceAmount', 'FreightAmount', 'TotalOrderValue', 'TotalSpecialCharges', 'CarrierCode', 'WarehouseID',
         'InvoiceNumber', 'EmailAddress', 'BillToCountryName', 'ShipToCountryName', 'PdfAvailable', 'OrderDetail', 'OrderNotes', 'SignedDoc', 'SignedType',
-        'HazMatCharge', 'InHouseDeliveryDate', 'OrderDisposition', 'InvoiceDate', 'TrackingShipments', 'NoteList', 'ExtraCharges', 'FreightAccountNumber', 'RestockFee'
+        'HazMatCharge', 'InHouseDeliveryDate', 'OrderDisposition', 'InvoiceDate', 'TrackingShipments', 'NoteList', 'ExtraCharges', 'FreightAccountNumber', 'RestockFee',
+        'OrderDiscount',
     ];
 }

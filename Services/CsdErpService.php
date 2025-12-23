@@ -915,11 +915,6 @@ class CsdErpService implements ErpApiInterface
             ],
             'tInputheaderextradata' => [
                 't-inputheaderextradata' => [
-                    /*[
-                        'fieldname' => 'addon',
-                        'fieldvalue' => "addonno=2\taddonamt={{addonno2amt}}\taddontype=$",
-                        'seqno' => 2,
-                    ],*/
                     [
                         'fieldname' => 'placedby',
                         'fieldvalue' => $this->operatorInit,
