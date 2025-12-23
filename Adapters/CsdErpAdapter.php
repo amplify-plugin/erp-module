@@ -1014,7 +1014,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
             $model->FreightAmount = $attributes['actfreight'] ?? null;
-            $model->FreightAccountNumber = $attributes['zFreightAccount'] ?? null;
+            $model->FreightAccountNumber = $attributes['zFreightAcct'] ?? null;
             $model->ContactId = (string)($attributes['cono'] ?? null);
             $model->CustomerNumber = $attributes['custno'] ?? $attributes['custNo'] ?? null;
             $model->CustomerName = $attributes['name'] ?? null;
@@ -1297,7 +1297,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new Invoice($attributes);
 
         if (!empty($attributes)) {
-            $model->FreightAccountNumber = $attributes['zFreightAccount'] ?? null;
+            $model->FreightAccountNumber = $attributes['zFreightAcct'] ?? null;
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? 'No';
             $model->InvoiceNumber = $attributes['invnoraw'] ?? $attributes['orderno'] ?? null;
             $model->InvoiceSuffix = isset($attributes['ordersuf']) || isset($attributes['invsufraw'])
