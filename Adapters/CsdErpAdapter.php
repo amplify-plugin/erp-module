@@ -1577,7 +1577,15 @@ class CsdErpAdapter implements ErpApiInterface
      */
     public function getPastSalesHistory(array $attributes = []): array
     {
+        // Normalize response when ERP returns a "NoRecords" flag.
         $rows = [];
+
+        $isNoRecords = false;
+        $noRecordsMessage = null;
+        if (isset($attributes['NoRecords'])) {
+            $isNoRecords = true;
+            $noRecordsMessage = (string) $attributes['NoRecords'];
+        }
 
         $monthNames = [
             'January','February','March','April','May','June',
@@ -1590,8 +1598,8 @@ class CsdErpAdapter implements ErpApiInterface
 
         $records = $attributes['ttblsmsew'] ?? [];
 
-        // Determine year fallback
-        $detectedYear = null;
+        // Determine year fallback (prefer explicitly requested year if present)
+        $detectedYear = isset($attributes['year']) ? intval($attributes['year']) : null;
 
         foreach ($records as $rec) {
             if (isset($rec['yr']) && $rec['yr'] !== null) {
@@ -1666,8 +1674,12 @@ class CsdErpAdapter implements ErpApiInterface
                 'average_purchase_price_formatted' => $avgFormatted,
             ];
         }
-
-        return ['months' => $rows, 'raw' => $attributes];
+        return [
+            'months' => $rows,
+            'raw' => $attributes,
+            'no_records' => $isNoRecords,
+            'message' => $noRecordsMessage,
+        ];
     }
 
     /**
