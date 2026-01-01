@@ -1931,4 +1931,43 @@ class CsdErpAdapter implements ErpApiInterface
 
         return $value;
     }
+
+
+    /**
+     * Render printable document from IDM JSON response
+     */
+   public function renderPrintableDocument(array $response): Document
+    {
+        $document = new Document($response);
+
+        $items = $response['items']['item'] ?? null;
+
+        if (empty($items) || !is_array($items)) {
+            return $document;
+        }
+
+        // First item = latest (already sorted DESC)
+        $item = $items[0] ?? null;
+
+        if (
+            !$item ||
+            empty($item['resrs']['res']) ||
+            !is_array($item['resrs']['res'])
+        ) {
+            return $document;
+        }
+
+        foreach ($item['resrs']['res'] as $resource) {
+            if (($resource['mimetype'] ?? null) === 'application/pdf') {
+                $document->DocumentType = 'PDF';
+                $document->File = $resource['url'] ?? null;
+
+                return $document;
+            }
+        }
+
+        return $document;
+    }
+
+
 }
