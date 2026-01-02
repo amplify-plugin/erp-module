@@ -36,10 +36,12 @@ use Amplify\ErpApi\Wrappers\Invoice;
 use Amplify\ErpApi\Wrappers\Order;
 use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
+use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\System\Backend\Models\Shipping;
 use Exception;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 /**
  * @property array $config
@@ -323,6 +325,81 @@ class FactsErpService implements ErpApiInterface
         $model->Reference = $filters['Reference'] ?? null;
 
         return $model;
+    }
+
+    /**
+     * This API is to get customer ship to locations entity information from the CSD ERP
+     *
+     *
+     * @todo
+     *
+     * @since 2024.12.8354871
+     */
+    public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
+    {
+        try {
+            $customer_number = $this->customerId($attributes);
+
+            $fields['name'] = $attributes['address_name'] ?? '';
+            $fields['addr1'] = $attributes['address_1'] ?? null;
+            $fields['addr2'] = $attributes['address_2'] ?? null;
+            $fields['addr3'] = $attributes['address_3'] ?? null;
+            $fields['city'] = $attributes['city'] ?? '';
+            $fields['zipcd'] = $attributes['zip_code'] ?? '';
+            $fields['state'] = Str::upper($attributes['state'] ?? '');
+            $fields['countrycd'] = Str::upper($attributes['country_code'] ?? '');
+            $fields['phoneno'] = $attributes['phone_1'] ?? '';
+            $fields['email'] = $attributes['email_1'] ?? '';
+            $fields['faxphoneno'] = '';
+            $fields['statustype'] = $attributes['statustype'] ?? 'Active';
+
+            $tMnTt = [];
+
+            $count = 1;
+
+            foreach ($fields as $field => $value) {
+                $tMnTt[] = [
+                    'setNo' => 1,
+                    'seqNo' => $count,
+                    'key1' => $customer_number,
+                    'key2' => $attributes['address_code'] ?? '',
+                    'updateMode' => 'add',
+                    'fieldName' => $field,
+                    'fieldValue' => (string)$value,
+                ];
+                $count++;
+            }
+
+            $payload = [
+                'companyNumber' => $this->companyNumber,
+                'operatorInit' => $this->operatorInit,
+                'customerNumber' => $customer_number,
+                'tMntTt' => ['t-mnt-tt' => $tMnTt],
+            ];
+
+            $response = $this->post('/sxapiarcustomermnt', $payload);
+
+            if (empty($response['returnData'])) {
+                return $this->adapter->renderSingleCustomerShippingLocation([...$fields, 'shipto' => $attributes['address_code']]);
+            }
+
+            $search = [
+                'address_code' => $attributes['address_code'],
+            ];
+
+            $addresses = $this->getCustomerShippingLocationList($search);
+
+            if ($addresses->isEmpty()) {
+                return $this->adapter->renderSingleCustomerShippingLocation([...$fields, 'shipto' => $attributes['address_code']]);
+            }
+
+            return $addresses->first();
+
+        } catch (Exception $exception) {
+            $this->exceptionHandler($exception);
+
+            return $this->adapter->renderSingleCustomerShippingLocation([]);
+        }
     }
 
     /**
