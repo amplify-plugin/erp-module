@@ -725,6 +725,7 @@ class CsdErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/proxy/FetchWhere', $payload);
+            $response['year'] = (int) $filters['year'] ?? date('Y');
 
             return $this->adapter->getPastSalesHistory($response);
 

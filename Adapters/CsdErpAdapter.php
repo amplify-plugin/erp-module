@@ -1577,15 +1577,7 @@ class CsdErpAdapter implements ErpApiInterface
      */
     public function getPastSalesHistory(array $attributes = []): array
     {
-        // Normalize response when ERP returns a "NoRecords" flag.
         $rows = [];
-
-        $isNoRecords = false;
-        $noRecordsMessage = null;
-        if (isset($attributes['NoRecords'])) {
-            $isNoRecords = true;
-            $noRecordsMessage = (string) $attributes['NoRecords'];
-        }
 
         $monthNames = [
             'January','February','March','April','May','June',
@@ -1597,9 +1589,6 @@ class CsdErpAdapter implements ErpApiInterface
         $salesByMonth = array_fill(1, 12, 0.0);
 
         $records = $attributes['ttblsmsew'] ?? [];
-
-        // Determine year fallback (prefer explicitly requested year if present)
-        $detectedYear = isset($attributes['year']) ? intval($attributes['year']) : null;
 
         foreach ($records as $rec) {
             if (isset($rec['yr']) && $rec['yr'] !== null) {
@@ -1631,7 +1620,7 @@ class CsdErpAdapter implements ErpApiInterface
             }
         }
 
-        $detectedYear = $detectedYear ?? intval(date('Y'));
+        $detectedYear = $detectedYear ?? $attributes['year'] ?? intval(date('Y'));
 
         // Aggregate qty and sales per month index
         foreach ($records as $rec) {
@@ -1674,11 +1663,10 @@ class CsdErpAdapter implements ErpApiInterface
                 'average_purchase_price_formatted' => $avgFormatted,
             ];
         }
+
         return [
             'months' => $rows,
             'raw' => $attributes,
-            'no_records' => $isNoRecords,
-            'message' => $noRecordsMessage,
         ];
     }
 
