@@ -803,9 +803,10 @@ class CsdErpAdapter implements ErpApiInterface
 
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
+            $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
-            $model->StandardPrice = $attributes['price'] ?? null;
+            $model->StandardPrice = $attributes['baseprice'] ?? null;
             $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
             $model->QtyPrice_1 = $attributes['Price_1'] ?? null;
             $model->QtyBreak_1 = $attributes['quantitybreak1'] ?? null;
@@ -825,15 +826,14 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QtyBreak_8 = $attributes['quantitybreak8'] ?? null;
             $model->QtyPrice_9 = $attributes['Price_9'] ?? null;
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
-            $model->ExtendedPrice = $attributes['baseprice'] ?? null;
-            $model->OrderPrice = $attributes['extamt'] ?? null;
+            $model->ExtendedPrice = $attributes['extamt'] ?? null;
+            $model->OrderPrice = $model->Price / $model->QuantityOnOrder;
             $model->UnitOfMeasure = $attributes['unit'] ?? null;
             $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
-            $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['price'] ?? null));
+            $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
             $model->AverageLeadTime = $attributes['leadtmavg'] ?? null;
             $model->QuantityAvailable = $attributes['netavail'] ?? null;
-            $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
             $model->MinOrderQuantity = $attributes['MOQ'] ?? 1;
             $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
             $model->QuantityInterval = $attributes['SellMult'] ?? null;
@@ -1577,15 +1577,7 @@ class CsdErpAdapter implements ErpApiInterface
      */
     public function getPastSalesHistory(array $attributes = []): array
     {
-        // Normalize response when ERP returns a "NoRecords" flag.
         $rows = [];
-
-        $isNoRecords = false;
-        $noRecordsMessage = null;
-        if (isset($attributes['NoRecords'])) {
-            $isNoRecords = true;
-            $noRecordsMessage = (string) $attributes['NoRecords'];
-        }
 
         $monthNames = [
             'January','February','March','April','May','June',
@@ -1597,9 +1589,6 @@ class CsdErpAdapter implements ErpApiInterface
         $salesByMonth = array_fill(1, 12, 0.0);
 
         $records = $attributes['ttblsmsew'] ?? [];
-
-        // Determine year fallback (prefer explicitly requested year if present)
-        $detectedYear = isset($attributes['year']) ? intval($attributes['year']) : null;
 
         foreach ($records as $rec) {
             if (isset($rec['yr']) && $rec['yr'] !== null) {
@@ -1631,7 +1620,7 @@ class CsdErpAdapter implements ErpApiInterface
             }
         }
 
-        $detectedYear = $detectedYear ?? intval(date('Y'));
+        $detectedYear = $detectedYear ?? $attributes['year'] ?? intval(date('Y'));
 
         // Aggregate qty and sales per month index
         foreach ($records as $rec) {
@@ -1674,11 +1663,10 @@ class CsdErpAdapter implements ErpApiInterface
                 'average_purchase_price_formatted' => $avgFormatted,
             ];
         }
+
         return [
             'months' => $rows,
             'raw' => $attributes,
-            'no_records' => $isNoRecords,
-            'message' => $noRecordsMessage,
         ];
     }
 
@@ -1931,4 +1919,43 @@ class CsdErpAdapter implements ErpApiInterface
 
         return $value;
     }
+
+
+    /**
+     * Render printable document from IDM JSON response
+     */
+   public function renderPrintableDocument(array $response): Document
+    {
+        $document = new Document($response);
+
+        $items = $response['items']['item'] ?? null;
+
+        if (empty($items) || !is_array($items)) {
+            return $document;
+        }
+
+        // First item = latest (already sorted DESC)
+        $item = $items[0] ?? null;
+
+        if (
+            !$item ||
+            empty($item['resrs']['res']) ||
+            !is_array($item['resrs']['res'])
+        ) {
+            return $document;
+        }
+
+        foreach ($item['resrs']['res'] as $resource) {
+            if (($resource['mimetype'] ?? null) === 'application/pdf') {
+                $document->DocumentType = 'PDF';
+                $document->File = $resource['url'] ?? null;
+
+                return $document;
+            }
+        }
+
+        return $document;
+    }
+
+
 }

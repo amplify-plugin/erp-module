@@ -725,6 +725,7 @@ class CsdErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/proxy/FetchWhere', $payload);
+            $response['year'] = (int) $filters['year'] ?? date('Y');
 
             return $this->adapter->getPastSalesHistory($response);
 
@@ -2289,4 +2290,72 @@ class CsdErpService implements ErpApiInterface
             'error' => $response['error'] ?? ''
         ];
     }
+
+    protected function getIdmBaseUrl(): string
+    {
+        // Remove SX path and point to IDM
+        return str_replace(
+            'SX/web/sxapirestservice',
+            'IDM',
+            $this->config['url']
+        );
+    }
+
+    /**
+     * Get printable document (Invoice / Order / Quote) from IDM
+     *
+     * @throws CsdErpException
+     */
+    public function getPrintableDocument(array $inputs = []): Document
+    {
+        try {
+            // Extract parameters from array with defaults
+            $type = $inputs['type'] ?? null;
+            $orderNumber = $inputs['order_number'] ?? null;
+            $suffix = $inputs['suffix'] ?? null;
+            $offset = $inputs['offset'] ?? 0;
+            $limit = $inputs['limit'] ?? 11;
+
+            if (!$type || !$orderNumber) {
+                throw new \InvalidArgumentException('Type and order number are required.');
+            }
+
+            // Build query conditions
+            $conditions = [
+                sprintf('@Order_Number = "%s"', $orderNumber),
+            ];
+
+            if ($suffix !== null && $suffix !== '') {
+                $conditions[] = sprintf('@Order_Suffix = "%s"', $suffix);
+            }
+
+            $query = sprintf(
+                '/%s[%s] SORTBY(@LASTCHANGEDTS DESCENDING)',
+                ucfirst($type),
+                implode(' AND ', $conditions)
+            );
+
+            // Make HTTP request
+            $response = Http::csdErp()
+                ->baseUrl($this->getIdmBaseUrl())
+                ->get('/api/items/search', [
+                    '$query'        => $query,
+                    '$offset'       => $offset,
+                    '$limit'        => $limit,
+                    '$includeCount' => 'true',
+                    '$state'        => 0,
+                ])
+                ->json();
+
+            // Parse response using adapter
+            return $this->adapter->renderPrintableDocument($response);
+        } catch (Exception $exception) {
+            $this->exceptionHandler($exception);
+            return new Document([]);
+        }
+    }
+
+
+
+
 }
