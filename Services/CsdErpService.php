@@ -1569,7 +1569,7 @@ class CsdErpService implements ErpApiInterface
             ];
 
             // If CLOSED, override to false
-            if ($invoice_status === 'CLOSED') {
+            if ($invoice_status === 'CLOSED' || $invoice_status === 'All') {
                 $includePeriods = array_map(fn() => false, $includePeriods);
             }
 
@@ -1598,7 +1598,7 @@ class CsdErpService implements ErpApiInterface
             ], $includePeriods);
 
             $response = $this->post('/sxapiargetinvoicelistv3', $payload);
-
+            
             return $this->adapter->getInvoiceList($response);
 
         } catch (Exception $exception) {
