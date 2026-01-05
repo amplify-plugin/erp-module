@@ -567,8 +567,8 @@ class FactsErpAdapter implements ErpApiInterface
             $model->ItemNumber = $attributes['ItemNumber'] ?? null;
             $model->WarehouseID = $attributes['WarehouseID'] ?? null;
             $model->Price = ! empty($attributes['Price']) ? (float) str_replace(',', '', $attributes['Price']) : 0;
-            $model->ListPrice = $attributes['ListPrice'] ?? null;
-            $model->StandardPrice = $attributes['StandardPrice'] ?? null;
+            $model->ListPrice = ! empty($attributes['ListPrice']) ? (float) str_replace(',', '', $attributes['ListPrice']) : 0;
+            $model->StandardPrice = ! empty($attributes['StandardPrice']) ? (float) str_replace(',', '', $attributes['StandardPrice']) : 0;
             $model->QtyPrice_1 = $attributes['QtyPrice_1'] ?? null;
             $model->QtyBreak_1 = $attributes['QtyBreak_1'] ?? null;
             $model->QtyPrice_2 = $attributes['QtyPrice_2'] ?? null;
@@ -587,8 +587,8 @@ class FactsErpAdapter implements ErpApiInterface
             $model->QtyBreak_8 = $attributes['QtyBreak_8'] ?? null;
             $model->QtyPrice_9 = $attributes['QtyPrice_9'] ?? null;
             $model->QtyBreak_9 = $attributes['QtyBreak_9'] ?? null;
-            $model->ExtendedPrice = $attributes['ExtendedPrice'] ?? null;
-            $model->OrderPrice = $attributes['OrderPrice'] ?? null;
+            $model->ExtendedPrice = ! empty($attributes['ExtendedPrice']) ? (float) str_replace(',', '', $attributes['ExtendedPrice']) : 0;
+            $model->OrderPrice = ! empty($attributes['OrderPrice']) ? (float) str_replace(',', '', $attributes['OrderPrice']) : 0;
             $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['PricingUnitOfMeasure'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['DefaultSellingUnitOfMeasure'] ?? null;
