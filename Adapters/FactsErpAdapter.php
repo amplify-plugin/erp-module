@@ -566,9 +566,9 @@ class FactsErpAdapter implements ErpApiInterface
 
             $model->ItemNumber = $attributes['ItemNumber'] ?? null;
             $model->WarehouseID = $attributes['WarehouseID'] ?? null;
-            $model->Price = ! isset($attributes['Price']) ? (float) str_replace(',', '', $attributes['Price']) : null;
-            $model->ListPrice = ! isset($attributes['ListPrice']) ? (float) str_replace(',', '', $attributes['ListPrice']) : null;
-            $model->StandardPrice = ! isset($attributes['StandardPrice']) ? (float) str_replace(',', '', $attributes['StandardPrice']) : null;
+            $model->Price = isset($attributes['Price']) && $attributes['Price'] !== null ? (float) str_replace(',', '', $attributes['Price']) : null;
+            $model->ListPrice = isset($attributes['ListPrice']) && $attributes['ListPrice'] !== null ? (float) str_replace(',', '', $attributes['ListPrice']) : null;
+            $model->StandardPrice = isset($attributes['StandardPrice']) && $attributes['StandardPrice'] !== null ? (float) str_replace(',', '', $attributes['StandardPrice']) : null;
             $model->QtyPrice_1 = $attributes['QtyPrice_1'] ?? null;
             $model->QtyBreak_1 = $attributes['QtyBreak_1'] ?? null;
             $model->QtyPrice_2 = $attributes['QtyPrice_2'] ?? null;
@@ -587,8 +587,8 @@ class FactsErpAdapter implements ErpApiInterface
             $model->QtyBreak_8 = $attributes['QtyBreak_8'] ?? null;
             $model->QtyPrice_9 = $attributes['QtyPrice_9'] ?? null;
             $model->QtyBreak_9 = $attributes['QtyBreak_9'] ?? null;
-            $model->ExtendedPrice = ! isset($attributes['ExtendedPrice']) ? (float) str_replace(',', '', $attributes['ExtendedPrice']) : null;
-            $model->OrderPrice = ! isset($attributes['OrderPrice']) ? (float) str_replace(',', '', $attributes['OrderPrice']) : null;
+            $model->ExtendedPrice = isset($attributes['ExtendedPrice']) && $attributes['ExtendedPrice'] !== null ? (float) str_replace(',', '', $attributes['ExtendedPrice']) : null;
+            $model->OrderPrice = isset($attributes['OrderPrice']) && $attributes['OrderPrice'] !== null ? (float) str_replace(',', '', $attributes['OrderPrice']) : null;
             $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['PricingUnitOfMeasure'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['DefaultSellingUnitOfMeasure'] ?? null;
