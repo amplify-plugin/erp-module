@@ -11,10 +11,11 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  *
  * @property string $DocumentType
  * @property \Illuminate\Http\File $File
+ * @property string $EntityName
  */
 class Document extends Wrapper implements ErpApiWrapperInterface
 {
     use ApiWrapperTrait;
 
-    protected array $fillable = ['DocumentType', 'File'];
+    protected array $fillable = ['DocumentType', 'File', 'EntityName'];
 }
