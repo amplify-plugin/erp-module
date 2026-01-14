@@ -744,7 +744,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->CustomerCity = $attributes['customerCity'] ?? null;
             $model->CustomerState = $attributes['customerState'] ?? null;
             $model->CustomerZipCode = $attributes['customerZipCode'] ?? null;
-            $model->CustomerCountry = $attributes['customerCountry'] ? strtoupper($attributes['customerCountry']) : null;
+            $model->CustomerCountry = isset($attributes['customerCountry']) ? strtoupper($attributes['customerCountry']) : null;
             $model->CustomerPhone = $attributes['phone'] ?? null;
             $model->CustomerContact = $attributes['CustomerContact'] ?? null;
             $model->DefaultShipTo = $attributes['defaultShipTo'] ?? null;
