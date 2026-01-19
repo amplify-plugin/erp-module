@@ -7,6 +7,7 @@ use Amplify\ErpApi\Collections\CampaignCollection;
 use Amplify\ErpApi\Collections\ContactCollection;
 use Amplify\ErpApi\Collections\CreateQuotationCollection;
 use Amplify\ErpApi\Collections\CustomerCollection;
+use Amplify\ErpApi\Collections\DocumentCollection;
 use Amplify\ErpApi\Collections\InvoiceCollection;
 use Amplify\ErpApi\Collections\InvoiceTransactionCollection;
 use Amplify\ErpApi\Collections\OrderCollection;
@@ -1569,7 +1570,7 @@ class CsdErpService implements ErpApiInterface
             ];
 
             // If CLOSED, override to false
-            if ($invoice_status === 'CLOSED') {
+            if ($invoice_status === 'CLOSED' || $invoice_status === 'All') {
                 $includePeriods = array_map(fn() => false, $includePeriods);
             }
 
@@ -2306,7 +2307,7 @@ class CsdErpService implements ErpApiInterface
      *
      * @throws CsdErpException
      */
-    public function getPrintableDocument(array $inputs = []): Document
+    public function getPrintableDocument(array $inputs = []): DocumentCollection
     {
         try {
             // Extract parameters from array with defaults
@@ -2329,11 +2330,25 @@ class CsdErpService implements ErpApiInterface
                 $conditions[] = sprintf('@Order_Suffix = "%s"', $suffix);
             }
 
-            $query = sprintf(
-                '/%s[%s] SORTBY(@LASTCHANGEDTS DESCENDING)',
-                ucfirst($type),
-                implode(' AND ', $conditions)
-            );
+            $conditionString = implode(' AND ', $conditions);
+
+            // Build query
+            if ($type === 'order') {
+                $docTypes = ['Acknowledgement', 'Invoice', 'Pick_List'];
+
+                $unionParts = array_map(
+                    fn ($t) => sprintf('/%s[%s]', $t, $conditionString),
+                    $docTypes
+                );
+
+                $query = implode(' UNION ', $unionParts) . ' SORTBY(@LASTCHANGEDTS DESCENDING)';
+            } else {
+                $query = sprintf(
+                    '/%s[%s] SORTBY(@LASTCHANGEDTS DESCENDING)',
+                    ucfirst($type),
+                    $conditionString
+                );
+            }
 
             // Make HTTP request
             $response = Http::csdErp()
@@ -2351,7 +2366,7 @@ class CsdErpService implements ErpApiInterface
             return $this->adapter->renderPrintableDocument($response);
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
-            return new Document([]);
+            return new DocumentCollection([]);
         }
     }
 

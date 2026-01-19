@@ -724,7 +724,7 @@ class FactsErpService implements ErpApiInterface
             ];
 
             $url = match (config('amplify.client_code')) {
-                'ACT', 'MW', 'PLS' => 'createOrder',
+                'ACT', 'MW', 'PLS', 'ALR' => 'createOrder',
                 default => 'getOrderTotal',
             };
 

@@ -449,7 +449,7 @@ trait BackendShippingCostTrait
 
     private function isInternationalCustomer(string $countryCode): bool
     {
-        $domesticCountries = ['US', 'CA', 'MX'];
+        $domesticCountries = ['US', 'CA'];
 
         return !in_array(strtoupper($countryCode), $domesticCountries);
     }

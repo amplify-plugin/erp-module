@@ -51,6 +51,7 @@ use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\CampaignDetailCollection;
 use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\CreateQuotationCollection;
+use Amplify\ErpApi\Collections\DocumentCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\InvoiceTransactionCollection;
 use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
@@ -743,7 +744,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->CustomerCity = $attributes['customerCity'] ?? null;
             $model->CustomerState = $attributes['customerState'] ?? null;
             $model->CustomerZipCode = $attributes['customerZipCode'] ?? null;
-            $model->CustomerCountry = $attributes['customerCountry'] ? strtoupper($attributes['customerCountry']) : null;
+            $model->CustomerCountry = isset($attributes['customerCountry']) ? strtoupper($attributes['customerCountry']) : null;
             $model->CustomerPhone = $attributes['phone'] ?? null;
             $model->CustomerContact = $attributes['CustomerContact'] ?? null;
             $model->DefaultShipTo = $attributes['defaultShipTo'] ?? null;
@@ -1924,37 +1925,39 @@ class CsdErpAdapter implements ErpApiInterface
     /**
      * Render printable document from IDM JSON response
      */
-   public function renderPrintableDocument(array $response): Document
+    public function renderPrintableDocument(array $response): DocumentCollection
     {
-        $document = new Document($response);
+        $collection = new DocumentCollection([]);
 
-        $items = $response['items']['item'] ?? null;
+        $items = $response['items']['item'] ?? [];
 
-        if (empty($items) || !is_array($items)) {
-            return $document;
+        if (!is_array($items)) {
+            return $collection;
         }
 
-        // First item = latest (already sorted DESC)
-        $item = $items[0] ?? null;
+        foreach ($items as $item) {
+            if (
+                empty($item['resrs']['res']) ||
+                !is_array($item['resrs']['res'])
+            ) {
+                continue;
+            }
 
-        if (
-            !$item ||
-            empty($item['resrs']['res']) ||
-            !is_array($item['resrs']['res'])
-        ) {
-            return $document;
-        }
+            foreach ($item['resrs']['res'] as $resource) {
+                if (($resource['mimetype'] ?? null) !== 'application/pdf') {
+                    continue;
+                }
 
-        foreach ($item['resrs']['res'] as $resource) {
-            if (($resource['mimetype'] ?? null) === 'application/pdf') {
+                $document = new Document([]);
                 $document->DocumentType = 'PDF';
+                $document->EntityName = $item['entityName'] ?? null;
                 $document->File = $resource['url'] ?? null;
 
-                return $document;
+                $collection->push($document);
             }
         }
 
-        return $document;
+        return $collection;
     }
 
 
