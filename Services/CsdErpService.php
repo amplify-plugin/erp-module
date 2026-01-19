@@ -45,7 +45,6 @@ use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\Backend\Models\SystemConfiguration;
 use Carbon\CarbonImmutable;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
