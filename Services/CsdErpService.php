@@ -254,7 +254,17 @@ class CsdErpService implements ErpApiInterface
             $fields['email'] = 'ACCOUNTING USE ONLY!  DO NOT MODIFY';
 
             $fields['credlim'] = '';
-            $fields['termstype'] = 'CRCD';
+            $clientCode = config('amplify.client_code');
+            $countryCode = strtolower($attributes['country_code'] ?? '');
+            if ($clientCode === 'STV') {
+                if ($countryCode !== 'us' && $countryCode !== 'ca') {
+                    $fields['termstype'] = 'CIA';
+                } else {
+                    $fields['termstype'] = 'CRCD';
+                }
+            } else {
+                $fields['termstype'] = 'CRCD';
+            }
             $fields['pricetype'] = '2';
             $fields['shipviaty'] = 'UPSG';
             $fields['lookupnm'] = substr($attributes['customer_name'] ?? '', 0, 15);
@@ -1334,7 +1344,7 @@ class CsdErpService implements ErpApiInterface
                         !empty($tax['type']) &&
                         !empty($tax['descrip']) &&
                         strtolower($tax['type']) === 'addon' &&
-                        trim(strtolower($tax['descrip'])) === 'wire trnsfer'
+                        trim(strtolower($tax['descrip'])) === 'wire transfer'
                     ) {
                         $wireTrasnsferFee = $tax['amount'];
                     }
