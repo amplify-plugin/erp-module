@@ -98,7 +98,7 @@ class CsdErpService implements ErpApiInterface
     /**
      * @throws CsdErpException
      */
-    private function refreshToken(): void
+    public function refreshToken(): void
     {
         $expirationAt = $this->config['expires_at'] ?? null;
 
