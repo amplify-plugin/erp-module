@@ -64,6 +64,6 @@ class Invoice extends Wrapper implements ErpApiWrapperInterface
         'PayDays', 'CustomerPONumber', 'InvoiceDetail', 'HasInvoiceDetail', 'OrderNumber', 'InvoiceStatus', 'InvoiceSuffix', 'ShipToName', 'ShipToAddress1',
         'ShipToAddress2', 'ShipToAddress3', 'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToCountry', 'WarehouseID', 'OrderDisposition', 'CarrierCode',
         'DiscountAmountTrading', 'TotalSpecialCharges', 'FreightAmount', 'SalesTaxAmount', 'TotalOrderValue', 'NoteList', 'ExtraCharges', 'InvoiceDueDate',
-        'ItemSalesAmount', 'DaysOpen', 'FreightAccountNumber ','RestockFee',
+        'ItemSalesAmount', 'DaysOpen', 'FreightAccountNumber ','RestockFee', 'CustomerNumber', 'CustomerName', 'CustomerPhoneNo'
     ];
 }
