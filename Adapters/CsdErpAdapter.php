@@ -1024,8 +1024,8 @@ class CsdErpAdapter implements ErpApiInterface
             $model->OrderSuffix = isset($attributes['ordersuf']) || isset($attributes['orderSuf'])
                 ? str_pad($attributes['ordersuf'] ?? $attributes['orderSuf'], 2, '0', STR_PAD_LEFT)
                 : null;
-            $model->OrderType = $this->orderType($attributes['transtype'] ?? $attributes['transType'] ?? null);
-            $model->OrderStatus = $this->orderStatus($attributes['stage'] ?? $attributes['stageCd'] ?? null);
+            $model->OrderType = $attributes['transtype'] ?? $attributes['transType'] ?? null;
+            $model->OrderStatus = $attributes['stage'] ?? $attributes['stageCd'] ?? null;
             $model->CustomerAddress1 = $attributes['addr1'] ?? $attributes['soldtoaddr1'] ?? null;
             $model->CustomerAddress2 = $attributes['addr2'] ?? $attributes['soldtoaddr2'] ?? null;
             $model->CustomerAddress3 = $attributes['addr3'] ?? $attributes['soldtoaddr3'] ?? null;
@@ -1240,8 +1240,8 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QuotedTo = $attributes['QuotedTo'] ?? null;
             $model->QuotedBy = $attributes['QuotedBy'] ?? null;
             $model->QuotedByEmail = $attributes['QuotedByEmail'] ?? null;
-            $model->QuoteType = $this->orderType($attributes['transtype'] ?? $attributes['transType'] ?? null);
-            $model->OrderStatus = $this->orderStatus($attributes['stage'] ?? $attributes['stageCd'] ?? null);
+            $model->QuoteType = $attributes['transtype'] ?? $attributes['transType'] ?? null;
+            $model->OrderStatus = $attributes['stage'] ?? $attributes['stageCd'] ?? null;
 
             $model->ItemSalesAmount = isset($attributes['totlineamt']) || isset($attributes['totLineAmt'])
                 ? (float)filter_var($attributes['totlineamt'] ?? $attributes['totLineAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
@@ -1307,8 +1307,8 @@ class CsdErpAdapter implements ErpApiInterface
             $model->InvoiceSuffix = isset($attributes['ordersuf']) || isset($attributes['invsufraw'])
                 ? str_pad($attributes['ordersuf'] ?? $attributes['invsufraw'], 2, '0', STR_PAD_LEFT)
                 : null;
-            $model->InvoiceType = $this->orderType($attributes['transcd'] ?? $attributes['transtype'] ?? null);
-            $model->InvoiceStatus = $this->orderStatus($attributes['statustype'] ?? $attributes['stage'] ?? null);
+            $model->InvoiceType = $attributes['transcd'] ?? $attributes['transtype'] ?? null;
+            $model->InvoiceStatus = $attributes['statustype'] ?? $attributes['stage'] ?? null;
             $model->InvoiceDisputeCode = $attributes['disputefl'] ?? null;
             $model->FinanceChargeFlag = $attributes['FinanceChargeFlag'] ?? null;
             $model->InvoiceDate = $attributes['invdt'] ?? $attributes['invoicedt'] ?? null;
