@@ -1298,6 +1298,9 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new Invoice($attributes);
 
         if (!empty($attributes)) {
+            $model->CustomerNumber = $attributes['custno'] ?? null;
+            $model->CustomerName = $attributes['name'] ?? null;
+            $model->CustomerPhoneNo = $attributes['phoneno'] ?? null;
             $model->FreightAccountNumber = $attributes['zFreightAcct'] ?? null;
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? 'No';
             $model->InvoiceNumber = $attributes['invnoraw'] ?? $attributes['orderno'] ?? null;
