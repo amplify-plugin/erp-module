@@ -257,7 +257,7 @@ class CsdErpService implements ErpApiInterface
             $clientCode = config('amplify.client_code');
             $countryCode = strtolower($attributes['country_code'] ?? '');
             if ($clientCode === 'STV') {
-                if ($countryCode !== 'us' && $countryCode !== 'ca') {
+                if ($countryCode !== 'us') {
                     $fields['termstype'] = 'CIA';
                 } else {
                     $fields['termstype'] = 'CRCD';
