@@ -835,7 +835,11 @@ class CsdErpService implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         try {
-            return $this->handleOrderSubmission($orderInfo);
+            if (config('amplify.client_code') === 'STV') {
+                return $this->createOrderSteven($orderInfo);
+            }
+
+            return $this->createOrderDkLok($orderInfo);
 
         } catch (Exception $exception) {
 
@@ -843,16 +847,6 @@ class CsdErpService implements ErpApiInterface
 
             return $this->adapter->createOrder();
         }
-    }
-
-    private function handleOrderSubmission(array $orderInfo = [])
-    {
-        if (config('amplify.client_code') === 'STV') {
-            return $this->createOrderSteven($orderInfo);
-        }
-
-        return $this->createOrderDkLok($orderInfo);
-
     }
 
     /**
