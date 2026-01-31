@@ -784,7 +784,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->ShipToPhoneNumber = $attributes['phoneno'] ?? null;
             $model->ShipToContact = $attributes['contact'] ?? null;
             $model->ShipToWarehouse = $attributes['whse'] ?? null;
-            $model->BackorderCode = $attributes['BackorderCode'] ?? null;
+            $model->BackorderCode = isset($attributes['bofl']) ? $attributes['bofl'] == 'yes' : null;
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->PoRequired = $attributes['poreqfl'] ?? null;
         }
