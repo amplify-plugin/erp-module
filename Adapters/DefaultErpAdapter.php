@@ -107,7 +107,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new CreateCustomer($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $attributes = $attributes['CashCustomer'] ?? [];
             $model->NewAccountNumber = $attributes['NewAccountNumber'] ?? null;
         }
@@ -122,7 +122,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $customerList = new CustomerCollection;
 
-        if (! empty($customers)) {
+        if (!empty($customers)) {
             foreach (($customers ?? []) as $customer) {
                 $customerList->push($this->renderSingleCustomer($customer));
             }
@@ -146,7 +146,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $customerShippingLocations = new ShippingLocationCollection;
 
-        if (! empty($locations)) {
+        if (!empty($locations)) {
             foreach ($locations as $location) {
                 $customerShippingLocations->push($this->renderSingleCustomerShippingLocation($location));
             }
@@ -159,7 +159,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new Customer($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['customer_code'] ?? null;
             $model->ArCustomerNumber = $attributes['ar_number'] ?? null;
             $model->CustomerName = $attributes['customer_name'] ?? null;
@@ -208,7 +208,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new ShippingLocation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ShipToNumber = $attributes['address_code'] ?? null;
             $model->ShipToName = $attributes['address_name'] ?? null;
             $model->ShipToCountryCode = $attributes['country_code'] ?? null;
@@ -221,9 +221,9 @@ class DefaultErpAdapter implements ErpApiInterface
             $model->ShipToPhoneNumber = $attributes['ShipToPhoneNumber'] ?? null;
             $model->ShipToContact = $attributes['ShipToContact'] ?? null;
             $model->ShipToWarehouse = $attributes['ShipToWarehouse'] ?? null;
-            $model->BackorderCode = $attributes['BackorderCode'] ?? null;
-            $model->CarrierCode = $attributes['CarrierCode'] ?? null;
-            $model->PoRequired = $attributes['PoRequired'] ?? null;
+            $model->BackorderCode = isset($attributes['allow_backorder']) ? $attributes['allow_backorder'] : false;
+            $model->CarrierCode = $attributes['carrier_code'] ?? null;
+            $model->PoRequired = isset($attributes['customer_po_required']) ? $attributes['customer_po_required'] : false;
         }
 
         return $model;
@@ -242,7 +242,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $collection = new ProductPriceAvailabilityCollection;
 
-        if (! empty($items)) {
+        if (!empty($items)) {
             foreach (($items ?? []) as $item) {
                 $collection->push($this->renderSingleProductPriceAvailability($item));
             }
@@ -256,7 +256,7 @@ class DefaultErpAdapter implements ErpApiInterface
         $attributes = $attributes->toArray();
         $model = new ProductPriceAvailability($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ItemNumber = $attributes['item_number'] ?? null;
             $model->WarehouseID = $attributes['warehouse_id'] ?? null;
             $model->Price = $attributes['price'];
@@ -274,7 +274,7 @@ class DefaultErpAdapter implements ErpApiInterface
             $model->AverageLeadTime = $attributes['average_lead_time'] ?? null;
             $model->QuantityAvailable = $attributes['quantity_available'] ?? null;
             $model->QuantityOnOrder = $attributes['quantity_on_order'] ?? null;
-            $model->Warehouses = ErpApi::getWarehouses()->first(fn ($warehouse) => $warehouse->WarehouseNumber == $model->WarehouseID);
+            $model->Warehouses = ErpApi::getWarehouses()->first(fn($warehouse) => $warehouse->WarehouseNumber == $model->WarehouseID);
         }
 
         return $model;
@@ -289,7 +289,7 @@ class DefaultErpAdapter implements ErpApiInterface
         $model = new ProductSyncCollection;
 
         // Mapping
-        if (! empty($filters)) {
+        if (!empty($filters)) {
             foreach (($filters ?? []) as $item) {
                 $model->push($this->renderProductSync($item));
             }
@@ -375,7 +375,7 @@ class DefaultErpAdapter implements ErpApiInterface
         $customerOrders = array_shift($customerOrders);
 
         $orders = new OrderCollection;
-        if (! empty($customerOrders)) {
+        if (!empty($customerOrders)) {
             foreach ($customerOrders as $order) {
                 $orders->push($this->renderSingleOrder($order));
             }
@@ -401,7 +401,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new Order($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['customer_number'] ?? null;
             $model->OrderNumber = $attributes['OrderNumber'] ?? null;
             $model->OrderSuffix = $attributes['OrderSuffix'] ?? null;
@@ -449,7 +449,7 @@ class DefaultErpAdapter implements ErpApiInterface
             $model->PdfAvailable = $attributes['PdfAvailable'] ?? null;
             $model->OrderDetail = new OrderDetailCollection;
 
-            if (! empty($attributes['OrderDetail'])) {
+            if (!empty($attributes['OrderDetail'])) {
                 foreach (($attributes['OrderDetail'] ?? []) as $orderDetail) {
                     $model->OrderDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
@@ -467,7 +467,7 @@ class DefaultErpAdapter implements ErpApiInterface
         $total_price = 0;
         foreach ($items as $item) {
             $product = ProductAvailability::where('item_number', $item['ItemNumber'])
-                ->when($item['WarehouseID'], fn ($q) => $q->where('warehouse_id', $item['WarehouseID']))
+                ->when($item['WarehouseID'], fn($q) => $q->where('warehouse_id', $item['WarehouseID']))
                 ->first();
 
             $product_price = customer_check() ? $product->price : ($product->list_price ?? $product->price);
@@ -489,7 +489,7 @@ class DefaultErpAdapter implements ErpApiInterface
     private function renderSingleCreateQuotation($attributes): CreateQuotation
     {
         $model = new CreateQuotation($attributes);
-        if (! empty($attributes['TotalOrderValue'])) {
+        if (!empty($attributes['TotalOrderValue'])) {
             $model->OrderNumber = floatval($attributes['OrderNumber'] ?? '');
             $model->SalesTaxAmount = floatval($attributes['SalesTaxAmount'] ?? '');
             $model->FreightAmount = floatval($attributes['FreightAmount'] ?? '');
@@ -503,7 +503,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new Order($order->toArray());
 
-        if (! empty($order) && isset($order->customer)) {
+        if (!empty($order) && isset($order->customer)) {
             $model->ContactId = null;
             $model->OrderNumber = $order->id ?? null;
             $model->OrderType = $order->order_type === 0 ? 'ORDER' : 'QUOTE';
@@ -568,7 +568,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new Quotation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['CustomerNumber'] ?? null;
             $model->ContactId = $attributes['ContactId'] ?? null;
             $model->QuoteNumber = $attributes['QuoteNumber'] ?? null;
@@ -612,7 +612,7 @@ class DefaultErpAdapter implements ErpApiInterface
             $model->QuoteDetail = new OrderDetailCollection;
             $model->QuotedTo = $attributes['QuotedTo'] ?? null;
 
-            if (! empty($attributes['QuoteDetail'])) {
+            if (!empty($attributes['QuoteDetail'])) {
                 foreach (($attributes['QuoteDetail'] ?? []) as $orderDetail) {
                     $model->QuoteDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
@@ -626,7 +626,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new OrderDetail($orderItem?->toArray() ?? []);
 
-        if (! empty($orderItem)) {
+        if (!empty($orderItem)) {
             $orderItem->backpackProduct;
             $model->LineNumber = $orderItem->product_id ?? null;
             $model->ItemNumber = $orderItem->product_code ?? null;
@@ -652,7 +652,7 @@ class DefaultErpAdapter implements ErpApiInterface
         $attributes = $attributes->toArray();
         $model = new OrderNote($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Subject = $attributes['subject'] ?? null;
             $model->Date = isset($attributes['date']) ? CarbonImmutable::parse($attributes['date']) : null;
             $model->NoteNum = $attributes['id'] ?? null;
@@ -678,7 +678,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new CustomerAR($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $attributes = $attributes['ARSummary'] ?? [];
 
             $model->CustomerNum = $attributes['CustomerNum'] ?? null;
@@ -744,7 +744,7 @@ class DefaultErpAdapter implements ErpApiInterface
     public function getInvoiceList(array $attributes = []): InvoiceCollection
     {
         $invoiceList = new InvoiceCollection;
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach ($attributes as $invoice) {
                 $invoiceList->push($this->renderSingleInvoice($invoice));
             }
@@ -764,7 +764,7 @@ class DefaultErpAdapter implements ErpApiInterface
     private function renderSingleInvoice($attributes): Invoice
     {
         $model = new Invoice($attributes);
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->AllowArPayments = $attributes['allow_ar_payments'] ?? 'No';
             $model->InvoiceNumber = $attributes['invoice_number'] ?? null;
             $model->InvoiceStatus = $attributes['invoice_status'] ?? null;
@@ -807,7 +807,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new CreatePayment($paymentInfo);
 
-        if (! empty($paymentInfo['ArPayment'])) {
+        if (!empty($paymentInfo['ArPayment'])) {
             $attributes = $paymentInfo['ArPayment'] ?? [];
 
             $model->AuthorizationNumber = $attributes['AuthorizationNumber'] ?? null;
@@ -845,7 +845,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $campaignList = new CampaignCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['ItemPromoHeader'] ?? []) as $campaign) {
                 $campaignList->push($this->renderSingleCampaign($campaign));
             }
@@ -867,7 +867,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new Campaign($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Promoid = $attributes['Promoid'] ?? null;
             $model->BegDate = $attributes['BegDate'] ?? null;
             $model->EndDate = $attributes['EndDate'] ?? null;
@@ -883,7 +883,7 @@ class DefaultErpAdapter implements ErpApiInterface
             $model->Private = $attributes['Private'] ?? null;
             $model->CampaignDetail = new CampaignDetailCollection;
 
-            if (! empty($attributes['ItemPromoDetails'])) {
+            if (!empty($attributes['ItemPromoDetails'])) {
                 foreach (($attributes['ItemPromoDetails'] ?? []) as $campaignDetail) {
                     $model->CampaignDetail->push($this->renderSingleCampaignDetail($campaignDetail));
                 }
@@ -897,7 +897,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $model = new CampaignDetail($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Promoid = $attributes['Promoid'] ?? null;
             $model->Item = $attributes['Item'] ?? null;
             $model->ItemDescription = $attributes['ItemDescription'] ?? null;
