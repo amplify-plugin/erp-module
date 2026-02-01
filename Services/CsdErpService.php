@@ -620,8 +620,6 @@ class CsdErpService implements ErpApiInterface
                 fn($item) => !empty($item)
             );
 
-            dd($filters);
-
             $customer_number = $this->customerId($filters);
 
             $shipTo = $filters['ship_to_address'] ?? session('ship_to_address.ShipToNumber', ErpApi::getCustomerDetail()->DefaultShipTo ?? null);
