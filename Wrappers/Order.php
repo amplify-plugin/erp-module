@@ -49,6 +49,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $TotalOrderValue
  * @property string $TotalSpecialCharges
  * @property string $CarrierCode
+ * @property string $CarrierCodeDescription
  * @property string $WarehouseID
  * @property string $InvoiceNumber
  * @property string $EmailAddress
@@ -80,7 +81,7 @@ class Order extends Wrapper implements ErpApiWrapperInterface
         'OrderStatus', 'CustomerName', 'BillToCountry', 'CustomerAddress1', 'CustomerAddress2', 'CustomerAddress3', 'BillToCity', 'BillToState',
         'BillToZipCode', 'BillToContact', 'ShipToNumber', 'ShipToName', 'ShipToCountry', 'ShipToAddress1', 'ShipToAddress2', 'ShipToAddress3',
         'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToContact', 'EntryDate', 'PromiseDate', 'RequestedShipDate', 'CustomerPurchaseOrdernumber', 'ItemSalesAmount',
-        'DiscountAmountTrading', 'SalesTaxAmount', 'InvoiceAmount', 'FreightAmount', 'TotalOrderValue', 'TotalSpecialCharges', 'CarrierCode', 'WarehouseID',
+        'DiscountAmountTrading', 'SalesTaxAmount', 'InvoiceAmount', 'FreightAmount', 'TotalOrderValue', 'TotalSpecialCharges', 'CarrierCode', 'CarrierCodeDescription', 'WarehouseID',
         'InvoiceNumber', 'EmailAddress', 'BillToCountryName', 'ShipToCountryName', 'PdfAvailable', 'OrderDetail', 'OrderNotes', 'SignedDoc', 'SignedType',
         'HazMatCharge', 'InHouseDeliveryDate', 'OrderDisposition', 'InvoiceDate', 'TrackingShipments', 'NoteList', 'ExtraCharges', 'FreightAccountNumber', 'RestockFee',
         'OrderDiscount',

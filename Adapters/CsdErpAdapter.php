@@ -1073,7 +1073,8 @@ class CsdErpAdapter implements ErpApiInterface
                     FILTER_FLAG_ALLOW_FRACTION
                 )
                 : null; // gross amount (pre-discount)
-            $model->CarrierCode = $attributes['shipviaty'] ?? $attributes['shipviatydesc'] ?? null;
+            $model->CarrierCode = $attributes['shipviaty'] ?? null;
+            $model->CarrierCodeDescription = $attributes['shipviatydesc'] ?? null;
             $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? null);
             $model->InvoiceNumber = $attributes['invno'] ?? null;
             $model->EmailAddress = $attributes['EmailAddress'] ?? null;
