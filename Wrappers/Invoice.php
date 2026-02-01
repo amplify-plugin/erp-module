@@ -41,6 +41,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $ShipToCountry
  * @property string $OrderDisposition
  * @property string $CarrierCode
+ * @property string $CarrierCodeDescription
  * @property string $WarehouseID
  * @property string $DiscountAmountTrading
  * @property string $TotalSpecialCharges
@@ -64,7 +65,7 @@ class Invoice extends Wrapper implements ErpApiWrapperInterface
         'EntryDate', 'AgeDate', 'InvoiceAmount', 'InvoiceBalance', 'PendingPayment', 'DiscountAmount', 'DiscountDueDate', 'LastTransactionDate',
         'PayDays', 'CustomerPONumber', 'InvoiceDetail', 'HasInvoiceDetail', 'OrderNumber', 'InvoiceStatus', 'InvoiceSuffix', 'ShipToName', 'ShipToAddress1',
         'ShipToAddress2', 'ShipToAddress3', 'ShipToCity', 'ShipToState', 'ShipToZipCode', 'ShipToCountry', 'WarehouseID', 'OrderDisposition', 'CarrierCode',
-        'DiscountAmountTrading', 'TotalSpecialCharges', 'FreightAmount', 'SalesTaxAmount', 'TotalOrderValue', 'NoteList', 'ExtraCharges', 'InvoiceDueDate',
+        'CarrierCodeDescription', 'DiscountAmountTrading', 'TotalSpecialCharges', 'FreightAmount', 'SalesTaxAmount', 'TotalOrderValue', 'NoteList', 'ExtraCharges', 'InvoiceDueDate',
         'ItemSalesAmount', 'DaysOpen', 'FreightAccountNumber ','RestockFee', 'CustomerNumber', 'CustomerName', 'CustomerPhoneNo', 'ContactId'
     ];
 }
