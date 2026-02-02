@@ -11,6 +11,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Log;
 
 class CustomerProfileSyncJob implements ShouldQueue
 {
@@ -38,11 +39,10 @@ class CustomerProfileSyncJob implements ShouldQueue
     public function handle()
     {
         if (config('amplify.client_code') != 'ACP') {
-            $canParallel = (PHP_OS_FAMILY == 'Linux' && function_exists('pcntl_fork'));
 
-            ($canParallel)
-                ? $this->parallelProfileSync()
-                : $this->sequentialProfileSync();
+            $this->syncCustomerInfo();
+
+            $this->syncShippingAddress();
 
             // set last synced datetime
             $this->customer->refresh();
@@ -129,55 +129,13 @@ class CustomerProfileSyncJob implements ShouldQueue
 
             // delete previous extra addresses.
             CustomerAddress::where('customer_id', $this->customer->id)->whereNotIn('id', $ignore_to_delete)->delete();
+
+            if($default = CustomerAddress::where('customer_id', $this->customer->id)->where('address_code', $this->customer->shipto_address_code)->first()) {
+                Customer::where('id', $this->customer->id)->update(['default_address_id' => $default->id]);
+            }
+
         } catch (\Throwable $th) {
-            \Illuminate\Support\Facades\Log::error($th);
+            Log::error($th);
         }
     }
-
-    /**
-     * @throws \Exception
-     */
-    private function parallelProfileSync()
-    {
-        $tasks = [
-            fn() => $this->syncCustomerInfo(),
-            fn() => $this->syncShippingAddress(),
-        ];
-
-        $pids = [];
-
-        foreach ($tasks as $task) {
-            $pid = pcntl_fork();
-
-            if ($pid === -1) {
-                throw new \Exception("Failed to fork process");
-            }
-
-            if ($pid === 0) {
-                // CHILD PROCESS
-                try {
-                    $task();
-                } catch (\Throwable $e) {
-                    \Log::error("Customer Profile Sync Child process error: " . $e->getMessage());
-                    \Log::error($e);
-                }
-                exit;
-            }
-
-            // Parent
-            $pids[] = $pid;
-        }
-
-        // Parent waits for all children
-        foreach ($pids as $pid) {
-            pcntl_waitpid($pid, $status);
-        }
-    }
-
-    private function sequentialProfileSync()
-    {
-        $this->syncCustomerInfo();
-        $this->syncShippingAddress();
-    }
-
 }

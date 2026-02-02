@@ -436,18 +436,18 @@ class CsdErpService implements ErpApiInterface
 
             $customer_number = $this->customerId($filters);
 
-            $addressName = $filters['ship_to_name'] ?? '';
-            $addressCode = $filters['ship_to_code'] ?? '';
+            $addressName = $filters['ship_to_name'] ?? $filters['address_name'] ?? '';
+            $addressCode = $filters['ship_to_code'] ?? $filters['address_code'] ?? '';
 
-            // taxi sing software in use
+            // taxing software in use
             $shipTo = [
-                'streetaddr' => $filters['ship_to_address1'] ?? null,
-                'streetaddr2' => $filters['ship_to_address2'] ?? null,
-                'streetaddr3' => $filters['ship_to_address3'] ?? null,
-                'city' => $filters['ship_to_city'] ?? null,
-                'country' => $filters['ship_to_country_code'] ?? null,
-                'state' => $filters['ship_to_state'] ?? null,
-                'zipcd' => $filters['ship_to_zip_code'] ?? null,
+                'streetaddr' => $filters['ship_to_address1'] ?? $filters['address_1'] ?? null,
+                'streetaddr2' => $filters['ship_to_address2'] ?? $filters['address_2'] ?? null,
+                'streetaddr3' => $filters['ship_to_address3'] ?? $filters['address_3'] ?? null,
+                'city' => $filters['ship_to_city'] ?? $filters['city'] ?? null,
+                'country' => $filters['ship_to_country_code'] ?? $filters['country_code'] ?? null,
+                'state' => $filters['ship_to_state'] ?? $filters['state'] ?? null,
+                'zipcd' => $filters['ship_to_zip_code'] ?? $filters['zip_code'] ?? null,
                 'addressoverfl' => true,
             ];
 
@@ -484,6 +484,7 @@ class CsdErpService implements ErpApiInterface
     public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
     {
         try {
+
             $customer_number = $this->customerId($attributes);
 
             $fields['name'] = $attributes['address_name'] ?? '';
@@ -621,7 +622,7 @@ class CsdErpService implements ErpApiInterface
 
             $customer_number = $this->customerId($filters);
 
-            $shipTo = $filters['ship_to_address'] ?? session('ship_to_address.ShipToNumber',ErpApi::getCustomerDetail()->DefaultShipTo ?? null);
+            $shipTo = $filters['ship_to_address'] ?? session('ship_to_address.ShipToNumber', ErpApi::getCustomerDetail()->DefaultShipTo ?? null);
 
             $reminder = ceil(count($items) / 3);
 
@@ -633,7 +634,7 @@ class CsdErpService implements ErpApiInterface
                         'seqno' => (900 + $itemIndex) . (600 + $warehouseIndex),
                         'whse' => $warehouse,
                         'qtyord' => $item['qty'] ?? 1,
-                        'unit' => isset($item['uom']) ? $item['uom'] : 'ea',
+                        'unit' => $item['uom'] ?? 'ea',
                         'prod' => $item['item'],
                     ];
                 }
@@ -735,7 +736,7 @@ class CsdErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/proxy/FetchWhere', $payload);
-            $response['year'] = (int) $filters['year'] ?? date('Y');
+            $response['year'] = (int)$filters['year'] ?? date('Y');
 
             return $this->adapter->getPastSalesHistory($response);
 
@@ -835,7 +836,11 @@ class CsdErpService implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         try {
-            return $this->handleOrderSubmission($orderInfo);
+            if (config('amplify.client_code') === 'STV') {
+                return $this->createOrderSteven($orderInfo);
+            }
+
+            return $this->createOrderDkLok($orderInfo);
 
         } catch (Exception $exception) {
 
@@ -843,16 +848,6 @@ class CsdErpService implements ErpApiInterface
 
             return $this->adapter->createOrder();
         }
-    }
-
-    private function handleOrderSubmission(array $orderInfo = [])
-    {
-        if (config('amplify.client_code') === 'STV') {
-            return $this->createOrderSteven($orderInfo);
-        }
-
-        return $this->createOrderDkLok($orderInfo);
-
     }
 
     /**
@@ -876,7 +871,7 @@ class CsdErpService implements ErpApiInterface
             ];
         }, $items);
 
-        $warehouseId = ! empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
+        $warehouseId = !empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
 
         $noteText = trim($order['order_note'] ?? '');
 
@@ -1292,7 +1287,7 @@ class CsdErpService implements ErpApiInterface
                 ];
             }, $items);
 
-            $warehouseId = ! empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
+            $warehouseId = !empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
 
             $payload = [
                 'companyNumber' => $this->companyNumber,
@@ -2346,7 +2341,7 @@ class CsdErpService implements ErpApiInterface
                 $docTypes = ['Acknowledgement', 'Invoice', 'Pick_List'];
 
                 $unionParts = array_map(
-                    fn ($t) => sprintf('/%s[%s]', $t, $conditionString),
+                    fn($t) => sprintf('/%s[%s]', $t, $conditionString),
                     $docTypes
                 );
 
@@ -2363,11 +2358,11 @@ class CsdErpService implements ErpApiInterface
             $response = Http::csdErp()
                 ->baseUrl($this->getIdmBaseUrl())
                 ->get('/api/items/search', [
-                    '$query'        => $query,
-                    '$offset'       => $offset,
-                    '$limit'        => $limit,
+                    '$query' => $query,
+                    '$offset' => $offset,
+                    '$limit' => $limit,
                     '$includeCount' => 'true',
-                    '$state'        => 0,
+                    '$state' => 0,
                 ])
                 ->json();
 
@@ -2378,8 +2373,6 @@ class CsdErpService implements ErpApiInterface
             return new DocumentCollection([]);
         }
     }
-
-
 
 
 }

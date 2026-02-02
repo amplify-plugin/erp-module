@@ -784,7 +784,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->ShipToPhoneNumber = $attributes['phoneno'] ?? null;
             $model->ShipToContact = $attributes['contact'] ?? null;
             $model->ShipToWarehouse = $attributes['whse'] ?? null;
-            $model->BackorderCode = $attributes['BackorderCode'] ?? null;
+            $model->BackorderCode = isset($attributes['bofl']) ? $attributes['bofl'] == 'yes' : null;
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->PoRequired = $attributes['poreqfl'] ?? null;
         }
@@ -1073,7 +1073,8 @@ class CsdErpAdapter implements ErpApiInterface
                     FILTER_FLAG_ALLOW_FRACTION
                 )
                 : null; // gross amount (pre-discount)
-            $model->CarrierCode = $attributes['shipviaty'] ?? $attributes['shipviatydesc'] ?? null;
+            $model->CarrierCode = $attributes['shipviaty'] ?? null;
+            $model->CarrierCodeDescription = $attributes['shipviatydesc'] ?? null;
             $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? null);
             $model->InvoiceNumber = $attributes['invno'] ?? null;
             $model->EmailAddress = $attributes['EmailAddress'] ?? null;
@@ -1337,7 +1338,8 @@ class CsdErpAdapter implements ErpApiInterface
             $model->ShipToCountry = mb_strtoupper($attributes['zCountryCd'] ?? $attributes['shiptocountrycd'] ?? null);
             $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? null);
             $model->OrderDisposition = $attributes['orderdisp'] ?? null;
-            $model->CarrierCode = $attributes['shipviaty'] ?? $attributes['shipviatydesc'] ?? null;
+            $model->CarrierCode = $attributes['shipviaty'] ?? null;
+            $model->CarrierCodeDescription = $attributes['shipviatydesc'] ?? null;
             $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->FreightAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
