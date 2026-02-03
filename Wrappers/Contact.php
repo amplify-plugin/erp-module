@@ -9,6 +9,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
 /**
  * @class Contact
  *
+ * @property string|null $Message
  * @property string $CustomerNumber
  * @property string $ContactNumber
  * @property string $ContactName
@@ -32,6 +33,6 @@ class Contact extends Wrapper implements ErpApiWrapperInterface
     protected array $fillable = [
         'CustomerNumber', 'ContactNumber', 'ContactName', 'AccountTitle', 'AccountTitleCode', 'AccountTitleDesc',
         'ContactPhone', 'ContactEmail', 'ContactAddress1', 'ContactAddress2', 'ContactCity',
-        'ContactState', 'ContactZipCode', 'Comment',
+        'ContactState', 'ContactZipCode', 'Comment', 'Message'
     ];
 }
