@@ -59,9 +59,9 @@ class CsdErpService implements ErpApiInterface
 
     private array $commonHeaders;
 
-    private $companyNumber;
+    public $companyNumber;
 
-    private $operatorInit;
+    public $operatorInit;
 
     /**
      * @throws CsdErpException
