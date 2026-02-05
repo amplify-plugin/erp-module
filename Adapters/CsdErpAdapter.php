@@ -473,7 +473,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model->FreightAmount = !empty($attributes['FreightAmount']) ? (float)filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightRate = !empty($attributes['FreightRate']) ? $attributes['FreightRate'] : [];
         $model->WireTrasnsferFee = !empty($attributes['WireTrasnsferFee']) ? (float)filter_var($attributes['WireTrasnsferFee'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-        $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
+        $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float)$attributes['HazMatCharge'] : null;
         $model->OrderLines = new Collection();
 
         if (!empty($attributes['OrderLines'])) {
@@ -645,7 +645,7 @@ class CsdErpAdapter implements ErpApiInterface
         $invoiceList = new InvoiceCollection;
 
         foreach (($attributes['tArtransV3']['t-artransV3'] ?? []) as $invoice) {
-            if($invoice['transcdraw'] !== 11 && config('amplify.client_code') === 'STV') {
+            if ($invoice['transcdraw'] !== 11 && config('amplify.client_code') === 'STV') {
                 continue;
             }
             $invoiceList->push($this->renderSingleInvoice($invoice));
@@ -734,7 +734,7 @@ class CsdErpAdapter implements ErpApiInterface
         if (!empty($attributes)) {
 
             $attributes['tFieldvaluepair'] = $this->mapFieldAttributes($attributes['tFieldvaluepair']['t-fieldvaluepair'] ?? []);
-
+            $model->Message = $attributes['error'] ?? null;
             $model->CustomerNumber = $attributes['customerNumber'] ?? null;
             $model->ArCustomerNumber = $attributes['arCustomerNumber'] ?? null;
             $model->CustomerName = $attributes['customerName'] ?? null;
@@ -1587,8 +1587,8 @@ class CsdErpAdapter implements ErpApiInterface
         $rows = [];
 
         $monthNames = [
-            'January','February','March','April','May','June',
-            'July','August','September','October','November','December'
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
         ];
 
         // Initialize accumulators
@@ -1665,7 +1665,7 @@ class CsdErpAdapter implements ErpApiInterface
             $rows[] = [
                 'month' => $monthNames[$i - 1],
                 'year' => $detectedYear,
-                'quantity_purchased' => (int) round($qty),
+                'quantity_purchased' => (int)round($qty),
                 'average_purchase_price' => $avgNumeric,
                 'average_purchase_price_formatted' => $avgFormatted,
             ];
@@ -1757,7 +1757,8 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new Contact($attributes);
 
         if (!empty($attributes)) {
-            $model->ContactNumber = $attributes['contactid'] ? (string)intval($attributes['contactid']) : null;
+            $model->Message = $attributes['error'] ?? null;
+            $model->ContactNumber = isset($attributes['contactid']) ? (string)intval($attributes['contactid']) : null;
             $model->ContactName = trim(implode(' ', [$attributes['firstnm'] ?? null, $attributes['middlenm'] ?? null, $attributes['lastnm'] ?? null]));
             $model->AccountTitle = $attributes['cotitle'] ?? null;
             $model->AccountTitleCode = $attributes['contacttype'] ?? null;
@@ -1787,7 +1788,12 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Contact($filters);
 
-        $attributes = $filters['tCamcontactv4']['t-camcontactv4'] ?? [[]];
+
+        $attributes = match (true) {
+            isset($filters['tCamcontactv4']['t-camcontactv4']) => $filters['tCamcontactv4']['t-camcontactv4'],
+            isset($filters['error']) => [$filters],
+            default => [[]]
+        };
 
         if (!empty($attributes)) {
             return $this->renderSingleContact(array_shift($attributes));

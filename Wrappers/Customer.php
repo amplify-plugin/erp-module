@@ -9,6 +9,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
 /**
  * @class CreateCustomer
  *
+ * @property string|null $Message
  * @property string $CustomerNumber
  * @property string $ArCustomerNumber
  * @property string $CustomerName
@@ -45,7 +46,7 @@ class Customer extends Wrapper implements ErpApiWrapperInterface
 {
     use ApiWrapperTrait;
 
-    protected array $fillable = ['CustomerNumber', 'ArCustomerNumber', 'CustomerName', 'CustomerCountry', 'CustomerAddress1',
+    protected array $fillable = ['Message', 'CustomerNumber', 'ArCustomerNumber', 'CustomerName', 'CustomerCountry', 'CustomerAddress1',
         'CustomerAddress2', 'CustomerAddress3', 'CustomerCity', 'CustomerState', 'CustomerZipCode', 'CustomerEmail', 'CustomerPhone',
         'CustomerContact', 'DefaultShipTo', 'DefaultWarehouse', 'CarrierCode', 'PriceList', 'BackorderCode', 'CustomerClass', 'ShipVias',
         'SuspendCode', 'AllowArPayments', 'CreditCardOnly', 'FreightOptionAmount', 'PoRequired', 'SalesPersonCode', 'SalesPersonName',

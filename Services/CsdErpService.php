@@ -2007,7 +2007,11 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapicamcontactmnt', $payload);
 
-            $contact_code = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Contact ID: ([\d+])/', '$2', trim($response['returnData']));
+            if (isset($response['error'])) {
+                return $this->adapter()->getContactDetail($response);
+            }
+
+            $contact_code = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Contact ID: ([\d+])/', '$2', trim($response['returnData'] ?? ''));
 
             $contactData = [
                 'customer_number' => $customer_number,
