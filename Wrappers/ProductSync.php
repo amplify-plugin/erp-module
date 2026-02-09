@@ -21,6 +21,8 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $PrimaryVendor
  * @property $RHSpartscomNotes
  * @property $Brand
+ * @property $AllowBackOrder
+ * @property $ItemID
  */
 class ProductSync extends Wrapper implements ErpApiWrapperInterface
 {
@@ -46,5 +48,6 @@ class ProductSync extends Wrapper implements ErpApiWrapperInterface
         'ImagePath',
         'ItemID',
         'ItemGroup',
+        'AllowBackOrder',
     ];
 }

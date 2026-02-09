@@ -37,6 +37,25 @@ class ErpApiService
     const TRANSACTION_TYPES_QUOTE = 'QU';
 
     /**
+     * The registered string macros.
+     *
+     * @var array
+     */
+    protected static $overwrites = [];
+
+    /**
+     * Register a custom macro.
+     *
+     * @param string $name
+     * @param object|callable $overwrites
+     * @return void
+     */
+    public static function overwrite($name, $overwrites)
+    {
+        static::$overwrites[$name] = $overwrites;
+    }
+
+    /**
      * Any Class that's enable the ERP API interface
      *
      * @var mixed
@@ -66,6 +85,16 @@ class ErpApiService
     public function __call($method, $parameters)
     {
         $this->checkErpIsEnabled();
+
+        if (isset(static::$overwrites[$method])) {
+            $overwrite = static::$overwrites[$method];
+
+            if ($overwrite instanceof \Closure) {
+                $overwrite = $overwrite->bindTo($this->serviceInstance, static::class);
+            }
+
+            return $overwrite(...$parameters);
+        }
 
         if (method_exists($this->serviceInstance, $method)) {
             return $this->forwardCallTo($this->serviceInstance, $method, $parameters);
@@ -97,10 +126,10 @@ class ErpApiService
     }
 
     /*
-|--------------------------------------------------------------------------
-| PRODUCT SYNCHRONIZATION SERVICE
-|--------------------------------------------------------------------------
-*/
+    |--------------------------------------------------------------------------
+    | PRODUCT SYNCHRONIZATION SERVICE
+    |--------------------------------------------------------------------------
+    */
     private function productSyncInstance(): ProductSyncService
     {
         return new ProductSyncService;

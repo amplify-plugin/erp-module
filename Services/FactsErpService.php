@@ -732,14 +732,12 @@ class FactsErpService implements ErpApiInterface
 
             if (config('amplify.erp.use_amplify_shipping')) {
                 $responseBackEnd = $this->getOrderTotalUsingBackend();
-
                 $totalLineAmount = $response['Order'][0]['TotalOrderValue'] ?? 0;
-                $salesTaxAmount = $response['Order'][0]['SalesTaxAmount'] ?? 0;
+                $salesTaxAmount =  $response['Order'][0]['SalesTaxAmount'] ?? 0;
                 $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? 0;
-
                 $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? 0;
                 $freightRate = $responseBackEnd['Order'][0]['FreightRate'] ?? [];
-                $totalOrderValue = array_sum([$totalLineAmount ?? 0, $salesTaxAmount ?? 0, $hazMatCharge ?? 0, $freightAmount ?? 0]);
+                $totalOrderValue = array_sum([\floatval($totalLineAmount), \floatval($salesTaxAmount), \floatval($hazMatCharge), \floatval($freightAmount)]);
 
                 $mergedResponse = [
                     'Order' => [

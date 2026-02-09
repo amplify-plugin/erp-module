@@ -105,6 +105,7 @@ class ProductSyncService
         $productSyncModel->brand = $productSync->Brand ?? '';
         $productSyncModel->rhs_parts_note = $productSync->RHSpartscomNotes ?? '';
         $productSyncModel->is_processed = false;
+        $productSyncModel->allow_backorder = $productSync->AllowBackOrder !== null ? $productSync->AllowBackOrder : null;
 
         if ($productSyncModel->update_action != null || strlen($productSyncModel->update_action) > 0) {
             $productSyncModel->save();
@@ -183,6 +184,7 @@ class ProductSyncService
                     'vendornum' => $productSync->primary_vendor ?? null,
                     'brand_name' => $brand?->title ?? null,
                     'brand_id' => $brand?->id ?? null,
+                    'allow_back_order' => $productSync->allow_backorder !== null ? $productSync->allow_backorder : null,
                     'manufacturer' => !empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null),
                 ];
 
@@ -245,6 +247,7 @@ class ProductSyncService
             $item->manufacturer = $manufacturerPartNo;
             $item->manufacturer_id = $manufacturerId;
             $item->status = 'draft';
+            $item->allow_back_order = $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
             $item->user_id = $this->approveId;
 
             $item->save();

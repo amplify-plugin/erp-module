@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi\Adapters;
 
+use Amplify\ErpApi\ProductSyncService;
 use Amplify\ErpApi\Wrappers\OrderPODetails;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Carbon\Carbon;
@@ -874,18 +875,25 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new ProductSync($attributes);
 
         $model->ItemNumber = $attributes['prod'] ?? null;
-        $model->UpdateAction = isset($attributes['preventfl']) && $attributes['preventfl'] == 'y' ? 'DELETE' : 'UPDATE';
+        $model->UpdateAction = match (true) {
+            isset($attributes['catalogfl']) && $attributes['catalogfl'] == true => ProductSyncService::ACTION_NEW,
+            isset($attributes['preventfl']) && $attributes['preventfl'] == 'y',
+                isset($attributes['suspendfl']) && $attributes['suspendfl'] == 'y' => ProductSyncService::ACTION_DELETE,
+            default => ProductSyncService::ACTION_UPDATE,
+        };
         $model->SubAction = $attributes['SubAction'] ?? null;
         $model->Description1 = $attributes['descrip1'] ?? null;
         $model->Description2 = $attributes['descrip2'] ?? null;
-        $model->ItemClass = $attributes['ItemClass'] ?? null;
-        $model->PriceClass = $attributes['PriceClass'] ?? null;
+        $model->ItemClass = $attributes['classcd'] ?? null;
+        $model->PriceClass = $attributes['pricetype'] ?? null;
         $model->ListPrice = (isset($attributes['listprice1']) && is_numeric($attributes['listprice1']))
             ? floatval($attributes['listprice1']) : null;
         $model->UnitOfMeasure = $attributes['unitstock'] ?? $attributes['unit1'];
         $model->PricingUnitOfMeasure = $attributes['unit1'] ?? null;
         $model->Manufacturer = $attributes['Manufacturer'] ?? null;
         $model->PrimaryVendor = $attributes['vendno'] ?? null;
+        $model->AllowBackOrder = isset($attributes['prodrestrictcd']) ? $attributes['prodrestrictcd'] == 'Y' : null;
+        $model->ItemID = $attributes['vendprod'] ?? null;
 
         return $model;
     }
