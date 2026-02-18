@@ -943,6 +943,10 @@ class CsdErpService implements ErpApiInterface
 
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
+        if(\array_key_exists('error', $response)) {
+            throw new CsdErpException($response['error']);
+        }
+
         if (empty($data = $response['tOrdloadhdrdata']['t-ordloadhdrdata'][0])) {
             throw new CsdErpException('Something went wrong please try again');
         }
