@@ -862,8 +862,10 @@ class CsdErpService implements ErpApiInterface
         $orderRequest = $order['request'] ?? [];
         $customerNumber = $this->customerId($orderInfo);
 
-        $orderLine = array_map(function ($item) {
-            return [
+        $orderLine = [];
+        foreach ($items as $key => $item) {
+            $orderLine[] = [
+                'seqno' => ($key + 1),
                 'itemnumber' => $item['ItemNumber'],
                 'orderqty' => $item['OrderQty'],
                 'unitofmeasure' => $item['UnitOfMeasure'],
@@ -871,7 +873,7 @@ class CsdErpService implements ErpApiInterface
                 'itemdesc1' => $item['ItemComment'],
                 'shipinstrty' => $item['OrderQty'],
             ];
-        }, $items);
+        }
 
         $warehouseId = !empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
 
