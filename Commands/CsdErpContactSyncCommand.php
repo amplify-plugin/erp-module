@@ -37,7 +37,7 @@ class CsdErpContactSyncCommand extends Command
                 throw new \ErrorException("The operation is not allowed for this " . config('amplify.erp.default') . " ERP.");
             }
 
-            foreach (Contact::whereRaw('contact_code NOT REGEXP ?', ['^[0-9]+$'])->cursor() as $contact) {
+            foreach (Contact::whereNull('contact_code')->orWhereRaw('contact_code NOT REGEXP ?', ['^[0-9]+$'])->cursor() as $contact) {
                 ContactProfileSyncJob::dispatch($contact->toArray())->onQueue('worker');
             }
 
