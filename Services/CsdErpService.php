@@ -150,14 +150,13 @@ class CsdErpService implements ErpApiInterface
 
         $response = Http::csdErp()
             ->baseUrl($baseUrl)
-            ->post($url, $attchedPayload)
-            ->json();
+            ->post($url, $attchedPayload);
 
         if ($url == '/proxy/FetchWhere') {
-            return $response;
+            return $response->json();
         }
 
-        return $this->validate($response, $url);
+        return $this->validate($response->json(), $url, $response->ok());
 
     }
 
@@ -168,14 +167,14 @@ class CsdErpService implements ErpApiInterface
      *
      * @throws CsdErpException|Exception
      */
-    private function validate(array $response, ?string $url = null): array
+    private function validate(array $response, ?string $url = null, $status = true): array
     {
         try {
 
             if (isset($response['error'])) {
                 if (is_string($response['error'])) {
                     match ($response['error']) {
-                        'Unauthorized' => throw new CsdErpException('Unauthorized', 403),
+                        'Unauthorized' => throw new CsdErpException('ERP authentication token expired. Please try again later.', 403),
                         'invalid_grant' => throw new CsdErpException("Invalid ERP Credentials ({$response['error_description']})", 500),
                         'unsupported_grant_type' => throw new CsdErpException($response['error_description'], 500),
                         default => throw new CsdErpException('Unexpected Exception: ' . $response['error'], 500),
@@ -200,7 +199,8 @@ class CsdErpService implements ErpApiInterface
                 return [];
             }
             return [
-                'error' => $exception->getMessage()
+                'error' => $exception->getMessage(),
+                'returnData' => $response['returnData'] ?? null,
             ];
         }
     }
@@ -299,13 +299,17 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapiarcustomermnt', $payload);
 
-            $customer_number = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Customer #: ([\d+])/', '$2', $response['returnData']);
+            if (isset($response['error'])) {
+                return $this->adapter->createCustomer(['Customers' => [$response]]);
+            }
 
-            $response = [
+            $customer_number = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Customer #: ([\d+])/', '$2', $response['returnData'] ?? '');
+
+            $payload = [
                 'customer_number' => $customer_number,
             ];
 
-            return $this->getCustomerDetail($response);
+            return $this->getCustomerDetail($payload);
 
         } catch (Exception $exception) {
 
@@ -1821,6 +1825,7 @@ class CsdErpService implements ErpApiInterface
 
     /**
      * This API is to get customer required document from ERP
+     * Get printable document (Invoice / Order / Quote) from IDM
      */
     public function getDocument(array $inputs = []): Document
     {

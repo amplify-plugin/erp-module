@@ -1974,7 +1974,7 @@ class CsdErpAdapter implements ErpApiInterface
                     continue;
                 }
 
-                $document = new Document([]);
+                $document = new Document($response);
                 $document->DocumentType = 'PDF';
                 $document->EntityName = $item['entityName'] ?? null;
                 $document->File = $resource['url'] ?? null;
