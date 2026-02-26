@@ -90,6 +90,7 @@ class ProductSyncService
     {
         $productSyncModel = new ProductSyncModel;
 
+        $productSyncModel->payload = $productSync->getRawContent() ?? [];
         $productSyncModel->item_number = $productSync->ItemNumber ?? '';
         $productSyncModel->update_action = $productSync->UpdateAction ?? '';
         $productSyncModel->description_1 = $productSync->Description1 ?? '';
@@ -168,7 +169,15 @@ class ProductSyncService
             $items = Product::productCode($productSync->item_number)->get();
 
             if ($items->isEmpty()) {
-                throw (new ModelNotFoundException())->setModel(Product::class, 'code:' . $productSync->item_number);
+
+                Log::error("No products in table: {$productSync->item_number}");
+
+                $productSync->update_action = self::ACTION_NEW;
+                $productSync->save();
+
+                $this->createNewItem($productSync);
+
+                return;
             }
 
             foreach ($items as $item) {

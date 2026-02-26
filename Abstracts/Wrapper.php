@@ -12,6 +12,7 @@ use IteratorAggregate;
 use JsonException;
 use JsonSerializable;
 use ReturnTypeWillChange;
+use Traversable;
 
 abstract class Wrapper implements Arrayable, ArrayAccess, IteratorAggregate, Jsonable, JsonSerializable
 {
