@@ -36,6 +36,8 @@ class ErpApiService
 
     const TRANSACTION_TYPES_QUOTE = 'QU';
 
+    public string $erpAdapterName = 'default';
+
     /**
      * The registered string macros.
      *
@@ -140,6 +142,7 @@ class ErpApiService
         $adapter = $adapter ?? config('amplify.erp.default');
 
         if ($config = config("amplify.erp.configurations.{$adapter}")) {
+            $this->erpAdapterName = $adapter;
             $this->serviceInstance = new $config['adapter'];
 
             return $this;
@@ -154,6 +157,11 @@ class ErpApiService
     | UTILITY FUNCTIONS
     |--------------------------------------------------------------------------
     */
+
+    public function currentErp(): string
+    {
+        return $this->erpAdapterName;
+    }
 
     /**
      * This function will check if the ERP has Multiple warehouse capabilities

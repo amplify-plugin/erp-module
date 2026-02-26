@@ -2,21 +2,18 @@
 
 namespace Amplify\ErpApi\Traits;
 
-use Amplify\ErpApi\Adapters\CommerceGatewayAdapter;
 use Amplify\ErpApi\Adapters\CsdErpAdapter;
 use Amplify\ErpApi\Adapters\DefaultErpAdapter;
-use Amplify\ErpApi\Adapters\FactsErp77Adapter;
 use Amplify\ErpApi\Adapters\FactsErpAdapter;
 use Amplify\System\Backend\Models\Customer;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 
 trait ErpApiConfigTrait
 {
     public array $config;
 
     /**
-     * @var FactsErpAdapter|FactsErp77Adapter|DefaultErpAdapter|CommerceGatewayAdapter|CsdErpAdapter
+     * @var FactsErpAdapter|DefaultErpAdapter|CsdErpAdapter
      */
     public $adapter;
 
@@ -54,8 +51,13 @@ trait ErpApiConfigTrait
         }
 
         try {
+
             return store()->customerEmail;
+
         } catch (\Throwable $th) {
+
+            Log::error($th->getMessage());
+
             store()->customerEmail = Customer::where('customer_code', $this->customerId())->first()?->email;
 
             return store()->customerEmail;

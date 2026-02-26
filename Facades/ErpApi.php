@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static bool useSingleWarehouseInCart()
  * @method static bool enabled()
  * @method static \Amplify\ErpApi\Interfaces\ErpApiInterface adapter()
- * @method static \Amplify\ErpApi\Wrappers\CreateCustomer createCustomer(array $attributes = [])
+ * @method static \Amplify\ErpApi\Wrappers\CreateCustomer|\Amplify\ErpApi\Wrappers\Customer createCustomer(array $attributes = [])
  * @method static \Amplify\ErpApi\Collections\CustomerCollection getCustomerList(array $filters = ['customer_start' => null, 'customer_end' => null])
  * @method static \Amplify\ErpApi\Wrappers\Customer getCustomerDetail(array $filters = ['customer_number' => null])
  * @method static \Amplify\ErpApi\Wrappers\ShippingLocationValidation validateCustomerShippingLocation(array $attributes = [])

@@ -55,6 +55,7 @@ use Illuminate\Support\Str;
 class CsdErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
+
     use ErpApiConfigTrait;
 
     private array $commonHeaders;
@@ -80,8 +81,6 @@ class CsdErpService implements ErpApiInterface
             'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
             'Accept' => 'application/json',
         ];
-
-        $this->refreshToken();
     }
 
     /*
@@ -98,34 +97,37 @@ class CsdErpService implements ErpApiInterface
     /**
      * @throws CsdErpException
      */
-    public function refreshToken(): void
+    public function refreshToken(bool $forceReset = false): void
     {
         $expirationAt = $this->config['expires_at'] ?? null;
 
-        if ($expirationAt == null || now()->gt(CarbonImmutable::parse($expirationAt))) {
-
-            $response = Http::withoutVerifying()->asForm()
-                ->withHeaders($this->commonHeaders)
-                ->post($this->config['token_url'], [
-                    'grant_type' => 'password',
-                    'client_id' => $this->config['client_id'],
-                    'client_secret' => $this->config['client_secret'],
-                    'username' => $this->config['username'],
-                    'password' => $this->config['password'],
-                ]);
-
-            if ($response->ok()) {
-                $response = $response->json();
-            } else {
-                $this->validate($response->json());
+        if (!$forceReset) {
+            if (!empty($expirationAt) && now()->lessThan(CarbonImmutable::parse($expirationAt))){
+                return;
             }
-
-            $this->config['access_token'] = $response['access_token'];
-            $this->config['expires_at'] = (string)now()->addSeconds($response['expires_in']);
-
-            SystemConfiguration::setValue('erp', 'configurations.csd-erp.access_token', $response['access_token'], 'string');
-            SystemConfiguration::setValue('erp', 'configurations.csd-erp.expires_at', (string)now()->addSeconds($response['expires_in']), 'string');
         }
+
+        $response = Http::withoutVerifying()->asForm()
+            ->withHeaders($this->commonHeaders)
+            ->post($this->config['token_url'], [
+                'grant_type' => 'password',
+                'client_id' => $this->config['client_id'],
+                'client_secret' => $this->config['client_secret'],
+                'username' => $this->config['username'],
+                'password' => $this->config['password'],
+            ]);
+
+        if (!$response->ok()) {
+            throw new CsdErpException('CSD-ERP token refresh failed');
+        }
+
+        $response = $response->json();
+
+        $this->config['access_token'] = $response['access_token'];
+        $this->config['expires_at'] = (string)now()->addSeconds($response['expires_in']);
+
+        SystemConfiguration::setValue('erp', 'configurations.csd-erp.access_token', $response['access_token'], 'string');
+        SystemConfiguration::setValue('erp', 'configurations.csd-erp.expires_at', (string)now()->addSeconds($response['expires_in']), 'string');
     }
 
     /**
@@ -148,14 +150,13 @@ class CsdErpService implements ErpApiInterface
 
         $response = Http::csdErp()
             ->baseUrl($baseUrl)
-            ->post($url, $attchedPayload)
-            ->json();
+            ->post($url, $attchedPayload);
 
         if ($url == '/proxy/FetchWhere') {
-            return $response;
+            return $response->json();
         }
 
-        return $this->validate($response, $url);
+        return $this->validate($response->json(), $url, $response->ok());
 
     }
 
@@ -166,14 +167,14 @@ class CsdErpService implements ErpApiInterface
      *
      * @throws CsdErpException|Exception
      */
-    private function validate(array $response, ?string $url = null): array
+    private function validate(array $response, ?string $url = null, $status = true): array
     {
         try {
 
             if (isset($response['error'])) {
                 if (is_string($response['error'])) {
                     match ($response['error']) {
-                        'Unauthorized' => throw new CsdErpException('Unauthorized', 403),
+                        'Unauthorized' => throw new CsdErpException('ERP authentication token expired. Please try again later.', 403),
                         'invalid_grant' => throw new CsdErpException("Invalid ERP Credentials ({$response['error_description']})", 500),
                         'unsupported_grant_type' => throw new CsdErpException($response['error_description'], 500),
                         default => throw new CsdErpException('Unexpected Exception: ' . $response['error'], 500),
@@ -198,7 +199,8 @@ class CsdErpService implements ErpApiInterface
                 return [];
             }
             return [
-                'error' => $exception->getMessage()
+                'error' => $exception->getMessage(),
+                'returnData' => $response['returnData'] ?? null,
             ];
         }
     }
@@ -297,13 +299,17 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapiarcustomermnt', $payload);
 
-            $customer_number = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Customer #: ([\d+])/', '$2', $response['returnData']);
+            if (isset($response['error'])) {
+                return $this->adapter->createCustomer(['Customers' => [$response]]);
+            }
 
-            $response = [
+            $customer_number = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Customer #: ([\d+])/', '$2', $response['returnData'] ?? '');
+
+            $payload = [
                 'customer_number' => $customer_number,
             ];
 
-            return $this->getCustomerDetail($response);
+            return $this->getCustomerDetail($payload);
 
         } catch (Exception $exception) {
 
@@ -860,8 +866,10 @@ class CsdErpService implements ErpApiInterface
         $orderRequest = $order['request'] ?? [];
         $customerNumber = $this->customerId($orderInfo);
 
-        $orderLine = array_map(function ($item) {
-            return [
+        $orderLine = [];
+        foreach ($items as $key => $item) {
+            $orderLine[] = [
+                'seqno' => ($key + 1),
                 'itemnumber' => $item['ItemNumber'],
                 'orderqty' => $item['OrderQty'],
                 'unitofmeasure' => $item['UnitOfMeasure'],
@@ -869,7 +877,7 @@ class CsdErpService implements ErpApiInterface
                 'itemdesc1' => $item['ItemComment'],
                 'shipinstrty' => $item['OrderQty'],
             ];
-        }, $items);
+        }
 
         $warehouseId = !empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
 
@@ -1821,6 +1829,7 @@ class CsdErpService implements ErpApiInterface
 
     /**
      * This API is to get customer required document from ERP
+     * Get printable document (Invoice / Order / Quote) from IDM
      */
     public function getDocument(array $inputs = []): Document
     {

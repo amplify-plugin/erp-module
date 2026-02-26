@@ -732,10 +732,16 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new Customer($attributes);
 
+        $errorMessage = null;
+
+        if (isset($attributes['error'])) {
+            $errorMessage = $attributes['error'];
+        }
+
         if (!empty($attributes)) {
 
             $attributes['tFieldvaluepair'] = $this->mapFieldAttributes($attributes['tFieldvaluepair']['t-fieldvaluepair'] ?? []);
-            $model->Message = $attributes['error'] ?? null;
+            $model->Message = $errorMessage;
             $model->CustomerNumber = $attributes['customerNumber'] ?? null;
             $model->ArCustomerNumber = $attributes['arCustomerNumber'] ?? null;
             $model->CustomerName = $attributes['customerName'] ?? null;
@@ -1968,7 +1974,7 @@ class CsdErpAdapter implements ErpApiInterface
                     continue;
                 }
 
-                $document = new Document([]);
+                $document = new Document($response);
                 $document->DocumentType = 'PDF';
                 $document->EntityName = $item['entityName'] ?? null;
                 $document->File = $resource['url'] ?? null;
