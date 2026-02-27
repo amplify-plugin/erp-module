@@ -38,33 +38,44 @@ class ProductSyncCommand extends Command
             $params = [
                 'updates_only' => $this->option('updatesOnly'),
                 'process_updates' => $this->option('processUpdates'),
-                'limit' => ! empty($this->option('limit')) ? $this->option('limit') : null,
+                'limit' => !empty($this->option('limit')) ? $this->option('limit') : null,
             ];
 
             try {
+                $startTime = now(config('app.timezone'))
+                    ->format(config('amplify.basic.date_time_format', 'D MMM YYYY, HH:mm'));
+
                 $syncData = \ErpApi::storeProductSyncOnModel($params);
 
-                if (count($syncData) > 0) {
-                    NotificationFactory::call(Event::CATALOG_CHANGED, $syncData);
-                    \event( new ProductSynced($syncData));
-                }
+                $endTime = now(config('app.timezone'))
+                    ->format(config('amplify.basic.date_time_format', 'D MMM YYYY, HH:mm'));
 
-                $this->info(now()->format('r').'Product Sync Report : '.json_encode($syncData));
+                NotificationFactory::call(Event::CATALOG_CHANGED, [
+                    '__started_at__' => $startTime,
+                    '__ended_at__' => $endTime,
+                    '__execution_date__' => now(config('app.timezone'))
+                        ->format(config('amplify.basic.date_format', 'D MMM YYYY, HH:mm')),
+                    'products' => array_map(fn($item) => $item['itemNumber'] ?? null, $syncData),
+                ]);
 
-                return CommandAlias::SUCCESS;
+                \event(new ProductSynced($syncData));
+
+                $this->info(now()->format('r') . 'Product Sync Report : ' . json_encode($syncData));
+
+                return self::SUCCESS;
 
             } catch (\Exception $exception) {
 
-                $this->error(now()->format('r').' Product Sync Exception: '.$exception->getMessage());
+                $this->error(now()->format('r') . ' Product Sync Exception: ' . $exception->getMessage());
 
-                return CommandAlias::FAILURE;
+                return self::FAILURE;
             }
 
         }
 
-        $this->info(now()->format('r').' Product Sync Disbaled.');
+        $this->info(now()->format('r') . ' Product Sync Disabled.');
 
-        return CommandAlias::SUCCESS;
+        return self::SUCCESS;
 
     }
 }
