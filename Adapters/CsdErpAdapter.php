@@ -618,9 +618,9 @@ class CsdErpAdapter implements ErpApiInterface
             $model->AvgDaysToPayDesc2 = $attributes['AvgDaysToPayDesc2'] ?? null;
             $model->AvgDaysToPayDesc3 = $attributes['AvgDaysToPayDesc3'] ?? null;
             $model->CreditCheckType = $attributes['CreditCheckType'] ?? null;
-            $model->CreditLimit = $attributes['CreditLimit'] ?? null;
+            $model->CreditLimit = $attributes['credlim'] ?? null;
             $model->HighBalance = $attributes['HighBalance'] ?? null;
-            $model->LastPayAmount = $attributes['LastPayAmount'] ?? null;
+            $model->LastPayAmount = $attributes['lastpayamt'] ?? null;
             $model->NumInvPastDue = $attributes['NumInvPastDue'] ?? null;
             $model->NumOpenInv = $attributes['NumOpenInv'] ?? null;
             $model->NumPayments1 = $attributes['NumPayments1'] ?? null;
