@@ -52,6 +52,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static void updateProductWithSyncData(\Amplify\System\Backend\Models\ProductSync $productSync, int $approveId = null)
  *
  * @method static void macro(string $name, object|callable $function)
+ * @method static void overwrite(string $name, object|callable $function)
+ * @method static void before(string $method, object|callable $function)
  */
 class ErpApi extends Facade
 {

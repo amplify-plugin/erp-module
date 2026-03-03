@@ -46,15 +46,34 @@ class ErpApiService
     protected static $overwrites = [];
 
     /**
-     * Register a custom macro.
+     * Register a custom overwrite.
      *
      * @param string $name
      * @param object|callable $overwrites
      * @return void
      */
-    public static function overwrite($name, $overwrites)
+    public static function overwrite($name, $overwrite)
     {
-        static::$overwrites[$name] = $overwrites;
+        static::$overwrites[$name] = $overwrite;
+    }
+
+    /**
+     * The registered string macros.
+     *
+     * @var array
+     */
+    protected static $prepends = [];
+
+    /**
+     * Register a custom macro.
+     *
+     * @param string $method
+     * @param object|callable $closure
+     * @return void
+     */
+    public static function before($method, $closure)
+    {
+        static::$prepends[$method] = $closure;
     }
 
     /**
@@ -74,6 +93,28 @@ class ErpApiService
         $this->init($adapter);
     }
 
+    private function processBeforeCall($method, $parameters)
+    {
+        $prepend = static::$prepends[$method];
+
+        if ($prepend instanceof \Closure) {
+            $prepend = $prepend->bindTo($this->serviceInstance, static::class);
+        }
+
+        return [$prepend(...$parameters)];
+    }
+
+    private function processOverwriteCall($method, $parameters)
+    {
+        $overwrite = static::$overwrites[$method];
+
+        if ($overwrite instanceof \Closure) {
+            $overwrite = $overwrite->bindTo($this->serviceInstance, static::class);
+        }
+
+        return $overwrite(...$parameters);
+    }
+
     /**
      * Dynamically handle calls to the class.
      *
@@ -88,14 +129,12 @@ class ErpApiService
     {
         $this->checkErpIsEnabled();
 
+        if (isset(static::$prepends[$method])) {
+            $parameters = $this->processBeforeCall($method, $parameters);
+        }
+
         if (isset(static::$overwrites[$method])) {
-            $overwrite = static::$overwrites[$method];
-
-            if ($overwrite instanceof \Closure) {
-                $overwrite = $overwrite->bindTo($this->serviceInstance, static::class);
-            }
-
-            return $overwrite(...$parameters);
+            return $this->processOverwriteCall($method, $parameters);
         }
 
         if (method_exists($this->serviceInstance, $method)) {

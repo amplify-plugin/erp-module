@@ -254,25 +254,21 @@ class CsdErpService implements ErpApiInterface
             $fields['statustype'] = $attributes['statustype'] ?? 'Active';
             $fields['user1'] = $attributes['contact'] ?? '';
             $fields['email'] = 'ACCOUNTING USE ONLY!  DO NOT MODIFY';
-
             $fields['credlim'] = '';
-            $clientCode = config('amplify.client_code');
-            $countryCode = strtolower($attributes['country_code'] ?? '');
-            if ($clientCode === 'STV') {
-                if ($countryCode !== 'us') {
-                    $fields['termstype'] = 'CIA';
-                } else {
-                    $fields['termstype'] = 'CRCD';
-                }
-            } else {
-                $fields['termstype'] = 'CRCD';
-            }
+            $fields['termstype'] = $attributes['termstype'] ?? 'CRCD';
             $fields['pricetype'] = '2';
             $fields['shipviaty'] = 'UPSG';
             $fields['lookupnm'] = substr($attributes['customer_name'] ?? '', 0, 15);
             $fields['selltype'] = 'Y';
             $fields['taxablety'] = 'Y';
             $fields['pricecd'] = '1';
+
+            if (isset($attributes['edinsprodfl'])) {
+                $fields['edinsprodfl'] = $attributes['edinsprodfl'];
+            }
+            if (isset($attributes['edicatprodfl'])) {
+                $fields['edicatprodfl'] = $attributes['edicatprodfl'];
+            }
 
             $tMnTt = [];
 
