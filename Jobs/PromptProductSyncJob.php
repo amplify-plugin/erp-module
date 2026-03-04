@@ -30,7 +30,7 @@ class PromptProductSyncJob implements ShouldQueue
             $firstId = array_shift($this->ids);
 
             $query = ProductSync::select('id')
-                ->when($firstId == 'all', fn ($query)  => $query->where('is_processed', '=', false))
+                ->when($firstId == 'all', fn ($query)  => $query->where('is_processed', '=', false)->whereNotNull('error'))
                 ->when($firstId !== 'all', fn ($query) => $query->whereIn('id', [$firstId, ...$this->ids]));
 
             foreach ($query->cursor() as $productSync) {
