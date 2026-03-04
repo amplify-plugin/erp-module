@@ -9,6 +9,7 @@ use Amplify\System\Backend\Models\Brand;
 use Amplify\System\Backend\Models\Manufacturer;
 use Amplify\System\Backend\Models\Product;
 use Amplify\System\Backend\Models\ProductSync as ProductSyncModel;
+use Amplify\System\Jobs\GenerateProductSlugJob;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
@@ -66,7 +67,7 @@ class ProductSyncService
      */
     public function dispatchProductSyncJob($id, $approveId = null)
     {
-        ProductSyncJob::dispatch($id, $approveId);
+        ProductSyncJob::dispatch($id, $approveId)->onQueue('worker');
     }
 
     /***
@@ -243,7 +244,10 @@ class ProductSyncService
             $manufacturerId = $this->getManufacturerId($productSync);
             $manufacturerPartNo = !empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null);
 
-            $item->product_name = $productSync->description_1;
+            $item->product_name = match (config('amplify.erp.default')) {
+                'csd-erp' => $this->getProductDescription($productSync),
+                default => $productSync->description_1
+            };
             $item->product_code = $productSync->item_number;
             $item->description = $this->getProductDescription($productSync);
             $item->short_description = $productSync->description_1;
@@ -255,11 +259,13 @@ class ProductSyncService
             $item->uom = $productSync->unit_of_measure;
             $item->manufacturer = $manufacturerPartNo;
             $item->manufacturer_id = $manufacturerId;
-            $item->status = 'draft';
+            $item->status = config('amplify.pim.default_status', 'draft');
             $item->allow_back_order = $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
             $item->user_id = $this->approveId;
 
             $item->save();
+
+            GenerateProductSlugJob::dispatch([$item->getKey()]);
 
             $this->setProcessedFlag($productSync);
         } catch (\Throwable $th) {
