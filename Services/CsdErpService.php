@@ -1013,8 +1013,17 @@ class CsdErpService implements ErpApiInterface
         }
 
         if (!empty($order['wtdo_note'])) {
-            // Clean leading/trailing spaces from each line of WTDO note
-            $cleanedWtdoNote = implode("\n", array_map('trim', explode("\n", $order['wtdo_note'])));
+
+            $wtdoNote = $order['wtdo_note'];
+
+            // If previous note exists, start WTDO note from a new line
+            if (!empty($noteText)) {
+                $wtdoNote = "\n" . $wtdoNote;
+            }
+
+            // Clean leading/trailing spaces from each line
+            $cleanedWtdoNote = implode("\n", array_map('trim', explode("\n", $wtdoNote)));
+
             $orderLine[] = [
                 'itemdesc1' => $cleanedWtdoNote,
                 'itemnumber' => '/',
@@ -1173,7 +1182,7 @@ class CsdErpService implements ErpApiInterface
                 'fieldvalue' => 'yes',
             ];
         }
-
+    dd( $payload );
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         return $this->adapter->createOrder($response);
