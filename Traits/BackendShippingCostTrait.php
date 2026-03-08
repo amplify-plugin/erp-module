@@ -378,13 +378,13 @@ trait BackendShippingCostTrait
 
         // STV-only filtering logic
         if ($clientCode === 'STV') {
-            if ($isInternational) {
-                if ($valueLower !== 'international') {
+            if ($countryCode === 'CA') {
+                $allowedMethodsCanada = ['canada'];
+                if (!in_array($valueLower, $allowedMethodsCanada)) {
                     return;
                 }
-            } elseif ($countryCode === 'CA') {
-                $allowedMethodsCanada = ['canada', 'ups', 'fedex'];
-                if (!in_array($valueLower, $allowedMethodsCanada)) {
+            } elseif ($isInternational) {
+                if ($valueLower !== 'international') {
                     return;
                 }
             } else {
@@ -449,7 +449,7 @@ trait BackendShippingCostTrait
 
     private function isInternationalCustomer(string $countryCode): bool
     {
-        $domesticCountries = ['US','CA'];
+        $domesticCountries = ['US'];
 
         return !in_array(strtoupper($countryCode), $domesticCountries);
     }
