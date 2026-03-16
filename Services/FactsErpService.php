@@ -965,7 +965,6 @@ class FactsErpService implements ErpApiInterface
             ];
 
             $url = match (config('amplify.client_code')) {
-//                'MW' => 'arInvoice',
                 'RHS' => 'opArInvoice',
                 default => 'op_ar_invoice.php',
             };
@@ -1007,7 +1006,6 @@ class FactsErpService implements ErpApiInterface
             ];
 
             $url = match (config('amplify.client_code')) {
-                'MW' => 'arInvoice',
                 'RHS' => 'opArInvoice',
                 default => 'op_ar_invoice.php',
             };
