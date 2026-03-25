@@ -84,20 +84,20 @@ class ProductSyncService
         $productSyncModel = new ProductSyncModel;
 
         $productSyncModel->payload = $productSync->getRawContent() ?? [];
-        $productSyncModel->item_number = $productSync->ItemNumber ?? '';
-        $productSyncModel->update_action = $productSync->UpdateAction ?? '';
-        $productSyncModel->description_1 = $productSync->Description1 ?? '';
-        $productSyncModel->description_2 = $productSync->Description2 ?? '';
-        $productSyncModel->item_class = $productSync->ItemClass ?? '';
-        $productSyncModel->price_class = $productSync->PriceClass ?? '';
-        $productSyncModel->list_price = $productSync->ListPrice ?? null;
-        $productSyncModel->unit_of_measure = $productSync->UnitOfMeasure ?? '';
-        $productSyncModel->pricing_unit_of_measure = $productSync->PricingUnitOfMeasure ?? '';
-        $productSyncModel->manufacturer = $productSync->Manufacturer ?? '';
-        $productSyncModel->primary_vendor = $productSync->PrimaryVendor ?? '';
-        $productSyncModel->standard_part_number = $productSync->StandardPartNumber ?? '';
-        $productSyncModel->brand = $productSync->Brand ?? '';
-        $productSyncModel->rhs_parts_note = $productSync->RHSpartscomNotes ?? '';
+        $productSyncModel->item_number = $productSync->ItemNumber;
+        $productSyncModel->update_action = $productSync->UpdateAction;
+        $productSyncModel->description_1 = $productSync->Description1;
+        $productSyncModel->description_2 = $productSync->Description2;
+        $productSyncModel->item_class = $productSync->ItemClass;
+        $productSyncModel->price_class = $productSync->PriceClass;
+        $productSyncModel->list_price = $productSync->ListPrice;
+        $productSyncModel->unit_of_measure = $productSync->UnitOfMeasure;
+        $productSyncModel->pricing_unit_of_measure = $productSync->PricingUnitOfMeasure;
+        $productSyncModel->manufacturer = $productSync->Manufacturer;
+        $productSyncModel->primary_vendor = $productSync->PrimaryVendor;
+        $productSyncModel->standard_part_number = $productSync->StandardPartNumber;
+        $productSyncModel->brand = $productSync->Brand;
+        $productSyncModel->rhs_parts_note = $productSync->RHSpartscomNotes;
         $productSyncModel->is_processed = false;
         $productSyncModel->allow_backorder = $productSync->AllowBackOrder !== null ? $productSync->AllowBackOrder : null;
 

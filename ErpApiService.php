@@ -123,7 +123,7 @@ class ErpApiService
             throw new \ErrorException(class_basename($this->serviceInstance) . ' is disabled.', 500);
         }
 
-        $instance = !in_array($method, ['storeProductSyncOnModel', 'updateProductWithSyncData'])
+        $instance = in_array($method, ['storeProductSyncOnModel', 'updateProductWithSyncData'])
             ? $this->productSyncInstance()
             : $this->serviceInstance;
 
