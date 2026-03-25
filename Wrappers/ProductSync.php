@@ -23,6 +23,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $Brand
  * @property $AllowBackOrder
  * @property $ItemID
+ * @property $StandardPartNumber Manufacturer Part Number
  */
 class ProductSync extends Wrapper implements ErpApiWrapperInterface
 {
@@ -41,7 +42,6 @@ class ProductSync extends Wrapper implements ErpApiWrapperInterface
         'PricingUnitOfMeasure',
         'Manufacturer',
         'PrimaryVendor',
-        'BrandName',
         'StandardPartNumber',
         'Brand',
         'RHSpartscomNotes',
