@@ -143,15 +143,6 @@ class ProductSyncService
         }
     }
 
-    private function getProductDescription(ProductSyncModel $productSync): string
-    {
-        if (config('amplify.client_code') === 'RHS') {
-            return $productSync->rhs_parts_note ?? '';
-        }
-
-        return "{$productSync->description_1} {$productSync->description_2}";
-    }
-
     /**
      * @param ProductSyncModel $productSync
      * @return void
@@ -173,28 +164,26 @@ class ProductSyncService
                 return;
             }
 
+            $manufacturer = $this->getManufacturer($productSync->manufacturer);
+
+            $brand = $this->getBrand($productSync->brand);
+
             foreach ($items as $item) {
-                $manufacturerId = $this->getManufacturerId($productSync);
-                $brand = $this->getBrand($productSync);
-
-                $data = [
-                    'is_updated' => true,
-                    'uom' => $productSync->unit_of_measure,
-                    'description' => $this->getProductDescription($productSync),
-                    'short_description' => $productSync->description_1 ?? ' ',
-                    'msrp' => $productSync->list_price ?? null,
-                    'vendornum' => $productSync->primary_vendor ?? null,
-                    'brand_name' => $brand?->title ?? null,
-                    'brand_id' => $brand?->id ?? null,
-                    'allow_back_order' => $productSync->allow_backorder !== null ? $productSync->allow_backorder : null,
-                    'manufacturer' => !empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null),
-                ];
-
-                if (!empty($manufacturerId)) {
-                    $data['manufacturer_id'] = $manufacturerId;
-                }
-
-                $item->update($data);
+                $item->product_name = match (config('amplify.erp.default')) {
+                    'facts-erp' => $productSync->description_1,
+                    default => "{$productSync->description_1} {$productSync->description_2}"
+                };
+                $item->msrp = $productSync->list_price ?? null;
+                $item->selling_price = $productSync->list_price ?? null;
+                $item->vendornum = $productSync->primary_vendor ?? null;
+                $item->brand_name = $brand?->title ?? null;
+                $item->brand_id = $brand?->getKey() ?? null;
+                $item->manufacturer_id = $manufacturer?->getKey() ?? null;
+                $item->is_updated = true;
+                $item->uom = $productSync->unit_of_measure;
+                $item->manufacturer = $productSync->standard_part_number ?? null;
+                $item->allow_back_order = $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
+                $item->save();
             }
 
             $this->setProcessedFlag($productSync);
@@ -233,24 +222,27 @@ class ProductSyncService
     {
         try {
             $item = new Product;
-            $manufacturerId = $this->getManufacturerId($productSync);
-            $manufacturerPartNo = !empty($productSync->manufacturer) ? $productSync->manufacturer : ($productSync->standard_part_number ?? null);
+
+            $manufacturer = $this->getManufacturer($productSync->manufacturer);
+
+            $brand = $this->getBrand($productSync->brand);
 
             $item->product_name = match (config('amplify.erp.default')) {
-                'csd-erp' => $this->getProductDescription($productSync),
-                default => $productSync->description_1
+                'facts-erp' => $productSync->description_1,
+                default => "{$productSync->description_1} {$productSync->description_2}"
             };
             $item->product_code = $productSync->item_number;
-            $item->description = $this->getProductDescription($productSync);
-            $item->short_description = $productSync->description_1;
             $item->msrp = $productSync->list_price ?? null;
+            $item->selling_price = $productSync->list_price ?? null;
             $item->vendornum = $productSync->primary_vendor ?? null;
+
             $item->brand_name = $brand?->title ?? null;
-            $item->brand_id = $brand?->id ?? null;
+            $item->brand_id = $brand?->getKey() ?? null;
+
+            $item->manufacturer_id = $manufacturer?->getKey() ?? null;
             $item->is_new = true;
             $item->uom = $productSync->unit_of_measure;
-            $item->manufacturer = $manufacturerPartNo;
-            $item->manufacturer_id = $manufacturerId;
+            $item->manufacturer = $productSync->standard_part_number ?? null;
             $item->status = config('amplify.pim.default_status', 'draft');
             $item->allow_back_order = $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
             $item->user_id = $this->approveId;
@@ -267,50 +259,52 @@ class ProductSyncService
         }
     }
 
-    private function getManufacturerId(ProductSyncModel $productSync)
+    private function getManufacturer(string $keyword = null): ?Manufacturer
     {
-        if (!empty($productSync->brand)) {
-            $manufacturer = Manufacturer::when(
-                config('amplify.erp.default') == 'csd-erp',
-                fn($query) => $query->where('code', '=', $productSync->brand)
-            )->when(
-                    config('amplify.erp.default') == 'facts-erp',
-                    fn($query) => $query->where('name', '=', $productSync->brand)
-                )->get()
-                ->first();
-
-            if (empty($manufacturer)) {
-                $manufacturer = Manufacturer::create([
-                    'code' => $productSync->primary_vendor,
-                    'name' => $productSync->brand,
-                    'image' => asset(config('amplify.frontend.fallback_image_path')),
-                ]);
-            }
-
-            return $manufacturer->id;
+        if (empty($keyword)) {
+            return null;
         }
 
-        return null;
+        return Manufacturer::when(
+            config('amplify.erp.default') == 'csd-erp',
+            fn($query) => $query->where('code', '=', $keyword))
+            ->when(
+                config('amplify.erp.default') == 'facts-erp',
+                fn($query) => $query->where('name', '=', $keyword)
+            )->first();
     }
 
-    private function getBrand(ProductSyncModel $productSync): ?Brand
+    private function getBrand(string $keyword = null): ?Brand
     {
-        if (!empty($productSync->brand)) {
-
-            $slug = preg_replace_callback('/(^|-)([a-z])/',
-                fn($matches) => $matches[1] . strtoupper($matches[2]),
-                Str::slug($productSync->brand)
-            );
-
-            return Brand::firstOrCreate(['title' => $productSync->brand],
-                [
-                    'title' => $productSync->brand,
-                    'slug' => $slug,
-                    'image' => asset(config('amplify.frontend.fallback_image_path')),
-                ]);
-
+        if (empty($keyword)) {
+            return null;
         }
 
-        return null;
+        return Brand::when(
+            config('amplify.erp.default') == 'csd-erp',
+            fn($query) => $query->where('slug', '=', $keyword))
+            ->when(
+                config('amplify.erp.default') == 'facts-erp',
+                fn($query) => $query->where('title', '=', $keyword)
+            )->first();
+
+        //@TODO OLD Code don't remove
+//        if (!empty($productSync->brand)) {
+//
+//            $slug = preg_replace_callback('/(^|-)([a-z])/',
+//                fn($matches) => $matches[1] . strtoupper($matches[2]),
+//                Str::slug($productSync->brand)
+//            );
+//
+//            return Brand::firstOrCreate(['title' => $productSync->brand],
+//                [
+//                    'title' => $productSync->brand,
+//                    'slug' => $slug,
+//                    'image' => asset(config('amplify.frontend.fallback_image_path')),
+//                ]);
+//
+//        }
+//
+//        return null;
     }
 }
