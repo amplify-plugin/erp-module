@@ -3,9 +3,14 @@
 namespace Amplify\ErpApi;
 
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
+use Amplify\ErpApi\Jobs\ProductSyncJob;
+use Amplify\ErpApi\Services\AppriseErpService;
+use Amplify\ErpApi\Services\CsdErpService;
+use Amplify\ErpApi\Services\FactsErpService;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Customer;
 use Amplify\System\Backend\Models\ProductSync;
+
 use Illuminate\Support\Facades\Cache;
 
 class ErpApiService
@@ -13,49 +18,29 @@ class ErpApiService
     use ErpApiConfigTrait;
     use \Illuminate\Support\Traits\ForwardsCalls;
     use \Illuminate\Support\Traits\Macroable;
+    use \Amplify\System\Traits\Overwritable;
 
     const LOOKUP_OPEN_ORDER = 'O';
-
     const LOOKUP_HISTORICAL_ORDER = 'H';
-
     const LOOKUP_DATE_RANGE = 'D';
-
     const LOOKUP_EMPTY = 'E';
-
     const DOC_TYPE_INVOICE = 'I';
-
     const DOC_TYPE_RENTAL_INVOICE = 'R';
-
     const DOC_TYPE_SHIP_SIGN = 'P';
-
     const INVOICE_STATUS_PAST = 'PAST';
-
     const INVOICE_STATUS_OPEN = 'OPEN';
-
     const TRANSACTION_TYPES_ORDER = 'SO';
-
     const TRANSACTION_TYPES_QUOTE = 'QU';
 
     public string $erpAdapterName = 'default';
 
     /**
-     * The registered string macros.
+     * Any Class that's enable the ERP API interface
      *
-     * @var array
+     * @var CsdErpService|FactsErpService|AppriseErpService
      */
-    protected static $overwrites = [];
+    protected $serviceInstance;
 
-    /**
-     * Register a custom overwrite.
-     *
-     * @param string $name
-     * @param object|callable $overwrites
-     * @return void
-     */
-    public static function overwrite($name, $overwrite)
-    {
-        static::$overwrites[$name] = $overwrite;
-    }
 
     /**
      * The registered string macros.
@@ -76,94 +61,15 @@ class ErpApiService
         static::$prepends[$method] = $closure;
     }
 
-    /**
-     * Any Class that's enable the ERP API interface
-     *
-     * @var mixed
-     */
-    protected $serviceInstance;
-
-    /**
-     * ErpApiService Constructor
-     */
-    public function __construct()
-    {
-        $adapter = config('amplify.erp.default', 'default');
-
-        $this->init($adapter);
-    }
-
-    private function processBeforeCall($method, $parameters)
+    private function processBeforeCall($method, $parameters, $instance)
     {
         $prepend = static::$prepends[$method];
 
         if ($prepend instanceof \Closure) {
-            $prepend = $prepend->bindTo($this->serviceInstance, static::class);
+            $prepend = $prepend->bindTo($instance, static::class);
         }
 
         return [$prepend(...$parameters)];
-    }
-
-    private function processOverwriteCall($method, $parameters)
-    {
-        $overwrite = static::$overwrites[$method];
-
-        if ($overwrite instanceof \Closure) {
-            $overwrite = $overwrite->bindTo($this->serviceInstance, static::class);
-        }
-
-        return $overwrite(...$parameters);
-    }
-
-    /**
-     * Dynamically handle calls to the class.
-     *
-     * @param string $method
-     * @param array $parameters
-     * @return mixed
-     *
-     * @throws \BadMethodCallException
-     * @throws \ErrorException
-     */
-    public function __call($method, $parameters)
-    {
-        $this->checkErpIsEnabled();
-
-        if (isset(static::$prepends[$method])) {
-            $parameters = $this->processBeforeCall($method, $parameters);
-        }
-
-        if (isset(static::$overwrites[$method])) {
-            return $this->processOverwriteCall($method, $parameters);
-        }
-
-        if (method_exists($this->serviceInstance, $method)) {
-            return $this->forwardCallTo($this->serviceInstance, $method, $parameters);
-        }
-
-        if (!static::hasMacro($method)) {
-            throw new \BadMethodCallException(sprintf(
-                'Macro method %s::%s does not exist.', static::class, $method
-            ));
-        }
-
-        $macro = static::$macros[$method];
-
-        if ($macro instanceof \Closure) {
-            $macro = $macro->bindTo($this->serviceInstance, static::class);
-        }
-
-        return $macro(...$parameters);
-    }
-
-    /**
-     * @throws \ErrorException
-     */
-    private function checkErpIsEnabled()
-    {
-        if (!$this->enabled()) {
-            throw new \ErrorException(class_basename($this->serviceInstance) . ' is disabled.', 500);
-        }
     }
 
     /*
@@ -189,6 +95,63 @@ class ErpApiService
         } else {
             throw new \InvalidArgumentException("{$adapter} is a invalid adapter name");
         }
+    }
+
+    /**
+     * ErpApiService Constructor
+     */
+    public function __construct()
+    {
+        $adapter = config('amplify.erp.default', 'default');
+
+        $this->init($adapter);
+    }
+
+    /**
+     * Dynamically handle calls to the class.
+     *
+     * @param string $method
+     * @param array $parameters
+     * @return mixed
+     *
+     * @throws \BadMethodCallException
+     * @throws \ErrorException
+     */
+    public function __call($method, $parameters)
+    {
+        if (!$this->enabled()) {
+            throw new \ErrorException(class_basename($this->serviceInstance) . ' is disabled.', 500);
+        }
+
+        $instance = !in_array($method, ['storeProductSyncOnModel', 'updateProductWithSyncData'])
+            ? $this->productSyncInstance()
+            : $this->serviceInstance;
+
+        if (isset(static::$prepends[$method])) {
+            $parameters = $this->processBeforeCall($method, $parameters, $instance);
+        }
+
+        if (isset(static::$overwrites[$method])) {
+            return $this->processOverwriteCall($method, $parameters, $instance);
+        }
+
+        if (method_exists($instance, $method)) {
+            return $this->forwardCallTo($instance, $method, $parameters);
+        }
+
+        if (!static::hasMacro($method)) {
+            throw new \BadMethodCallException(sprintf(
+                'Macro method %s::%s does not exist.', static::class, $method
+            ));
+        }
+
+        $macro = static::$macros[$method];
+
+        if ($macro instanceof \Closure) {
+            $macro = $macro->bindTo($instance, static::class);
+        }
+
+        return $macro(...$parameters);
     }
 
     /*
@@ -231,58 +194,73 @@ class ErpApiService
         return $this->serviceInstance->adapter;
     }
 
-    /**
-     * @throws \Exception
-     */
-    public function storeProductSyncOnModel(array $filters): array
-    {
-        return $this->productSyncInstance()->storeProductSyncOnModel($filters);
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | GENERAL FUNCTIONS
+    |--------------------------------------------------------------------------
+    */
 
     /**
-     * @return void
+     * @throws \ErrorException
      */
-    public function dispatchProductSyncJob($id, $approveId = null)
-    {
-        $this->productSyncInstance()->dispatchProductSyncJob($id, $approveId);
-    }
-
-    /**
-     * @return void
-     */
-    public function updateProductWithSyncData(ProductSync $productSync, ?int $approveId = null)
-    {
-        $this->productSyncInstance()->updateProductWithSyncData($productSync, $approveId);
-    }
-
     public function getCustomerDetail(array $filters = []): Customer
     {
-        $customer_number = $filters['customer_number'] ?? null;
-
-        if (empty($customer_number)) {
-            $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
-            $filters['customer_number'] = $customer_number;
+        if (!empty($filters['customer_number'])) {
+            return $this->__call(__FUNCTION__, $filters);
         }
+
+        $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
+        $filters['customer_number'] = $customer_number;
 
         return Cache::remember(
             "getCustomerDetails-{$customer_number}",
             2 * HOUR,
-            fn() => $this->serviceInstance->getCustomerDetail($filters)
+            fn() => $this->__call('getCustomerDetail', $filters)
         );
     }
 
+    /**
+     * @throws \ErrorException
+     */
     public function getCustomerShippingLocationList(array $filters = []): ShippingLocationCollection
     {
         if (!empty($filters['customer_number'])) {
-            return $this->serviceInstance->getCustomerShippingLocationList($filters);
+            return $this->__call(__FUNCTION__, $filters);
         }
 
         $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
+        $filters['customer_number'] = $customer_number;
 
         return Cache::remember(
             "getCustomerShippingLocationList-{$customer_number}",
             2 * HOUR,
-            fn() => $this->serviceInstance->getCustomerShippingLocationList($filters)
+            fn() => $this->__call('getCustomerShippingLocationList', $filters)
         );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PRODUCT SYNC FUNCTIONS
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * @param $id
+     * @param null $approveId
+     * @return void
+     */
+    public function dispatchProductSyncJob($id, $approveId = null): void
+    {
+        ProductSyncJob::dispatch($id, $approveId)->onQueue('worker');
+    }
+
+    /**
+     * @param ProductSync $productSync
+     * @param int|null $approveId
+     * @return void
+     */
+    public function updateProductWithSyncData(ProductSync $productSync, ?int $approveId = null): void
+    {
+        $this->productSyncInstance()->updateProductWithSyncData($productSync, $approveId);
     }
 }

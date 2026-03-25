@@ -3,7 +3,6 @@
 namespace Amplify\ErpApi;
 
 use Amplify\ErpApi\Facades\ErpApi;
-use Amplify\ErpApi\Jobs\ProductSyncJob;
 use Amplify\ErpApi\Wrappers\ProductSync as ProductSyncWrapper;
 use Amplify\System\Backend\Models\Brand;
 use Amplify\System\Backend\Models\Manufacturer;
@@ -44,6 +43,7 @@ class ProductSyncService
     {
         try {
             $products = ErpApi::getProductSync($filters);
+
             foreach ($products as $product) {
                 $productSync = $this->storeApiResponse($product);
 
@@ -62,20 +62,12 @@ class ProductSyncService
         return $this->syncLogData;
     }
 
-    /**
-     * @return void
-     */
-    public function dispatchProductSyncJob($id, $approveId = null)
-    {
-        ProductSyncJob::dispatch($id, $approveId)->onQueue('worker');
-    }
-
     /***
      * @param ProductSyncModel $productSync
      * @param int|null $approveId
      * @return void
      */
-    public function updateProductWithSyncData(ProductSyncModel $productSync, ?int $approveId = null)
+    public function updateProductWithSyncData(ProductSyncModel $productSync, ?int $approveId = null): void
     {
         $this->approveId = $approveId ?? self::DEFAULT_APPROVE_USER_ID;
 
@@ -87,7 +79,7 @@ class ProductSyncService
         };
     }
 
-    private function storeApiResponse(ProductSyncWrapper $productSync): ?ProductSyncModel
+    public function storeApiResponse(ProductSyncWrapper $productSync): ?ProductSyncModel
     {
         $productSyncModel = new ProductSyncModel;
 
@@ -278,11 +270,20 @@ class ProductSyncService
     private function getManufacturerId(ProductSyncModel $productSync)
     {
         if (!empty($productSync->brand)) {
-            $manufacturer = Manufacturer::where('name', $productSync->brand)->first();
+            $manufacturer = Manufacturer::when(
+                config('amplify.erp.default') == 'csd-erp',
+                fn($query) => $query->where('code', '=', $productSync->brand)
+            )->when(
+                    config('amplify.erp.default') == 'facts-erp',
+                    fn($query) => $query->where('name', '=', $productSync->brand)
+                )->get()
+                ->first();
 
-            if (empty($brand)) {
+            if (empty($manufacturer)) {
                 $manufacturer = Manufacturer::create([
+                    'code' => $productSync->primary_vendor,
                     'name' => $productSync->brand,
+                    'image' => asset(config('amplify.frontend.fallback_image_path')),
                 ]);
             }
 
