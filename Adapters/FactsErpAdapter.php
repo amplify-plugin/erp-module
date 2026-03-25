@@ -605,10 +605,7 @@ class FactsErpAdapter implements ErpApiInterface
         $model = new ProductSync($attributes);
 
         $model->ItemNumber = $attributes['ItemNumber'] ?? null;
-        $model->UpdateAction = (isset($attributes['Active?']) && $attributes['Active?'] != 'Y')
-            ? 'DELETE'
-            : $attributes['UpdateAction'] ?? 'UPDATE';
-
+        $model->UpdateAction = ((isset($attributes['Active?']) && $attributes['Active?'] != 'Y') ? 'DELETE' : !empty($attributes['UpdateAction'])) ? $attributes['UpdateAction'] : 'UPDATE';
         $model->SubAction = $attributes['SubAction'] ?? null;
         $model->Description1 = $attributes['Description1'] ?? null;
         $model->Description2 = $attributes['Description2'] ?? null;
@@ -621,7 +618,7 @@ class FactsErpAdapter implements ErpApiInterface
         $model->StandardPartNumber = $attributes['StandardPartNumber'] ?? null;
         $model->Brand = !empty($attributes['Brand']) ? $attributes['Brand'] : $attributes['PrimaryVendor'] ?? null;
         $model->RHSpartscomNotes = $attributes['RHSpartscomNotes'] ?? null;
-        $model->PrimaryVendor = $attributes['PrimaryVendor'] ?? null;
+        $model->PrimaryVendor = null;
 
         return $model;
     }
