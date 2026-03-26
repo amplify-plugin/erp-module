@@ -199,4 +199,9 @@ abstract class Wrapper implements Arrayable, ArrayAccess, IteratorAggregate, Jso
     {
         return $this->toArray();
     }
+
+    public function attributes(): array
+    {
+        return $this->attributes;
+    }
 }

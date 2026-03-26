@@ -107,7 +107,7 @@ class FactsErpAdapter implements ErpApiInterface
      */
     public function createCustomer(array $attributes = []): Customer
     {
-        $customer = ! empty($attributes['Customers']) ? array_shift($attributes['Customers']) : [];
+        $customer = !empty($attributes['Customers']) ? array_shift($attributes['Customers']) : [];
 
         return $this->renderSingleCustomer($customer);
     }
@@ -119,7 +119,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $customerList = new CustomerCollection;
 
-        if (! empty($customers)) {
+        if (!empty($customers)) {
             foreach (($customers['Customers'] ?? []) as $customer) {
                 $customerList->push($this->renderSingleCustomer($customer));
             }
@@ -133,7 +133,7 @@ class FactsErpAdapter implements ErpApiInterface
      */
     public function getCustomerDetail(array $customer = []): Customer
     {
-        $customer = ! empty($customer['Customers']) ? array_shift($customer['Customers']) : [];
+        $customer = !empty($customer['Customers']) ? array_shift($customer['Customers']) : [];
 
         return $this->renderSingleCustomer($customer);
     }
@@ -145,7 +145,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $customerShippingLocations = new ShippingLocationCollection;
 
-        if (! empty($locations)) {
+        if (!empty($locations)) {
             foreach ($locations['ShipTo'] as $location) {
                 $customerShippingLocations->push($this->renderSingleCustomerShippingLocation($location));
             }
@@ -161,7 +161,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new ProductPriceAvailabilityCollection;
 
-        if (! empty($filters)) {
+        if (!empty($filters)) {
             foreach (($filters['Items'] ?? []) as $item) {
                 $model->push($this->renderSingleProductPriceAvailability($item));
             }
@@ -176,21 +176,20 @@ class FactsErpAdapter implements ErpApiInterface
      */
     public function getProductSync(array $filters = []): ProductSyncCollection
     {
-        $model = new ProductSyncCollection;
+        $collection = new ProductSyncCollection;
 
-        // Mapping
-        if (! empty($filters)) {
-            $model->RestartPoint = $filters['RestartPoint'] ?? null;
+        if (!empty($filters)) {
+            $collection->RestartPoint = $filters['RestartPoint'] ?? null;
             foreach (($filters['ItemMaster'] ?? []) as $item) {
                 if ($item['Item'][0]) {
-                    $model->push($this->renderProductSync($item['Item'][0]));
+                    $collection->push($this->renderProductSync($item['Item'][0]));
                 } else {
-                    $model->push($this->renderProductSync($item));
+                    $collection->push($this->renderProductSync($item));
                 }
             }
         }
 
-        return $model;
+        return $collection;
     }
 
     /*
@@ -228,7 +227,7 @@ class FactsErpAdapter implements ErpApiInterface
     public function getOrderList(array $customerOrders = []): OrderCollection
     {
         $orders = new OrderCollection;
-        if (! empty($customerOrders)) {
+        if (!empty($customerOrders)) {
             $customerOrders = $customerOrders['Orders'] ?? $customerOrders['Order'];
             foreach (($customerOrders ?? []) as $order) {
                 $orders->push($this->renderSingleOrder($order));
@@ -259,13 +258,13 @@ class FactsErpAdapter implements ErpApiInterface
             : [];
 
         $model->OrderNumber = $attributes['OrderNumber'] ?? null;
-        $model->TotalLineAmount = isset($attributes['TotalLineAmount']) ? (float) filter_var($attributes['TotalLineAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-        $model->TotalOrderValue =  isset($attributes['TotalOrderValue']) ? (float) filter_var($attributes['TotalOrderValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-        $model->SalesTaxAmount =  isset($attributes['SalesTaxAmount']) ? (float) filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-        $model->FreightAmount =  isset($attributes['FreightAmount']) ? (float) filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+        $model->TotalLineAmount = isset($attributes['TotalLineAmount']) ? (float)filter_var($attributes['TotalLineAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+        $model->TotalOrderValue = isset($attributes['TotalOrderValue']) ? (float)filter_var($attributes['TotalOrderValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+        $model->SalesTaxAmount = isset($attributes['SalesTaxAmount']) ? (float)filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+        $model->FreightAmount = isset($attributes['FreightAmount']) ? (float)filter_var($attributes['FreightAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->FreightRate = $attributes['FreightRate'] ?? [];
         $model->WireTrasnsferFee = !empty($attributes['WireTrasnsferFee']) ? (float)filter_var($attributes['WireTrasnsferFee'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-        $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float) $attributes['HazMatCharge'] : null;
+        $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float)$attributes['HazMatCharge'] : null;
         $model->OrderLines = new Collection();
         //no use case
         if (!empty($attributes['OrderLines'])) {
@@ -289,7 +288,7 @@ class FactsErpAdapter implements ErpApiInterface
     public function createQuotation(array $orderInfo = []): CreateQuotationCollection
     {
         $quoteCollection = new CreateQuotationCollection;
-        if (! empty($orderInfo)) {
+        if (!empty($orderInfo)) {
             $customerOrders = $orderInfo['Orders'] ?? $orderInfo['Order'];
             foreach (($customerOrders ?? []) as $quote) {
                 $quoteCollection->push($this->renderSingleCreateQuotation($quote));
@@ -306,7 +305,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $quotes = new QuotationCollection;
 
-        if (! empty($customerOrders)) {
+        if (!empty($customerOrders)) {
             foreach (($customerOrders['Quotes'] ?? []) as $quote) {
                 $quotes->push($this->renderSingleQuotation($quote));
             }
@@ -340,7 +339,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new CustomerAR($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $attributes = $attributes['ARSummary'] ?? [];
 
             $model->CustomerNum = $attributes['CustomerNum'] ?? null;
@@ -407,7 +406,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $invoiceList = new InvoiceCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['Invoices'] ?? []) as $invoice) {
                 $invoiceList->push($this->renderSingleInvoice($invoice));
             }
@@ -458,7 +457,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new CreatePayment($paymentInfo);
 
-        if (! empty($paymentInfo['ArPayment'])) {
+        if (!empty($paymentInfo['ArPayment'])) {
             $attributes = $paymentInfo['ArPayment'] ?? [];
 
             $model->AuthorizationNumber = $attributes['AuthorizationNumber'] ?? null;
@@ -480,7 +479,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new CreateOrUpdateNote($noteInfo);
 
-        if (! empty($noteInfo['UpdateNotes'])) {
+        if (!empty($noteInfo['UpdateNotes'])) {
             $attributes = $noteInfo['UpdateNotes'] ?? [];
 
             $model->Status = $attributes['Status'] ?? null;
@@ -494,7 +493,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Customer($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['CustomerNumber'] ?? null;
             $model->ArCustomerNumber = $attributes['ArCustomerNumber'] ?? null;
             $model->CustomerName = $attributes['CustomerName'] ?? null;
@@ -517,7 +516,7 @@ class FactsErpAdapter implements ErpApiInterface
             $model->SuspendCode = $attributes['SuspendCode'] ?? null;
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? null;
             $model->CreditCardOnly = $attributes['CreditCardOnly'] ?? null;
-            $model->FreightOptionAmount = ! empty($attributes['FreightOptionAmount']) ? floatval($attributes['FreightOptionAmount']) : null;
+            $model->FreightOptionAmount = !empty($attributes['FreightOptionAmount']) ? floatval($attributes['FreightOptionAmount']) : null;
             $model->PoRequired = $attributes['PoRequired'] ?? null;
             $model->SalesPersonCode = $attributes['SalesPersonCode'] ?? null;
             $model->SalesPersonName = $attributes['SalesPersonName'] ?? null;
@@ -534,7 +533,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new ShippingLocation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ShipToNumber = $attributes['ShipToNumber'] ?? null;
             $model->ShipToName = $attributes['ShipToName'] ?? null;
             $model->ShipToCountryCode = $attributes['ShipToCountryCode'] ?? null;
@@ -561,14 +560,14 @@ class FactsErpAdapter implements ErpApiInterface
 
         $model->Warehouses = ErpApi::getWarehouses();
 
-        if (! empty($attributes)) {
-            $attributes = (! empty($attributes['Item'])) ? array_shift($attributes['Item']) : [];
+        if (!empty($attributes)) {
+            $attributes = (!empty($attributes['Item'])) ? array_shift($attributes['Item']) : [];
 
             $model->ItemNumber = $attributes['ItemNumber'] ?? null;
             $model->WarehouseID = $attributes['WarehouseID'] ?? null;
-            $model->Price = isset($attributes['Price']) && $attributes['Price'] !== null ? (float) str_replace(',', '', $attributes['Price']) : null;
-            $model->ListPrice = isset($attributes['ListPrice']) && $attributes['ListPrice'] !== null ? (float) str_replace(',', '', $attributes['ListPrice']) : null;
-            $model->StandardPrice = isset($attributes['StandardPrice']) && $attributes['StandardPrice'] !== null ? (float) str_replace(',', '', $attributes['StandardPrice']) : null;
+            $model->Price = isset($attributes['Price']) && $attributes['Price'] !== null ? (float)str_replace(',', '', $attributes['Price']) : null;
+            $model->ListPrice = isset($attributes['ListPrice']) && $attributes['ListPrice'] !== null ? (float)str_replace(',', '', $attributes['ListPrice']) : null;
+            $model->StandardPrice = isset($attributes['StandardPrice']) && $attributes['StandardPrice'] !== null ? (float)str_replace(',', '', $attributes['StandardPrice']) : null;
             $model->QtyPrice_1 = $attributes['QtyPrice_1'] ?? null;
             $model->QtyBreak_1 = $attributes['QtyBreak_1'] ?? null;
             $model->QtyPrice_2 = $attributes['QtyPrice_2'] ?? null;
@@ -587,8 +586,8 @@ class FactsErpAdapter implements ErpApiInterface
             $model->QtyBreak_8 = $attributes['QtyBreak_8'] ?? null;
             $model->QtyPrice_9 = $attributes['QtyPrice_9'] ?? null;
             $model->QtyBreak_9 = $attributes['QtyBreak_9'] ?? null;
-            $model->ExtendedPrice = isset($attributes['ExtendedPrice']) && $attributes['ExtendedPrice'] !== null ? (float) str_replace(',', '', $attributes['ExtendedPrice']) : null;
-            $model->OrderPrice = isset($attributes['OrderPrice']) && $attributes['OrderPrice'] !== null ? (float) str_replace(',', '', $attributes['OrderPrice']) : null;
+            $model->ExtendedPrice = isset($attributes['ExtendedPrice']) && $attributes['ExtendedPrice'] !== null ? (float)str_replace(',', '', $attributes['ExtendedPrice']) : null;
+            $model->OrderPrice = isset($attributes['OrderPrice']) && $attributes['OrderPrice'] !== null ? (float)str_replace(',', '', $attributes['OrderPrice']) : null;
             $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['PricingUnitOfMeasure'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['DefaultSellingUnitOfMeasure'] ?? null;
@@ -604,10 +603,9 @@ class FactsErpAdapter implements ErpApiInterface
     private function renderProductSync($attributes): ProductSync
     {
         $model = new ProductSync($attributes);
-        \Log::info(print_r($attributes, true));
 
         $model->ItemNumber = $attributes['ItemNumber'] ?? null;
-        $model->UpdateAction = $attributes['UpdateAction'] ?? null;
+        $model->UpdateAction = ((isset($attributes['Active?']) && $attributes['Active?'] != 'Y') ? 'DELETE' : !empty($attributes['UpdateAction'])) ? $attributes['UpdateAction'] : 'UPDATE';
         $model->SubAction = $attributes['SubAction'] ?? null;
         $model->Description1 = $attributes['Description1'] ?? null;
         $model->Description2 = $attributes['Description2'] ?? null;
@@ -616,11 +614,11 @@ class FactsErpAdapter implements ErpApiInterface
         $model->ListPrice = (isset($attributes['ListPrice']) && is_numeric($attributes['ListPrice'])) ? floatval($attributes['ListPrice']) : null;
         $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
         $model->PricingUnitOfMeasure = $attributes['PricingUnitOfMeasure'] ?? null;
-        $model->Manufacturer = $attributes['Manufacturer'] ?? null;
+        $model->Manufacturer = !empty($attributes['Manufacturer']) ? $attributes['Manufacturer'] : $attributes['PrimaryVendor'] ?? null;
         $model->StandardPartNumber = $attributes['StandardPartNumber'] ?? null;
-        $model->Brand = $attributes['Brand'] ?? null;
+        $model->Brand = !empty($attributes['Brand']) ? $attributes['Brand'] : $attributes['PrimaryVendor'] ?? null;
         $model->RHSpartscomNotes = $attributes['RHSpartscomNotes'] ?? null;
-        $model->PrimaryVendor = $attributes['PrimaryVendor'] ?? null;
+        $model->PrimaryVendor = null;
 
         return $model;
     }
@@ -649,7 +647,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Order($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['CustomerNumber'] ?? null;
             $model->OrderNumber = $attributes['OrderNumber'] ?? null;
             $model->OrderSuffix = $attributes['OrderSuffix'] ?? null;
@@ -697,7 +695,7 @@ class FactsErpAdapter implements ErpApiInterface
             $model->PdfAvailable = $attributes['PdfAvailable'] ?? null;
             $model->OrderDetail = new OrderDetailCollection;
 
-            if (! empty($attributes['OrderDetail'])) {
+            if (!empty($attributes['OrderDetail'])) {
                 foreach (($attributes['OrderDetail'] ?? []) as $orderDetail) {
                     $model->OrderDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
@@ -717,7 +715,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Order($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['CustomerNumber'] ?? null;
             $model->OrderNumber = $attributes['OrderNumber'] ?? null;
             $model->OrderNote = $attributes['OrderNote'] ?? null;
@@ -746,12 +744,12 @@ class FactsErpAdapter implements ErpApiInterface
             $model->EntryDate = $attributes['EntryDate'] ?? null;
             $model->RequestedShipDate = $attributes['RequestedShipDate'] ?? null;
             $model->CustomerPurchaseOrdernumber = $attributes['CustomerPurchaseOrdernumber'] ?? null;
-            $model->ItemSalesAmount = $attributes['ItemSalesAmount'] ? (float) filter_var($attributes['ItemSalesAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->DiscountAmountTrading = $attributes['DiscountAmountTrading'] ? (float) filter_var($attributes['DiscountAmountTrading'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->SalesTaxAmount = $attributes['SalesTaxAmount'] ? (float) filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->InvoiceAmount = $attributes['InvoiceAmount'] ? (float) filter_var($attributes['InvoiceAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->TotalSpecialCharges = $attributes['TotalSpecialCharges'] ? (float) filter_var($attributes['TotalSpecialCharges'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->TotalOrderValue = $attributes['TotalOrderValue'] ? (float) filter_var($attributes['TotalOrderValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->ItemSalesAmount = $attributes['ItemSalesAmount'] ? (float)filter_var($attributes['ItemSalesAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->DiscountAmountTrading = $attributes['DiscountAmountTrading'] ? (float)filter_var($attributes['DiscountAmountTrading'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->SalesTaxAmount = $attributes['SalesTaxAmount'] ? (float)filter_var($attributes['SalesTaxAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->InvoiceAmount = $attributes['InvoiceAmount'] ? (float)filter_var($attributes['InvoiceAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->TotalSpecialCharges = $attributes['TotalSpecialCharges'] ? (float)filter_var($attributes['TotalSpecialCharges'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->TotalOrderValue = $attributes['TotalOrderValue'] ? (float)filter_var($attributes['TotalOrderValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->CarrierCode = $attributes['CarrierCode'] ?? null;
             $model->WarehouseID = $attributes['WarehouseID'] ?? null;
             $model->InvoiceNumber = $attributes['InvoiceNumber'] ?? null;
@@ -770,13 +768,13 @@ class FactsErpAdapter implements ErpApiInterface
                 $model->TotalOrderValue = floatval($model->InvoiceAmount) + floatval($model->SalesTaxAmount) + floatval($model->FreightAmount) + floatval($model->TotalSpecialCharges) - floatval($model->DiscountAmountTrading);
             }
 
-            if (! empty($attributes['OrderDetail'])) {
+            if (!empty($attributes['OrderDetail'])) {
                 foreach (($attributes['OrderDetail'] ?? []) as $orderDetail) {
                     $model->OrderDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
             }
 
-            if (! empty($attributes['OrderNotes'])) {
+            if (!empty($attributes['OrderNotes'])) {
                 foreach (($attributes['OrderNotes'] ?? []) as $orderNote) {
                     $model->OrderNotes->push($this->renderSingleOrderNote($orderNote));
                 }
@@ -790,7 +788,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new OrderNote($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Subject = $attributes['Subject'] ?? null;
             $model->Date = isset($attributes['Date']) ? CarbonImmutable::parse($attributes['Date']) : null;
             $model->NoteNum = $attributes['NoteNum'] ?? null;
@@ -807,7 +805,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new OrderDetail($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->LineNumber = $attributes['LineNumber'] ?? null;
             $model->ItemNumber = $attributes['ItemNumber'] ?? null;
             $model->ItemType = $attributes['ItemType'] ?? null;
@@ -831,10 +829,10 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new CreateQuotation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->OrderNumber = floatval(str_replace(['$', ','], '', ($attributes['OrderNumber'] ?? '')));
             $model->SalesTaxAmount = floatval(str_replace(['$', ','], '', ($attributes['SalesTaxAmount'] ?? '')));
-            $model->FreightAmount = ! empty($attributes['FreightAmount']) ? floatval($attributes['FreightAmount']) : null;
+            $model->FreightAmount = !empty($attributes['FreightAmount']) ? floatval($attributes['FreightAmount']) : null;
             $model->TotalOrderValue = floatval(str_replace(['$', ','], '', ($attributes['TotalOrderValue'] ?? '')));
         }
 
@@ -845,7 +843,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Quotation($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['CustomerNumber'] ?? null;
             $model->QuoteNumber = $attributes['QuoteNumber'] ?? null;
             $model->CustomerName = $attributes['CustomerName'] ?? null;
@@ -891,7 +889,7 @@ class FactsErpAdapter implements ErpApiInterface
             $model->QuoteDetail = new OrderDetailCollection;
             $model->shippingList = $attributes['shippingList'] ?? null;
 
-            if (! empty($attributes['QuoteDetail'])) {
+            if (!empty($attributes['QuoteDetail'])) {
                 foreach (($attributes['QuoteDetail'] ?? []) as $orderDetail) {
                     $model->QuoteDetail->push($this->renderSingleOrderDetail($orderDetail));
                 }
@@ -911,7 +909,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Invoice($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? null;
             $model->InvoiceNumber = $attributes['InvoiceNumber'] ?? null;
             $model->InvoiceType = $attributes['InvoiceType'] ?? null;
@@ -951,7 +949,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $campaignList = new CampaignCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['ItemPromoHeader'] ?? []) as $campaign) {
                 $campaignList->push($this->renderSingleCampaign($campaign));
             }
@@ -971,7 +969,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Campaign($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Promoid = $attributes['Promoid'] ?? null;
             $model->BegDate = $attributes['BegDate'] ?? null;
             $model->EndDate = $attributes['EndDate'] ?? null;
@@ -987,7 +985,7 @@ class FactsErpAdapter implements ErpApiInterface
             $model->Private = $attributes['Private'] ?? null;
             $model->CampaignDetail = new CampaignDetailCollection;
 
-            if (! empty($attributes['ItemPromoDetails'])) {
+            if (!empty($attributes['ItemPromoDetails'])) {
                 foreach (($attributes['ItemPromoDetails'] ?? []) as $campaignDetail) {
                     $model->CampaignDetail->push($this->renderSingleCampaignDetail($campaignDetail));
                 }
@@ -1001,7 +999,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new CampaignDetail($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Promoid = $attributes['Promoid'] ?? null;
             $model->Item = $attributes['Item'] ?? null;
             $model->ItemDescription = $attributes['ItemDescription'] ?? null;
@@ -1028,7 +1026,7 @@ class FactsErpAdapter implements ErpApiInterface
 
         $attributes = [];
 
-        if (! empty($inputs['ContactValidation'])) {
+        if (!empty($inputs['ContactValidation'])) {
             $attributes = array_shift($inputs['ContactValidation']);
         }
 
@@ -1049,7 +1047,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new Cylinders($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->Cylinder = $attributes['Cylinder'];
             $model->Beginning = $attributes['Beginning'];
             $model->Delivered = $attributes['Delivered'];
@@ -1066,7 +1064,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $cylinderList = new CylinderCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['Cylinders'] ?? []) as $cylinder) {
                 $cylinderList->push($this->getCylinderDetail($cylinder));
             }
@@ -1082,7 +1080,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $document = new Document($inputs);
 
-        if (! empty($inputs)) {
+        if (!empty($inputs)) {
 
             $attributes = $inputs['DocumentData'];
 
@@ -1102,7 +1100,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $pastItemList = new PastItemCollection;
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             foreach (($attributes['PastSales'] ?? []) as $attribute) {
                 $pastItemList->push($this->getPastItemDetail($attribute));
             }
@@ -1115,7 +1113,7 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new PastItem($attributes);
 
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $model->ItemNumber = $attributes['ItemNumber'];
             $model->WebItem = $attributes['WebItem'];
             $model->History = $attributes['History'];

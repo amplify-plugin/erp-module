@@ -60,7 +60,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
-class CsdErpAdapter implements ErpApiInterface
+class AppriseErpAdapter implements ErpApiInterface
 {
     use \Amplify\ErpApi\Traits\ManageDocumentTrait;
 
@@ -349,7 +349,7 @@ class CsdErpAdapter implements ErpApiInterface
 
         if (!empty($filters)) {
             $filters = $filters['tItemmasterv3']['t-itemmasterv3'] ?? [];
-            foreach ($filters as $item) {
+            foreach (($filters ?? []) as $item) {
                 $collection->push($this->renderProductSync($item));
             }
         }
@@ -887,7 +887,7 @@ class CsdErpAdapter implements ErpApiInterface
                 isset($attributes['suspendfl']) && $attributes['suspendfl'] == 'y' => ProductSyncService::ACTION_DELETE,
             default => ProductSyncService::ACTION_UPDATE,
         };
-        $model->SubAction = $attributes['subaction'] ?? null;
+        $model->SubAction = $attributes['SubAction'] ?? null;
         $model->Description1 = $attributes['descrip1'] ?? null;
         $model->Description2 = $attributes['descrip2'] ?? null;
         $model->ItemClass = $attributes['classcd'] ?? null;
@@ -896,11 +896,10 @@ class CsdErpAdapter implements ErpApiInterface
             ? floatval($attributes['listprice1']) : null;
         $model->UnitOfMeasure = $attributes['unitstock'] ?? $attributes['unit1'];
         $model->PricingUnitOfMeasure = $attributes['unit1'] ?? null;
-        $model->StandardPartNumber = $attributes['vendprod'] ?? null;
-        $model->AllowBackOrder = isset($attributes['prodrestrictcd']) ? in_array($attributes['prodrestrictcd'], ['Y', 'y']) : null;
-        $model->Manufacturer = $attributes['prodcat'] ?? null;
-        $model->Brand = $attributes['prodcat'] ?? null;
+        $model->Manufacturer = $attributes['Manufacturer'] ?? null;
         $model->PrimaryVendor = $attributes['vendno'] ?? null;
+        $model->AllowBackOrder = isset($attributes['prodrestrictcd']) ? $attributes['prodrestrictcd'] == 'Y' : null;
+        $model->ItemID = $attributes['vendprod'] ?? null;
 
         return $model;
     }
@@ -927,7 +926,6 @@ class CsdErpAdapter implements ErpApiInterface
     }
 
     private function renderSingleCreateOrder($attributes): Order
-
     {
         $model = new Order($attributes);
 

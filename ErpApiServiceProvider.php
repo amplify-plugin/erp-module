@@ -2,8 +2,6 @@
 
 namespace Amplify\ErpApi;
 
-use Amplify\ErpApi\Commands\CsdErpContactSyncCommand;
-use Amplify\ErpApi\Commands\ProductSyncCommand;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -38,8 +36,9 @@ class ErpApiServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                ProductSyncCommand::class,
-                CsdErpContactSyncCommand::class,
+                \Amplify\ErpApi\Commands\ProductSyncCommand::class,
+                \Amplify\ErpApi\Commands\CsdErpContactSyncCommand::class,
+                \Amplify\ErpApi\Commands\CsdManufactureSyncCommand::class,
             ]);
         }
 
