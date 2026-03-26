@@ -11,6 +11,7 @@ use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Customer;
 use Amplify\System\Backend\Models\ProductSync;
 
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\Facades\Cache;
 
 class ErpApiService
@@ -77,11 +78,6 @@ class ErpApiService
     | PRODUCT SYNCHRONIZATION SERVICE
     |--------------------------------------------------------------------------
     */
-    private function productSyncInstance(): ProductSyncService
-    {
-        return new ProductSyncService;
-    }
-
     public function init(string $adapter = null): self
     {
         $adapter = $adapter ?? config('amplify.erp.default');
@@ -116,6 +112,7 @@ class ErpApiService
      *
      * @throws \BadMethodCallException
      * @throws \ErrorException
+     * @throws BindingResolutionException
      */
     public function __call($method, $parameters)
     {
@@ -124,7 +121,7 @@ class ErpApiService
         }
 
         $instance = in_array($method, ['storeProductSyncOnModel', 'updateProductWithSyncData'])
-            ? $this->productSyncInstance()
+            ? app()->make(ProductSyncService::class)
             : $this->serviceInstance;
 
         if (isset(static::$prepends[$method])) {
@@ -206,7 +203,7 @@ class ErpApiService
     public function getCustomerDetail(array $filters = []): Customer
     {
         if (!empty($filters['customer_number'])) {
-            return $this->__call(__FUNCTION__, $filters);
+            return $this->__call(__FUNCTION__, [$filters]);
         }
 
         $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
@@ -215,7 +212,7 @@ class ErpApiService
         return Cache::remember(
             "getCustomerDetails-{$customer_number}",
             2 * HOUR,
-            fn() => $this->__call('getCustomerDetail', $filters)
+            fn() => $this->__call('getCustomerDetail', [$filters])
         );
     }
 
@@ -225,7 +222,7 @@ class ErpApiService
     public function getCustomerShippingLocationList(array $filters = []): ShippingLocationCollection
     {
         if (!empty($filters['customer_number'])) {
-            return $this->__call(__FUNCTION__, $filters);
+            return $this->__call(__FUNCTION__, [$filters]);
         }
 
         $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
@@ -234,33 +231,7 @@ class ErpApiService
         return Cache::remember(
             "getCustomerShippingLocationList-{$customer_number}",
             2 * HOUR,
-            fn() => $this->__call('getCustomerShippingLocationList', $filters)
+            fn() => $this->__call('getCustomerShippingLocationList', [$filters])
         );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | PRODUCT SYNC FUNCTIONS
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * @param $id
-     * @param null $approveId
-     * @return void
-     */
-    public function dispatchProductSyncJob($id, $approveId = null): void
-    {
-        ProductSyncJob::dispatch($id, $approveId)->onQueue('worker');
-    }
-
-    /**
-     * @param ProductSync $productSync
-     * @param int|null $approveId
-     * @return void
-     */
-    public function updateProductWithSyncData(ProductSync $productSync, ?int $approveId = null): void
-    {
-        $this->productSyncInstance()->updateProductWithSyncData($productSync, $approveId);
     }
 }

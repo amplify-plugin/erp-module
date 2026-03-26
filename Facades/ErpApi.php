@@ -48,7 +48,6 @@ use Illuminate\Support\Facades\Facade;
  * @see \Amplify\ErpApi\ProductSyncService
  *
  * @method static array storeProductSyncOnModel(array $filters)
- * @method static void dispatchProductSyncJob($id, $approveId = null)
  * @method static void updateProductWithSyncData(\Amplify\System\Backend\Models\ProductSync $productSync, int $approveId = null)
  *
  * @method static void macro(string $name, object|callable $function)

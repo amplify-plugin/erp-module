@@ -34,7 +34,7 @@ class PromptProductSyncJob implements ShouldQueue
                 ->when($firstId !== 'all', fn ($query) => $query->whereIn('id', [$firstId, ...$this->ids]));
 
             foreach ($query->cursor() as $productSync) {
-                    \ErpApi::dispatchProductSyncJob($productSync->id, $this->userId);
+                ProductSyncJob::dispatch($productSync->id, $this->userId)->onQueue('worker');
             }
         }
     }
