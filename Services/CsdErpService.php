@@ -1980,7 +1980,6 @@ class CsdErpService implements ErpApiInterface
             $fields['firstnm'] = strtoupper($nameParts['first']);
             $fields['middlenm'] = '';
             $fields['lastnm'] = strtoupper($nameParts['last']);
-//            $fields['cotitle'] = $attributes['account_title_code'] ?? '';
             $fields['priority'] = 1;
             $fields['salutation'] = '';
             $fields['groupcd'] = $attributes['groupcd'] ?? null;
@@ -1994,7 +1993,6 @@ class CsdErpService implements ErpApiInterface
             $fields['state'] = $customer->CustomerState ?? null;
             $fields['zipcd'] = $customer->CustomerZipCode ?? null;
             $fields['addtiearsc'] = (string)$customer_number;
-            //            $fields['addtiearss'] = "{$customer_number},{$customer->DefaultShipTo}";
 
             $tMnTt = [];
 
