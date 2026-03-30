@@ -41,7 +41,7 @@ class CsdManufactureSyncCommand extends Command
 
         foreach ($entries as $entry) {
 
-            if ($manufacturer = Manufacturer::where('name', '=', $entry['codeDesc'])->first()) {
+            if ($manufacturer = Manufacturer::where('code', '=', $entry['codeValue'])->first()) {
                 $manufacturer->code = $entry['codeValue'];
                 $manufacturer->save();
                 continue;
