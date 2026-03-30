@@ -811,7 +811,12 @@ class CsdErpAdapter implements ErpApiInterface
 
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
+            $model->QuantityOnOrder = isset($attributes['qtyord'])
+                ? !empty($attributes['qtyord'])
+                    ? $attributes['qtyord']
+                    : $attributes['stkqtyord']
+                : null;
+
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
