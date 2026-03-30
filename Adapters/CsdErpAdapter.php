@@ -811,7 +811,12 @@ class CsdErpAdapter implements ErpApiInterface
 
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
+            $model->QuantityOnOrder = isset($attributes['qtyord'])
+                ? !empty($attributes['qtyord'])
+                    ? $attributes['qtyord']
+                    : $attributes['stkqtyord']
+                : null;
+
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
@@ -835,7 +840,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QtyPrice_9 = $attributes['Price_9'] ?? null;
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
             $model->ExtendedPrice = $attributes['extamt'] ?? null;
-            $model->OrderPrice = $model->Price / $model->QuantityOnOrder;
+            $model->OrderPrice = ($model->Price > 0 ) ? $model->Price / $model->QuantityOnOrder: $model->Price;
             $model->UnitOfMeasure = $attributes['unit'] ?? null;
             $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
