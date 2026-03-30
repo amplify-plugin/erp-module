@@ -835,7 +835,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QtyPrice_9 = $attributes['Price_9'] ?? null;
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
             $model->ExtendedPrice = $attributes['extamt'] ?? null;
-            $model->OrderPrice = $model->Price / $model->QuantityOnOrder;
+            $model->OrderPrice = ($model->Price > 0 ) ? $model->Price / $model->QuantityOnOrder: $model->Price;
             $model->UnitOfMeasure = $attributes['unit'] ?? null;
             $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
