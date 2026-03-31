@@ -19,7 +19,7 @@ use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\ErpApiService;
-use Amplify\ErpApi\Exceptions\FactsErpException;
+use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
@@ -75,7 +75,7 @@ class FactsErpService implements ErpApiInterface
     */
 
     /**
-     * @throws FactsErpException
+     * @throws ErpApiException
      */
     private function post(string $url, array $payload = []): array
     {
@@ -90,7 +90,7 @@ class FactsErpService implements ErpApiInterface
     }
 
     /**
-     * @throws FactsErpException
+     * @throws ErpApiException
      */
     private function get(string $url, $query = null): array
     {
@@ -104,7 +104,7 @@ class FactsErpService implements ErpApiInterface
      *
      * @param  mixed  $response
      *
-     * @throws FactsErpException|Exception
+     * @throws ErpApiException|Exception
      */
     private function validate(string $response): array
     {
@@ -115,18 +115,18 @@ class FactsErpService implements ErpApiInterface
 
         try {
             if (strlen($response) == 0) {
-                throw new FactsErpException("Empty Response Received ({$response})", 500);
+                throw new ErpApiException("Empty Response Received ({$response})", 500);
             }
 
             $response = json_decode($response, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new FactsErpException('Invalid JSON Error (' . json_last_error_msg() . ')', 500);
+                throw new ErpApiException('Invalid JSON Error (' . json_last_error_msg() . ')', 500);
             }
 
             if (isset($response['error'])) {
                 $firstError = array_shift($response['error']);
-                throw new FactsErpException(
+                throw new ErpApiException(
                     'Validation Failed Message (' . ($firstError['message'] ?? '') . ')',
                     ($firstError['code'] ?? 422)
                 );
@@ -135,7 +135,7 @@ class FactsErpService implements ErpApiInterface
             return is_array($response)
                 ? $response
                 : (array) $response;
-        } catch (FactsErpException $exception) {
+        } catch (ErpApiException $exception) {
             $this->exceptionHandler($exception);
 
             return [];
@@ -241,7 +241,7 @@ class FactsErpService implements ErpApiInterface
         try {
             $customer_number = $filters['customer_number'] ?? $this->customerId();
             if ($customer_number == null) {
-                throw new FactsErpException('Customer Code is missing.');
+                throw new ErpApiException('Customer Code is missing.');
             }
 
             $response = $this->get("/customers/{$customer_number}");
@@ -545,7 +545,7 @@ class FactsErpService implements ErpApiInterface
      *
      * ** Note this function does not make andy api call **
      *
-     * @throws FactsErpException|Exception
+     * @throws ErpApiException|Exception
      *
      * @since 1.0.0
      */
@@ -1243,7 +1243,7 @@ class FactsErpService implements ErpApiInterface
      * This API is to get customer past sales items from the FACTS ERP
      *
      *
-     * @throws FactsErpException
+     * @throws ErpApiException
      */
     public function getPastItemList(array $filters = []): PastItemCollection
     {
@@ -1290,7 +1290,7 @@ class FactsErpService implements ErpApiInterface
     /**
      * Fetch shipment tracking URL
      *
-     * @throws FactsErpException
+     * @throws ErpApiException
      */
     public function getTrackShipment(array $inputs = []): TrackShipmentCollection
     {
