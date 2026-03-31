@@ -20,7 +20,7 @@ use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
-use Amplify\ErpApi\Exceptions\CsdErpException;
+use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
@@ -65,7 +65,7 @@ class CsdErpService implements ErpApiInterface
     public $operatorInit;
 
     /**
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     public function __construct()
     {
@@ -81,6 +81,8 @@ class CsdErpService implements ErpApiInterface
             'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
             'Accept' => 'application/json',
         ];
+
+        $this->refreshToken();
     }
 
     /*
@@ -95,7 +97,7 @@ class CsdErpService implements ErpApiInterface
     }
 
     /**
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     public function refreshToken(bool $forceReset = false): void
     {
@@ -118,7 +120,10 @@ class CsdErpService implements ErpApiInterface
             ]);
 
         if (!$response->ok()) {
-            throw new CsdErpException('CSD-ERP token refresh failed');
+
+            SystemConfiguration::setValue('erp', 'configurations.csd-erp.expires_at', '', 'string');
+
+            throw new ErpApiException('CSD-ERP token refresh failed. Error: ' . $response->reason());
         }
 
         $response = $response->json();
@@ -131,7 +136,7 @@ class CsdErpService implements ErpApiInterface
     }
 
     /**
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     public function post(string $url, array $payload = []): array
     {
@@ -165,7 +170,7 @@ class CsdErpService implements ErpApiInterface
      *
      * @param mixed $response
      *
-     * @throws CsdErpException|Exception
+     * @throws ErpApiException|Exception
      */
     private function validate(array $response, ?string $url = null, $status = true): array
     {
@@ -174,10 +179,10 @@ class CsdErpService implements ErpApiInterface
             if (isset($response['error'])) {
                 if (is_string($response['error'])) {
                     match ($response['error']) {
-                        'Unauthorized' => throw new CsdErpException('ERP authentication token expired. Please try again later.', 403),
-                        'invalid_grant' => throw new CsdErpException("Invalid ERP Credentials ({$response['error_description']})", 500),
-                        'unsupported_grant_type' => throw new CsdErpException($response['error_description'], 500),
-                        default => throw new CsdErpException('Unexpected Exception: ' . $response['error'], 500),
+                        'Unauthorized' => throw new ErpApiException('ERP authentication token expired. Please try again later.', 403),
+                        'invalid_grant' => throw new ErpApiException("Invalid ERP Credentials ({$response['error_description']})", 500),
+                        'unsupported_grant_type' => throw new ErpApiException($response['error_description'], 500),
+                        default => throw new ErpApiException('Unexpected Exception: ' . $response['error'], 500),
                     };
                 }
             }
@@ -186,14 +191,14 @@ class CsdErpService implements ErpApiInterface
 
             if (!empty($response['cErrorMessage'])) {
                 $friendlyMessage = $this->mapErpErrorMessage($response['cErrorMessage']);
-                throw new CsdErpException($friendlyMessage, 422);
+                throw new ErpApiException($friendlyMessage, 422);
             }
 
             unset($response['cErrorMessage']);
 
             return $response;
 
-        } catch (CsdErpException $exception) {
+        } catch (ErpApiException $exception) {
             if ($exception->getCode() != 422) {
                 $this->exceptionHandler($exception);
                 return [];
@@ -385,7 +390,7 @@ class CsdErpService implements ErpApiInterface
             $customer_number = $this->customerId($filters);
 
             if ($customer_number == null) {
-                throw new CsdErpException('Customer Code is missing.');
+                throw new ErpApiException('Customer Code is missing.');
             }
 
             $payload = [
@@ -712,7 +717,7 @@ class CsdErpService implements ErpApiInterface
             $prod = $filters['prod'] ?? $filters['product'] ?? null;
 
             if (empty($prod)) {
-                throw new CsdErpException('Product code is missing.');
+                throw new ErpApiException('Product code is missing.');
             }
 
             $year = $filters['year'] ?? date('Y');
@@ -801,7 +806,7 @@ class CsdErpService implements ErpApiInterface
      *
      * ** Note this function does not make andy api call **
      *
-     * @throws CsdErpException|Exception
+     * @throws ErpApiException|Exception
      *
      * @since 2024.12.8354871
      */
@@ -853,7 +858,7 @@ class CsdErpService implements ErpApiInterface
     }
 
     /**
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     private function createOrderDkLok(array $orderInfo = []): Order
     {
@@ -948,11 +953,11 @@ class CsdErpService implements ErpApiInterface
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         if(\array_key_exists('error', $response)) {
-            throw new CsdErpException($response['error']);
+            throw new ErpApiException($response['error']);
         }
 
         if (empty($data = $response['tOrdloadhdrdata']['t-ordloadhdrdata'][0])) {
-            throw new CsdErpException('Something went wrong please try again');
+            throw new ErpApiException('Something went wrong please try again');
         }
 
         $orderData = $this->getOrderDetail([
@@ -967,7 +972,7 @@ class CsdErpService implements ErpApiInterface
     }
 
     /**
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     private function createOrderSteven(array $orderInfo = []): Order
     {
@@ -2107,7 +2112,7 @@ class CsdErpService implements ErpApiInterface
             $contact_code = $filters['contact_code'] ?? null;
 
             if ($customer_number == null) {
-                throw new CsdErpException('Contact Code is missing.');
+                throw new ErpApiException('Contact Code is missing.');
             }
 
             $payload = [
@@ -2286,7 +2291,7 @@ class CsdErpService implements ErpApiInterface
     }
 
     /**
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     public function createUpdateCustomerPartNumber(array $inputs = []): array
     {
@@ -2325,7 +2330,7 @@ class CsdErpService implements ErpApiInterface
     /**
      * Get printable document (Invoice / Order / Quote) from IDM
      *
-     * @throws CsdErpException
+     * @throws ErpApiException
      */
     public function getPrintableDocument(array $inputs = []): DocumentCollection
     {
