@@ -86,6 +86,12 @@ class ErpApiService
             return $this;
         }
 
+        // Prevent switching to 'default' if already initialized with another adapter
+        if ($this->serviceInstance && $adapter === 'default') {
+            \Log::warning("Attempted to switch ERP adapter to 'default', but already initialized with '{$this->erpAdapterName}'. Ignoring.");
+            return $this;
+        }
+
         if ($config = config("amplify.erp.configurations.{$adapter}")) {
             $this->erpAdapterName = $adapter;
             $this->serviceInstance = new $config['adapter'];
