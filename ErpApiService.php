@@ -82,6 +82,10 @@ class ErpApiService
     {
         $adapter = $adapter ?? config('amplify.erp.default');
 
+        if ($this->serviceInstance && $this->erpAdapterName === $adapter) {
+            return $this;
+        }
+
         if ($config = config("amplify.erp.configurations.{$adapter}")) {
             $this->erpAdapterName = $adapter;
             $this->serviceInstance = new $config['adapter'];
