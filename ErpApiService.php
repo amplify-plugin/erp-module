@@ -86,6 +86,8 @@ class ErpApiService
             $this->erpAdapterName = $adapter;
             $this->serviceInstance = new $config['adapter'];
 
+            \Log::info("ERP Adapter loaded: {$adapter} -> " . get_class($this->serviceInstance));
+
             return $this;
 
         } else {
