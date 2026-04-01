@@ -88,7 +88,11 @@ class ErpApiService
 
         // Prevent switching to 'default' if already initialized with another adapter
         if ($this->serviceInstance && $adapter === 'default') {
-            \Log::warning("Attempted to switch ERP adapter to 'default', but already initialized with '{$this->erpAdapterName}'. Ignoring.");
+            \Log::warning("Attempted to switch ERP adapter to 'default', but already initialized with '{$this->erpAdapterName}'. Ignoring.", [
+                'trace' => collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10))->map(function ($frame) {
+                    return ($frame['file'] ?? 'unknown') . ':' . ($frame['line'] ?? 'unknown') . ' ' . ($frame['function'] ?? 'unknown');
+                })->toArray()
+            ]);
             return $this;
         }
 
