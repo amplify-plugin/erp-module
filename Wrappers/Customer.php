@@ -40,6 +40,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $ProductRestriction
  * @property mixed|null $ShipVias
  * @property string $WrittenIndustry
+ * @property string $CustomerPhoneExt
  * @property float $OTShipPrice
  */
 class Customer extends Wrapper implements ErpApiWrapperInterface
@@ -50,6 +51,6 @@ class Customer extends Wrapper implements ErpApiWrapperInterface
         'CustomerAddress2', 'CustomerAddress3', 'CustomerCity', 'CustomerState', 'CustomerZipCode', 'CustomerEmail', 'CustomerPhone',
         'CustomerContact', 'DefaultShipTo', 'DefaultWarehouse', 'CarrierCode', 'PriceList', 'BackorderCode', 'CustomerClass', 'ShipVias',
         'SuspendCode', 'AllowArPayments', 'CreditCardOnly', 'FreightOptionAmount', 'PoRequired', 'SalesPersonCode', 'SalesPersonName',
-        'SalesPersonEmail', 'ProductRestriction', 'WrittenIndustry', 'OTShipPrice',
+        'SalesPersonEmail', 'ProductRestriction', 'WrittenIndustry', 'OTShipPrice', 'CustomerPhoneExt'
     ];
 }

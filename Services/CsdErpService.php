@@ -250,7 +250,12 @@ class CsdErpService implements ErpApiInterface
             $fields['zipcd'] = $attributes['zip_code'] ?? '';
             $fields['state'] = $attributes['state'] ?? '';
             $fields['countrycd'] = strtolower($attributes['country_code'] ?? '');
-            $fields['phoneno'] = '';
+            $fields['phoneno'] = implode(
+                config('amplify.constant.phone_ext_delimiter', '/'), array_filter(
+                    [($attributes['phone'] ?? null), ($attributes['phone_ext'] ?? null)],
+                    fn($i) => !empty($i)
+                )
+            );
             $fields['faxphoneno'] = '';
             $fields['comment'] = '';
             $fields['siccd1'] = $attributes['siccd1'] ?? 0;
@@ -1989,7 +1994,12 @@ class CsdErpService implements ErpApiInterface
             $fields['salutation'] = '';
             $fields['groupcd'] = $attributes['groupcd'] ?? null;
             $fields['contacttype'] = strtoupper($attributes['account_title_code'] ?? '');
-            $fields['workphoneno'] = $attributes['phone'] ?? null;
+            $fields['workphoneno'] = implode(
+                config('amplify.constant.phone_ext_delimiter', '/'), array_filter(
+                    [($attributes['phone'] ?? null), ($attributes['phone_ext'] ?? null)],
+                    fn($i) => !empty($i)
+                )
+            );
             $fields['workemailaddr'] = $attributes['email'] ?? null;
             $fields['addr1'] = $customer->CustomerAddress1 ?? null;
             $fields['addr2'] = $customer->CustomerAddress2 ?? null;
