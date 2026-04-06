@@ -263,7 +263,7 @@ class CsdErpService implements ErpApiInterface
             $fields['siccd3'] = $attributes['siccd3'] ?? 0;
             $fields['statustype'] = $attributes['statustype'] ?? 'Active';
             $fields['user1'] = $attributes['contact'] ?? '';
-            $fields['email'] = 'ACCOUNTING USE ONLY!  DO NOT MODIFY';
+            $fields['email'] = '';
             $fields['credlim'] = '';
             $fields['termstype'] = $attributes['termstype'] ?? 'CRCD';
             $fields['pricetype'] = '2';
