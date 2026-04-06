@@ -149,12 +149,15 @@ class ProductSyncService
      */
     private function updateItemData(ProductSyncModel $productSync): void
     {
+        $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
+        $productCode = $oldProductCode ?? $productSync->item_number;
+
         try {
-            $items = Product::productCode($productSync->item_number)->get();
+            $items = Product::productCode($productCode)->get();
 
             if ($items->isEmpty()) {
 
-                Log::error("No products in table: {$productSync->item_number}");
+                Log::error("No products in table: {$productCode}");
 
                 $productSync->update_action = self::ACTION_NEW;
                 $productSync->save();
@@ -173,6 +176,7 @@ class ProductSyncService
                     'facts-erp' => $productSync->description_1,
                     default => "{$productSync->description_1} {$productSync->description_2}"
                 };
+                $item->product_code = $productSync->item_number;
                 $item->msrp = $productSync->list_price ?? null;
                 $item->selling_price = $productSync->list_price ?? null;
                 $item->vendornum = $productSync->primary_vendor ?? null;
@@ -220,6 +224,18 @@ class ProductSyncService
      */
     private function createNewItem(ProductSyncModel $productSync): void
     {
+        $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
+        if (!empty($oldProductCode)){
+            // Check if product with old product code exists and update it instead of creating new one
+            $existingProduct = Product::productCode($oldProductCode)->first();
+            if ($existingProduct) {
+                $productSync->update_action = self::ACTION_CHANGE;
+                $productSync->save();
+                $this->updateItemData($productSync);
+                return;
+            }
+        }
+
         try {
             $item = new Product;
 
