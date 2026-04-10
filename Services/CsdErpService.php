@@ -250,7 +250,7 @@ class CsdErpService implements ErpApiInterface
             $fields['countrycd'] = strtolower($attributes['country_code'] ?? '');
             $fields['phoneno'] = implode(
                 config('amplify.constant.phone_ext_delimiter', '/'), array_filter(
-                    [($attributes['phone'] ?? null), ($attributes['phone_ext'] ?? null)],
+                    [($attributes['phone_number'] ?? null), ($attributes['phone_ext'] ?? null)],
                     fn($i) => !empty($i)
                 )
             );
