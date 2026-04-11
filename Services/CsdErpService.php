@@ -536,6 +536,10 @@ class CsdErpService implements ErpApiInterface
 
             $response = $this->post('/sxapiarcustomermnt', $payload);
 
+            if (isset($response['error'])) {
+                throw new ErpApiException($response['error'], 422);
+            }
+
             if (empty($response['returnData'])) {
                 return $this->adapter->renderSingleCustomerShippingLocation([...$fields, 'shipto' => $attributes['address_code']]);
             }
@@ -1190,7 +1194,7 @@ class CsdErpService implements ErpApiInterface
                 'fieldvalue' => 'yes',
             ];
         }
-    
+
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         return $this->adapter->createOrder($response);
