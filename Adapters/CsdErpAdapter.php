@@ -778,6 +778,11 @@ class CsdErpAdapter implements ErpApiInterface
     {
         $model = new ShippingLocation($attributes);
 
+        $errorMessage = null;
+        if (isset($attributes['error'])) {
+            $errorMessage = $attributes['error'];
+        }
+
         if (!empty($attributes)) {
             $model->ShipToNumber = $attributes['shipto'] ?? null;
             $model->ShipToName = $attributes['name'] ?? null;
@@ -794,6 +799,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->BackorderCode = isset($attributes['bofl']) ? $attributes['bofl'] == 'yes' : null;
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->PoRequired = $attributes['poreqfl'] ?? null;
+            $model->Message = $errorMessage;
         }
 
         return $model;
