@@ -113,6 +113,7 @@ class CustomerProfileSyncJob implements ShouldQueue
                     'city' => $erp_ship_address->ShipToCity ?? null,
                     'state' => $erp_ship_address->ShipToState ?? null,
                     'country_code' => $erp_ship_address->ShipToCountryCode ?? null,
+                    'phone' => $erp_ship_address->ShipToPhoneNumber ?? null,
                 ];
 
                 $address = $local_shipping_addresses->firstWhere('address_code', $erp_ship_address->ShipToNumber);

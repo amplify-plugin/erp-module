@@ -22,6 +22,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $BackorderCode
  * @property $CarrierCode
  * @property $PoRequired
+ * @property $Message
  */
 class ShippingLocation extends Wrapper implements ErpApiWrapperInterface
 {
@@ -43,5 +44,6 @@ class ShippingLocation extends Wrapper implements ErpApiWrapperInterface
         'BackorderCode',
         'CarrierCode',
         'PoRequired',
+        'Message',
     ];
 }
