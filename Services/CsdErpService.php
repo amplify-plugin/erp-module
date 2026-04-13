@@ -535,8 +535,8 @@ class CsdErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/sxapiarcustomermnt', $payload);
-
-            if (isset($response['error'])) {
+            
+            if (isset($response['error']) && empty($response['returnData'])) {
                 return $this->adapter->renderSingleCustomerShippingLocation($response);
             }
 
