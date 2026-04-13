@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi;
 
+use Amplify\ErpApi\Commands\CsdErpTokenRefreshCommand;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -39,7 +40,10 @@ class ErpApiServiceProvider extends ServiceProvider
                 \Amplify\ErpApi\Commands\ProductSyncCommand::class,
                 \Amplify\ErpApi\Commands\CsdErpContactSyncCommand::class,
                 \Amplify\ErpApi\Commands\CsdManufactureSyncCommand::class,
+                \Amplify\ErpApi\Commands\CsdErpTokenRefreshCommand::class,
             ]);
+
+            $this->registerScheduler();
         }
 
         Http::macro('csdErp', function () {
@@ -99,6 +103,22 @@ class ErpApiServiceProvider extends ServiceProvider
             $bladeCompiler->directive('endmultiwarehouse', function () {
                 return '<?php endif; ?>';
             });
+        });
+    }
+
+    private function registerScheduler()
+    {
+        $this->app->booted(function () {
+
+            $schedule = app(\Illuminate\Console\Scheduling\Schedule::class);
+
+            if (config('amplify.erp.default') == 'csd-erp') {
+                $schedule->command(CsdErpTokenRefreshCommand::class)
+                    ->hourly()
+                    ->when(fn() => config('amplify.erp.default', 'default') == 'csd-erp')
+                    ->withoutOverlapping()
+                    ->onOneServer();
+            }
         });
     }
 }
