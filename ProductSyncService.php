@@ -3,17 +3,16 @@
 namespace Amplify\ErpApi;
 
 use Amplify\ErpApi\Facades\ErpApi;
+use Amplify\ErpApi\Jobs\PromptProductSyncJob;
 use Amplify\ErpApi\Wrappers\ProductSync as ProductSyncWrapper;
+use Amplify\System\Backend\Jobs\GenerateProductSlugJob;
 use Amplify\System\Backend\Models\Brand;
 use Amplify\System\Backend\Models\Manufacturer;
 use Amplify\System\Backend\Models\Product;
 use Amplify\System\Backend\Models\ProductSync as ProductSyncModel;
-use Amplify\System\Jobs\GenerateProductSlugJob;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use RuntimeException;
 
 class ProductSyncService
 {
@@ -27,14 +26,9 @@ class ProductSyncService
 
     public const DEFAULT_APPROVE_USER_ID = 1;
 
-    private array $syncLogData;
+    private array $syncLogData = [];
 
     private int $approveId;
-
-    public function __construct()
-    {
-        $this->syncLogData = [];
-    }
 
     /**
      * @throws Exception
@@ -45,18 +39,18 @@ class ProductSyncService
             $products = ErpApi::getProductSync($filters);
 
             foreach ($products as $product) {
-                $productSync = $this->storeApiResponse($product);
+                $this->storeApiResponse($product);
+            }
 
-                if ($productSync->id && config('amplify.schedule.commands.product_sync.auto_update_enabled')) {
-                    $this->updateProductWithSyncData($productSync);
-                }
+            if (isset($filters['auto_update']) && $filters['auto_update'] == 'Y' && !empty($this->syncLogData)) {
+                PromptProductSyncJob::dispatch(
+                    array_column($this->syncLogData, 'id'),
+                    self::DEFAULT_APPROVE_USER_ID
+                )->onQueue('worker');
             }
+
         } catch (Exception $exception) {
-            if (suppress_exception()) {
-                Log::error(now()->format('r') . ' Product Sync Exception : ' . $exception->getMessage());
-            } else {
-                throw new RuntimeException($exception->getMessage(), 500, $exception);
-            }
+            throw new \Error($exception->getMessage(), 0, $exception);
         }
 
         return $this->syncLogData;
@@ -225,7 +219,7 @@ class ProductSyncService
     private function createNewItem(ProductSyncModel $productSync): void
     {
         $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
-        if (!empty($oldProductCode)){
+        if (!empty($oldProductCode)) {
             // Check if product with old product code exists and update it instead of creating new one
             $existingProduct = Product::productCode($oldProductCode)->first();
             if ($existingProduct) {

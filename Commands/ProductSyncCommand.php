@@ -15,7 +15,11 @@ class ProductSyncCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'amplify:erp-product-sync {--updatesOnly=Y} {--processUpdates=N} {--limit=null}';
+    protected $signature = 'amplify:erp-product-sync 
+                            {--updates-only=Y} 
+                            {--process-updates=N} 
+                            {--auto-update=N} 
+                            {--limit=null}';
 
     /**
      * The console command description.
@@ -38,18 +42,19 @@ class ProductSyncCommand extends Command
         }
 
         $params = [
-            'updates_only' => $this->option('updatesOnly'),
-            'process_updates' => $this->option('processUpdates'),
-            'limit' => !empty($this->option('limit')) ? $this->option('limit') : null,
+            'updates_only' => $this->option('updates-only') == 'Y' ? 'Y' : 'N',
+            'process_updates' => $this->option('process-updates') == 'N' ? 'N' : 'Y',
+            'limit' => $this->option('limit') ? $this->option('limit') : null,
+            'auto_update' => $this->option('auto-update') == 'N' ? 'N' : 'Y',
         ];
 
         try {
-            $startTime = now(config('app.timezone'))
+            $startTime = now()
                 ->format(config('amplify.basic.date_time_format', 'D MMM YYYY, HH:mm'));
 
             $syncData = \ErpApi::storeProductSyncOnModel($params);
 
-            $endTime = now(config('app.timezone'))
+            $endTime = now()
                 ->format(config('amplify.basic.date_time_format', 'D MMM YYYY, HH:mm'));
 
             NotificationFactory::call(Event::CATALOG_CHANGED, [
