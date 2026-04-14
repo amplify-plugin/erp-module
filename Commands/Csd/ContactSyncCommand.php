@@ -1,6 +1,6 @@
 <?php
 
-namespace Amplify\ErpApi\Commands;
+namespace Amplify\ErpApi\Commands\Csd;
 
 use Amplify\ErpApi\Jobs\ContactProfileSyncJob;
 use Amplify\System\Backend\Models\Contact;
@@ -8,14 +8,14 @@ use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class CsdErpContactSyncCommand extends Command
+class ContactSyncCommand extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'amplify:csd-erp-contact-sync';
+    protected $signature = 'amplify:erp-csd-contact-sync';
 
     /**
      * The console command description.

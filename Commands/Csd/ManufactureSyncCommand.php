@@ -1,19 +1,19 @@
 <?php
 
-namespace Amplify\ErpApi\Commands;
+namespace Amplify\ErpApi\Commands\Csd;
 
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\System\Backend\Models\Manufacturer;
 use Illuminate\Console\Command;
 
-class CsdManufactureSyncCommand extends Command
+class ManufactureSyncCommand extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'amplify:csd-erp-manufacture-sync';
+    protected $signature = 'amplify:erp-csd-manufacture-sync';
 
     /**
      * The console command description.

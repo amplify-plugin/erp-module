@@ -2,7 +2,10 @@
 
 namespace Amplify\ErpApi;
 
-use Amplify\ErpApi\Commands\CsdErpTokenRefreshCommand;
+use Amplify\ErpApi\Commands\Csd\ContactSyncCommand;
+use Amplify\ErpApi\Commands\Csd\ManufactureSyncCommand;
+use Amplify\ErpApi\Commands\Csd\TokenRefreshCommand;
+use Amplify\ErpApi\Commands\ProductSyncCommand;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -37,10 +40,10 @@ class ErpApiServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \Amplify\ErpApi\Commands\ProductSyncCommand::class,
-                \Amplify\ErpApi\Commands\CsdErpContactSyncCommand::class,
-                \Amplify\ErpApi\Commands\CsdManufactureSyncCommand::class,
-                \Amplify\ErpApi\Commands\CsdErpTokenRefreshCommand::class,
+                ProductSyncCommand::class,
+                ContactSyncCommand::class,
+                ManufactureSyncCommand::class,
+                TokenRefreshCommand::class,
             ]);
 
             $this->registerScheduler();
@@ -113,7 +116,7 @@ class ErpApiServiceProvider extends ServiceProvider
             $schedule = app(\Illuminate\Console\Scheduling\Schedule::class);
 
             if (config('amplify.erp.default') == 'csd-erp') {
-                $schedule->command(CsdErpTokenRefreshCommand::class)
+                $schedule->command(TokenRefreshCommand::class)
                     ->hourly()
                     ->when(fn() => config('amplify.erp.default', 'default') == 'csd-erp')
                     ->withoutOverlapping()
