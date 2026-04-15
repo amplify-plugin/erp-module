@@ -86,6 +86,7 @@ class FactsErpAdapter implements ErpApiInterface
         foreach ($data as $datum) {
             $model = new ShippingOption($datum);
             $model->InternalId = $datum['id'];
+            $model->Name = $datum['name'] ?: $datum['shipvia'];
             $model->CarrierCode = $datum['code'];
             $model->CarrierDescription = $datum['name'];
             $model->Driver = $datum['driver'];
