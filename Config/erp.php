@@ -11,6 +11,7 @@ return [
     'auto_create_ship_to' => true,
     'use_amplify_shipping' => true,
     'add_ship_will_call_option' => true,
+    'update_backorder_status_from_erp' => env('AMPLIFY_DEFAULT_BACKORDER_STATUS', true),
     'labels' => [
         'default' => 'Default',
         'facts-erp' => 'Facts ERP 9.3',
