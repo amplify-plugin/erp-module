@@ -71,7 +71,6 @@ class CustomerProfileSyncJob implements ShouldQueue
             'carrier_code' => $erpCustomer->CarrierCode ?? null,
             'business_contact' => $erpCustomer->SalesPersonEmail ?? null,
             'customer_po_required' => $erpCustomer->PoRequired == 'Y',
-            'allow_backorder' => $erpCustomer->BackorderCode == 'Y',
             'credit_card_only' => $erpCustomer->CreditCardOnly == 'Y',
             'free_shipment_amount' => empty($erpCustomer->FreightOptionAmount) ? null : filter_var($erpCustomer->FreightOptionAmount, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
             'own_truck_ship_charge' => empty($erpCustomer->OTShipPrice) ? null : filter_var($erpCustomer->OTShipPrice, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
@@ -83,6 +82,10 @@ class CustomerProfileSyncJob implements ShouldQueue
             'zip_code' => $erpCustomer->CustomerZipCode ?? null,
             'country_code' => $erpCustomer->CustomerCountry ?? null,
         ];
+
+        if (config('amplify.erp.update_backorder_status_from_erp')) {
+            $customer_modified_data['allow_backorder'] = $erpCustomer->BackorderCode === 'Y';
+        }
 
         $this->customer->fill($customer_modified_data);
 
