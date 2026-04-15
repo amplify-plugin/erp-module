@@ -854,7 +854,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->AverageLeadTime = $attributes['leadtmavg'] ?? null;
             $model->QuantityAvailable = $attributes['netavail'] ?? null;
             $model->MinOrderQuantity = $attributes['MOQ'] ?? 1;
-            $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
+            $model->AllowBackOrder = isset($attributes['SANA']) ? $attributes['SANA'] == 'yes' : null;
             $model->QuantityInterval = $attributes['SellMult'] ?? null;
             $model->ItemRestricted = isset($attributes['Restricted']) && $attributes['Restricted'] == 'Y';
         }
