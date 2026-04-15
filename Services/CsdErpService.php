@@ -249,9 +249,12 @@ class CsdErpService implements ErpApiInterface
             $fields['state'] = $attributes['state'] ?? '';
             $fields['countrycd'] = strtolower($attributes['country_code'] ?? '');
             $fields['phoneno'] = implode(
-                config('amplify.constant.phone_ext_delimiter', '/'), array_filter(
-                    [($attributes['phone_number'] ?? null), ($attributes['phone_ext'] ?? null)],
-                    fn($i) => !empty($i)
+                config('amplify.constant.phone_ext_delimiter', '/'),
+                array_map(
+                    fn($v) => preg_replace('/\D+/', '', $v),
+                    array_filter([($attributes['phone_number'] ?? null), ($attributes['phone_ext'] ?? null)],
+                        fn($i) => !empty($i)
+                    )
                 )
             );
             $fields['faxphoneno'] = '';
@@ -1997,9 +2000,13 @@ class CsdErpService implements ErpApiInterface
             $fields['groupcd'] = $attributes['groupcd'] ?? null;
             $fields['contacttype'] = strtoupper($attributes['account_title_code'] ?? '');
             $fields['workphoneno'] = implode(
-                config('amplify.constant.phone_ext_delimiter', '/'), array_filter(
-                    [($attributes['phone'] ?? null), ($attributes['phone_ext'] ?? null)],
-                    fn($i) => !empty($i)
+                config('amplify.constant.phone_ext_delimiter', '/'),
+                array_map(
+                    fn($v) => preg_replace('/\D+/', '', $v),
+                    array_filter(
+                        [($attributes['phone'] ?? null), ($attributes['phone_ext'] ?? null)],
+                        fn($i) => !empty($i)
+                    )
                 )
             );
             $fields['workemailaddr'] = $attributes['email'] ?? null;
