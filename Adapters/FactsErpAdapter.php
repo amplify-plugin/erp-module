@@ -49,6 +49,7 @@ use Amplify\ErpApi\Wrappers\TrackShipment;
 use Amplify\ErpApi\Wrappers\Warehouse;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class FactsErpAdapter implements ErpApiInterface
 {
@@ -590,7 +591,7 @@ class FactsErpAdapter implements ErpApiInterface
             $model->ExtendedPrice = isset($attributes['ExtendedPrice']) && $attributes['ExtendedPrice'] !== null ? (float)str_replace(',', '', $attributes['ExtendedPrice']) : null;
             $model->OrderPrice = isset($attributes['OrderPrice']) && $attributes['OrderPrice'] !== null ? (float)str_replace(',', '', $attributes['OrderPrice']) : null;
             $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
-            $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['PricingUnitOfMeasure'] ?? null));
+            $model->PricingUnitOfMeasure = Str::upper(Str::lower($attributes['UnitOfMeasureToPrice'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['DefaultSellingUnitOfMeasure'] ?? null;
             $model->AverageLeadTime = $attributes['AverageLeadTime'] ?? null;
             $model->QuantityAvailable = $attributes['QuantityAvailable'] ?? null;
