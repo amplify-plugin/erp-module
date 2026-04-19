@@ -538,7 +538,7 @@ class CsdErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/sxapiarcustomermnt', $payload);
-            
+
             if (isset($response['error']) && empty($response['returnData'])) {
                 return $this->adapter->renderSingleCustomerShippingLocation($response);
             }
@@ -992,8 +992,9 @@ class CsdErpService implements ErpApiInterface
         $contact_code = $order['contact_code'] ?? null;
         $review_order_hold = $order['review_order_hold'] ?? 'V';
 
-        $orderLine = array_map(function ($item) {
+        $orderLine = array_map(function ($item, $index) {
             return [
+                'seqno' => $index + 1,
                 'itemnumber' => $item['ItemNumber'],
                 'orderqty' => $item['OrderQty'],
                 'unitofmeasure' => $item['UnitOfMeasure'],
@@ -1001,7 +1002,7 @@ class CsdErpService implements ErpApiInterface
                 'itemdesc1' => $item['ItemComment'] ?? '',
                 'shipinstrty' => $item['OrderQty'],
             ];
-        }, $items);
+        }, $items, array_keys($items));
 
         $noteText = '';
         $orderNote = trim($order['order_note'] ?? '');
