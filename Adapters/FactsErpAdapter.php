@@ -590,8 +590,8 @@ class FactsErpAdapter implements ErpApiInterface
             $model->QtyBreak_9 = $attributes['QtyBreak_9'] ?? null;
             $model->ExtendedPrice = isset($attributes['ExtendedPrice']) && $attributes['ExtendedPrice'] !== null ? (float)str_replace(',', '', $attributes['ExtendedPrice']) : null;
             $model->OrderPrice = isset($attributes['OrderPrice']) && $attributes['OrderPrice'] !== null ? (float)str_replace(',', '', $attributes['OrderPrice']) : null;
-            $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
-            $model->PricingUnitOfMeasure = Str::upper(Str::lower($attributes['UnitOfMeasureToPrice'] ?? null));
+            $model->UnitOfMeasure = $attributes['UnitOfMeasureToPrice'] ?? null;
+            $model->PricingUnitOfMeasure = $attributes['UnitOfMeasureToPrice'] ?? null;
             $model->DefaultSellingUnitOfMeasure = $attributes['DefaultSellingUnitOfMeasure'] ?? null;
             $model->AverageLeadTime = $attributes['AverageLeadTime'] ?? null;
             $model->QuantityAvailable = $attributes['QuantityAvailable'] ?? null;
@@ -614,7 +614,7 @@ class FactsErpAdapter implements ErpApiInterface
         $model->ItemClass = $attributes['ItemClass'] ?? null;
         $model->PriceClass = $attributes['PriceClass'] ?? null;
         $model->ListPrice = (isset($attributes['ListPrice']) && is_numeric($attributes['ListPrice'])) ? floatval($attributes['ListPrice']) : null;
-        $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? null;
+        $model->UnitOfMeasure = $attributes['UnitOfMeasureToPrice'] ?? null;
         $model->PricingUnitOfMeasure = $attributes['PricingUnitOfMeasure'] ?? null;
         $model->Manufacturer = !empty($attributes['Manufacturer']) ? $attributes['Manufacturer'] : $attributes['PrimaryVendor'] ?? null;
         $model->StandardPartNumber = $attributes['StandardPartNumber'] ?? null;
