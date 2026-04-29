@@ -180,7 +180,7 @@ class ProductSyncService
                 $item->is_updated = true;
                 $item->uom = $productSync->unit_of_measure;
                 $item->manufacturer = $productSync->standard_part_number ?? null;
-                $item->allow_back_order = $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
+                $item->allow_back_order = $this->catalogSyncAllowBackOrderValue($productSync);
                 $item->save();
             }
 
@@ -254,7 +254,7 @@ class ProductSyncService
             $item->uom = $productSync->unit_of_measure;
             $item->manufacturer = $productSync->standard_part_number ?? null;
             $item->status = config('amplify.pim.default_status', 'draft');
-            $item->allow_back_order = $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
+            $item->allow_back_order = $this->catalogSyncAllowBackOrderValue($productSync);
             $item->user_id = $this->approveId;
 
             $item->save();
@@ -267,6 +267,19 @@ class ProductSyncService
 
             $this->setProcessedFlag($productSync, $th->getMessage());
         }
+    }
+
+    /**
+     * When `allow_back_order_on_catalog_sync` is enabled, synced products always allow back order.
+     * Otherwise use the ERP payload (and null when not provided).
+     */
+    private function catalogSyncAllowBackOrderValue(ProductSyncModel $productSync): ?bool
+    {
+        if (config('amplify.pim.allow_back_order_on_catalog_sync', false)) {
+            return true;
+        }
+
+        return $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
     }
 
     private function getManufacturer(string $keyword = null): ?Manufacturer
