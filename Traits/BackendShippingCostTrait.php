@@ -154,8 +154,8 @@ trait BackendShippingCostTrait
                     $orderTotal['FreightAmount'] = currency_format('0.00');
                 }
 
-                return;
             }
+            return;
         }
 
         // Case 2: At least one item in cart is from a pickup location
