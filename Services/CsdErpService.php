@@ -2131,7 +2131,7 @@ class CsdErpService implements ErpApiInterface
 
             $contact_code = $filters['contact_code'] ?? null;
 
-            if ($customer_number == null) {
+            if ($contact_code == null) {
                 throw new ErpApiException('Contact Code is missing.');
             }
 
@@ -2142,6 +2142,10 @@ class CsdErpService implements ErpApiInterface
                 'subjectRoleType' => 'arsc',
                 'subjectPrimaryKey' => (string)$customer_number,
             ];
+
+            if (isset($filters['limit'])) {
+                $payload['recordLimit'] = $filters['limit'];
+            }
 
             $response = $this->post('/sxapicamgetcontactlistv4', $payload);
 
