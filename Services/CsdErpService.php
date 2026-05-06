@@ -1203,7 +1203,7 @@ class CsdErpService implements ErpApiInterface
                 'fieldvalue' => 'yes',
             ];
         }
-        dd($payload);
+        
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         return $this->adapter->createOrder($response);
