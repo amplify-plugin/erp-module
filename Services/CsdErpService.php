@@ -992,10 +992,6 @@ class CsdErpService implements ErpApiInterface
         $contact_code = $order['contact_code'] ?? null;
         $review_order_hold = $order['review_order_hold'] ?? 'V';
 
-        // If order type is Q (quote) and no PO number provided, auto-generate a placeholder
-        if (($order['order_type'] ?? '') === 'Q' && empty(trim($order['po_number'] ?? ''))) {
-            $order['po_number'] = 'INSIDE SALES - ASK CUSTOMER ' . now()->format('Ymdis');
-        }
 
         $orderLine = array_map(function ($item, $index) {
             return [
