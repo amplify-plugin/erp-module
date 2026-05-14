@@ -999,7 +999,7 @@ class CsdErpService implements ErpApiInterface
                 'itemnumber' => $item['ItemNumber'],
                 'orderqty' => $item['OrderQty'],
                 'unitofmeasure' => $item['UnitOfMeasure'],
-                'warehouseid' => $item['WarehouseID'],
+                //'warehouseid' => $item['WarehouseID'],
                 'itemdesc1' => $item['ItemComment'] ?? '',
                 'shipinstrty' => $item['OrderQty'],
             ];
@@ -1141,6 +1141,7 @@ class CsdErpService implements ErpApiInterface
                         'ordertype' => $order['order_type'],
                         'ponumber' => $order['po_number'],
                         'revieworderhold' => $review_order_hold,
+                        'warehouseid' => $this->getCustomerDetail()->DefaultWarehouse ?? null,
                     ],
                 ],
             ],
@@ -1199,7 +1200,7 @@ class CsdErpService implements ErpApiInterface
                 'fieldvalue' => 'yes',
             ];
         }
-        
+
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         return $this->adapter->createOrder($response);
