@@ -125,6 +125,7 @@ class ProductSyncService
                     'status' => 'archived',
                     'previous_status' => $item->status,
                     'archived_at' => now(),
+                    'published_at' => null,
                 ]);
             }
 
@@ -170,6 +171,7 @@ class ProductSyncService
                     'facts-erp' => $productSync->description_1,
                     default => "{$productSync->description_1} {$productSync->description_2}"
                 };
+                $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
                 $item->product_code = $productSync->item_number;
                 $item->msrp = $productSync->list_price ?? null;
                 $item->selling_price = $productSync->list_price ?? null;
@@ -241,6 +243,7 @@ class ProductSyncService
                 'facts-erp' => $productSync->description_1,
                 default => "{$productSync->description_1} {$productSync->description_2}"
             };
+            $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
             $item->product_code = $productSync->item_number;
             $item->msrp = $productSync->list_price ?? null;
             $item->selling_price = $productSync->list_price ?? null;
@@ -256,6 +259,10 @@ class ProductSyncService
             $item->status = config('amplify.pim.default_status', 'draft');
             $item->allow_back_order = $this->catalogSyncAllowBackOrderValue($productSync);
             $item->user_id = $this->approveId;
+
+            if ($item->status == 'published') {
+                $item->published_at = now();
+            }
 
             $item->save();
 
