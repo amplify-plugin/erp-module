@@ -51,6 +51,7 @@ trait BackendShippingCostTrait
     {
         $shippingOptions = $this->getShippingOption();
         $this->cartItems = collect($orderInfo['items'] ?? []);
+        $freightDetailsList = [];
 
         $orderTotal = [
             'OrderNumber' => '',
@@ -73,7 +74,7 @@ trait BackendShippingCostTrait
             $freightDetailsList = $this->getFreightDetails();
 
             if (!empty($freightDetailsList)) {
-                $freightMeta['frttermscd'] = strtoupper($freightDetailsList[0]['frttermscd'] ?? '');
+                $freightMeta['frttermscd'] = $freightDetailsList[0]['frttermscd'] ?? '';
 
                 $shipVia = strtoupper($this->shippingInfo['ship_via'] ?? '');
                 $firstChar = strtoupper(substr($shipVia, 0, 1));
@@ -88,6 +89,10 @@ trait BackendShippingCostTrait
                         }
                     }
                 }
+            }
+
+            if ($this->isFreightAllowed($freightMeta['frttermscd'] ?? '')) {
+                $this->getFreightAllowedShipOption($orderTotal, $shippingOptions);
             }
 
         }
@@ -109,22 +114,8 @@ trait BackendShippingCostTrait
             };
         }
 
-        // Determine priority key from first freightDetails item if exists
-        $priorityKey = match ($freightDetailsList[0]['frttermscd'] ?? null) {
-            'C' => 'Freight Collect',
-            'PPA' => 'UPS Prepaid and Collect',
-            default => null,
-        };
-
         if (config('amplify.erp.add_ship_will_call_option')) {
             $orderTotal['FreightRate']['WILL CALL'][] = $this->getWillCallShipOptions();
-        }
-
-        // Move priority shipping tab to top
-        if ($priorityKey && isset($orderTotal['FreightRate'][$priorityKey])) {
-            $orderTotal['FreightRate'] = [
-                    $priorityKey => $orderTotal['FreightRate'][$priorityKey],
-                ] + array_diff_key($orderTotal['FreightRate'], [$priorityKey => null]);
         }
 
         return ['Order' => [$orderTotal]];
@@ -424,6 +415,59 @@ trait BackendShippingCostTrait
         $orderTotal['FreightRate'][$driverLabel][] = [
             $name => $data,
         ];
+    }
+
+    private function getFreightAllowedShipOption(array &$orderTotal, $shippingOptions): void
+    {
+        $defaultCarrierCode = strtoupper(trim( $this->getCustomerDetail()->CarrierCode ?? ''));
+
+        if ($defaultCarrierCode === '') {
+            return;
+        }
+
+        foreach ($shippingOptions as $shippingOption) {
+            $method = strtoupper($shippingOption->CarrierCode ?? '');
+
+            if ($method === '' || $method !== $defaultCarrierCode) {
+                continue;
+            }
+
+            $name = Str::upper($shippingOption->Name ?? $method);
+
+            $data = [
+                'name' => $name,
+                'shipvia' => $method,
+                'code' => '',
+                'fullday' => '',
+                'date' => '',
+                'nrates' => '',
+                'amount' => '0.00',
+                'address1' => '',
+                'address2' => '',
+                'city' => '',
+                'state' => '',
+                'zip' => '',
+                'email' => '',
+                'telephone' => '',
+                'description' => $shippingOption->Description,
+                'value' => $shippingOption->Value ?? null,
+                'account_number' => '',
+                'frttermscd' => 'Fr Allowed',
+            ];
+
+            $orderTotal['FreightRate']['Freight Allowed'][] = [
+                $name => $data,
+            ];
+
+            return;
+        }
+    }
+
+    private function isFreightAllowed(?string $freightTerms): bool
+    {
+        $normalized = strtoupper(preg_replace('/[^A-Z0-9]/', '', (string) $freightTerms));
+
+        return $normalized === 'FRALLOWED';
     }
 
     private function buildPickupRateData(Warehouse $warehouse): array
