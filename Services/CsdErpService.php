@@ -2176,7 +2176,7 @@ class CsdErpService implements ErpApiInterface
             $customerNumber = $this->customerId($inputs);
             $cacheKey = "freight_details_customer_{$customerNumber}";
 
-            return Cache::rememberForever($cacheKey, function () use ($customerNumber) {
+            return Cache::remember($cacheKey, now()->addDay(), function () use ($customerNumber) {
                 // First call to arsc
                 $firstPayload = [
                     'CompanyNumber' => $this->companyNumber,
