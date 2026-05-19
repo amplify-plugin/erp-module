@@ -171,7 +171,10 @@ class ProductSyncService
                     'facts-erp' => $productSync->description_1,
                     default => "{$productSync->description_1} {$productSync->description_2}"
                 };
-                $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
+
+                if (empty($item->flags)) {
+                    $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
+                }
                 $item->product_code = $productSync->item_number;
                 $item->msrp = $productSync->list_price ?? null;
                 $item->selling_price = $productSync->list_price ?? null;
@@ -220,7 +223,8 @@ class ProductSyncService
      */
     private function createNewItem(ProductSyncModel $productSync): void
     {
-        $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
+        $oldProductCode = $productSync->payload["AdditionalData"] ?? $productSync->item_number;
+
         if (!empty($oldProductCode)) {
             // Check if product with old product code exists and update it instead of creating new one
             $existingProduct = Product::productCode($oldProductCode)->first();
