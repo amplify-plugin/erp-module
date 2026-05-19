@@ -12,6 +12,7 @@ use Amplify\System\Backend\Models\Product;
 use Amplify\System\Backend\Models\ProductSync as ProductSyncModel;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
 class ProductSyncService
@@ -167,26 +168,30 @@ class ProductSyncService
             $brand = $this->getBrand($productSync->brand);
 
             foreach ($items as $item) {
-                $item->product_name = match (config('amplify.erp.default')) {
-                    'facts-erp' => $productSync->description_1,
-                    default => "{$productSync->description_1} {$productSync->description_2}"
-                };
 
-                if (empty($item->flags)) {
-                    $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
-                }
-                $item->product_code = $productSync->item_number;
-                $item->msrp = $productSync->list_price ?? null;
-                $item->selling_price = $productSync->list_price ?? null;
-                $item->vendornum = $productSync->primary_vendor ?? null;
-                $item->brand_name = $brand?->title ?? null;
-                $item->brand_id = $brand?->getKey() ?? null;
-                $item->manufacturer_id = $manufacturer?->getKey() ?? null;
-                $item->is_updated = true;
-                $item->uom = $productSync->unit_of_measure;
-                $item->manufacturer = $productSync->standard_part_number ?? null;
-                $item->allow_back_order = $this->catalogSyncAllowBackOrderValue($productSync);
-                $item->save();
+                $changes = [
+                    'product_name' => match (config('amplify.erp.default')) {
+                        'facts-erp' => $productSync->description_1,
+                        default => "{$productSync->description_1} {$productSync->description_2}"
+                    },
+                    'product_code' => $productSync->item_number,
+                    'msrp' => $productSync->list_price ?? null,
+                    'selling_price' => $productSync->list_price ?? null,
+                    'vendornum' => $productSync->primary_vendor ?? null,
+                    'brand_id' => $brand?->getKey() ?? null,
+                    'manufacturer_id' => $manufacturer?->getKey() ?? null,
+                    'uom' => $productSync->unit_of_measure,
+                    'manufacturer' => $productSync->standard_part_number ?? null,
+                    'is_updated' => true,
+                    'flags' => empty($item->flags) ? ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''] : $item->flags,
+                    'allow_back_order' => $this->catalogSyncAllowBackOrderValue($productSync)
+                ];
+
+                $updates = Arr::only($changes, [
+                    'flags', 'is_updated', 'allow_back_order',
+                    ...config('amplify.pim.synchronization.overwrites')]);
+
+                $item->update($updates);
             }
 
             $this->setProcessedFlag($productSync);
