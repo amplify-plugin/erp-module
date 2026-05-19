@@ -13,6 +13,10 @@ class PromptProductSyncJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    private int $parentChunkSize = 1000;
+
+    private int $childDispatchChunk = 100;
+
     /**
      * Create a new job instance.
      */
@@ -25,16 +29,39 @@ class PromptProductSyncJob implements ShouldQueue
      */
     public function handle(): void
     {
-        if (!empty($this->ids)) {
+        if (empty($this->ids)) {
+            return;
+        }
 
-            $firstId = array_shift($this->ids);
+        $firstId = array_shift($this->ids);
 
-            $query = ProductSync::select('id')
-                ->when($firstId == 'all', fn ($query)  => $query->where('is_processed', '=', false)->whereNotNull('error'))
-                ->when($firstId !== 'all', fn ($query) => $query->whereIn('id', [$firstId, ...$this->ids]));
+        // Case: process all rows matching the criteria by creating many small child jobs
+        if ($firstId === 'all') {
+            $userId = $this->userId; // capture for closure
 
-            foreach ($query->cursor() as $productSync) {
-                ProductSyncJob::dispatch($productSync->id, $this->userId)->onQueue('worker');
+            ProductSync::select('id')
+                ->where('is_processed', false)
+                ->whereNotNull('error')
+                ->orderBy('id')
+                ->chunkById($this->parentChunkSize, function ($rows) use ($userId) {
+                    $ids = $rows->pluck('id')->values()->all();
+                    if (empty($ids)) {
+                        return;
+                    }
+
+                    // Dispatch a child PromptProductSyncJob that will handle this small set of ids.
+                    static::dispatch($ids, $userId)->onQueue('worker');
+                });
+
+            return;
+        }
+
+        // remaining
+        $idsToProcess = array_merge([$firstId], $this->ids);
+
+        foreach (array_chunk($idsToProcess, $this->childDispatchChunk) as $chunk) {
+            foreach ($chunk as $id) {
+                ProductSyncJob::dispatch($id, $this->userId)->onQueue('worker');
             }
         }
     }
