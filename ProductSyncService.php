@@ -223,7 +223,7 @@ class ProductSyncService
      */
     private function createNewItem(ProductSyncModel $productSync): void
     {
-        $oldProductCode = $productSync->payload["AdditionalData"] ?? $productSync->item_number;
+        $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
 
         if (!empty($oldProductCode)) {
             // Check if product with old product code exists and update it instead of creating new one
