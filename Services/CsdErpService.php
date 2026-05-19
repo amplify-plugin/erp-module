@@ -1141,7 +1141,7 @@ class CsdErpService implements ErpApiInterface
                         'ordertype' => $order['order_type'],
                         'ponumber' => $order['po_number'],
                         'revieworderhold' => $review_order_hold,
-                        'warehouseid' => $this->getCustomerDetail()->DefaultWarehouse ?? null,
+                        'warehouseid' => $order['request']['shipping_warehouse_id'] ?? null,
                     ],
                 ],
             ],
