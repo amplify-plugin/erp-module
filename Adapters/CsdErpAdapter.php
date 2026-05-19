@@ -893,7 +893,6 @@ class CsdErpAdapter implements ErpApiInterface
 
         $model->ItemNumber = $attributes['prod'] ?? null;
         $model->UpdateAction = match (true) {
-            isset($attributes['catalogfl']) && $attributes['catalogfl'] == true => ProductSyncService::ACTION_NEW,
             isset($attributes['preventfl']) && $attributes['preventfl'] == 'y',
                 isset($attributes['suspendfl']) && $attributes['suspendfl'] == 'y' => ProductSyncService::ACTION_DELETE,
             default => ProductSyncService::ACTION_UPDATE,
