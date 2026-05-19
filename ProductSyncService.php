@@ -167,6 +167,11 @@ class ProductSyncService
 
             $brand = $this->getBrand($productSync->brand);
 
+            $allowedFields = array_merge(
+                ['flags', 'is_updated', 'allow_back_order'],
+                config('amplify.pim.synchronization.overwrites', [])
+            );
+
             foreach ($items as $item) {
 
                 $changes = [
@@ -187,9 +192,7 @@ class ProductSyncService
                     'allow_back_order' => $this->catalogSyncAllowBackOrderValue($productSync)
                 ];
 
-                $updates = Arr::only($changes, [
-                    'flags', 'is_updated', 'allow_back_order',
-                    ...config('amplify.pim.synchronization.overwrites')]);
+                $updates = Arr::only($changes, $allowedFields);
 
                 $item->update($updates);
             }
