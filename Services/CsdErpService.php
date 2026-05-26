@@ -1213,8 +1213,8 @@ class CsdErpService implements ErpApiInterface
     {
         try {
 
-            $fromEntryDate = $filters['start_date'] ?? null;
-            $toEntryDate = $filters['end_date'] ?? null;
+            $fromEntryDate = $filters['start_date'] ?? '';
+            $toEntryDate = $filters['end_date'] ?? '';
             $customer_number = $this->customerId($filters);
 
             // Handle types array as comma-separated string
