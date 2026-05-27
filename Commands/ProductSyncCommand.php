@@ -2,11 +2,13 @@
 
 namespace Amplify\ErpApi\Commands;
 
+use Amplify\ErpApi\Jobs\StoreErpProductSyncDataJob;
 use Amplify\System\Backend\Models\Event;
 use Amplify\System\Events\ProductSynced;
 use Amplify\System\Factories\NotificationFactory;
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 class ProductSyncCommand extends Command
 {
@@ -46,28 +48,15 @@ class ProductSyncCommand extends Command
             'process_updates' => $this->option('process-updates') == 'N' ? 'N' : 'Y',
             'limit' => $this->option('limit') ? $this->option('limit') : null,
             'auto_update' => $this->option('auto-update') == 'N' ? 'N' : 'Y',
+            'restart_point' => null
         ];
 
         try {
-            $startTime = now()
-                ->format(config('amplify.basic.date_time_format', 'D MMM YYYY, HH:mm'));
+            $startTime = now()->format('Y-m-d H:i:s');
 
-            $syncData = \ErpApi::storeProductSyncOnModel($params);
+            Storage::disk('local')->makeDirectory('product-sync');
 
-            $endTime = now()
-                ->format(config('amplify.basic.date_time_format', 'D MMM YYYY, HH:mm'));
-
-            NotificationFactory::call(Event::CATALOG_CHANGED, [
-                '__started_at__' => $startTime,
-                '__ended_at__' => $endTime,
-                '__execution_date__' => now(config('app.timezone'))
-                    ->format(config('amplify.basic.date_format', 'D MMM YYYY, HH:mm')),
-                'products' => array_map(fn($item) => $item['itemNumber'] ?? null, $syncData),
-            ]);
-
-            \event(new ProductSynced($syncData));
-
-            $this->info(now()->format('r') . 'Product Sync Report : ' . json_encode($syncData));
+            StoreErpProductSyncDataJob::dispatch($startTime, 1, $params);
 
             return self::SUCCESS;
 

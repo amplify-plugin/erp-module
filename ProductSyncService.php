@@ -54,7 +54,7 @@ class ProductSyncService
             throw new \Error($exception->getMessage(), 0, $exception);
         }
 
-        return $this->syncLogData;
+        return [$this->syncLogData, $products->RestartPoint ?? null];
     }
 
     /***

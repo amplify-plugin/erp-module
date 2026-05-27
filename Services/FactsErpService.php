@@ -510,7 +510,16 @@ class FactsErpService implements ErpApiInterface
             $updatesOnly = $filters['updates_only'] ?? 'N';
             $processUpdates = $filters['process_updates'] ?? 'N';
             $maxRecords = $filters['limit'] ?? '';
-            $restartPoint = ($filters['restart_point'] ?? isset($filters['restartPoint'])) ? $filters['restartPoint'] : '';
+
+            $restartPoint = '';
+
+            if (isset($filters['restart_point'])) {
+                $restartPoint = $filters['restart_point'];
+            }
+
+            if (!empty($filters['restartPoint'])) {
+                $restartPoint = $filters['restartPoint'];
+            }
 
             $payload = [
                 'content' => [
