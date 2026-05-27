@@ -52,7 +52,7 @@ class StoreErpProductSyncDataJob implements ShouldQueue
             $fullSyncedData = array_merge($fullSyncedData, json_decode(file_get_contents(Storage::disk('local')->path($file)), true));
         }
 
-        logger("full data", $fullSyncedData);
+        $fullSyncedData = array_values($fullSyncedData);
 
         NotificationFactory::call(Event::CATALOG_CHANGED, [
             '__started_at__' => CarbonImmutable::parse($this->startTime)
