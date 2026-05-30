@@ -7,6 +7,7 @@ use Amplify\ErpApi\Interfaces\ErpApiWrapperInterface;
 use Amplify\ErpApi\Traits\ApiWrapperTrait;
 
 /**
+ * @property $OrderNumber
  * @property $LineNumber
  * @property $ItemNumber
  * @property $ItemType
@@ -32,6 +33,7 @@ class OrderDetail extends Wrapper implements ErpApiWrapperInterface
     use ApiWrapperTrait;
 
     protected array $fillable = [
+        'OrderNumber',
         'LineNumber',
         'ItemNumber',
         'ItemType',

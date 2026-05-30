@@ -1834,6 +1834,7 @@ class CsdErpAdapter implements ErpApiInterface
         $model = new TrackShipment($attributes);
 
         $model->OrderNumber = $attributes['orderno'] ?? null;
+        $model->OrderSuffix = $attributes['ordersuf'] ?? null;
         $model->TrackerNo = $attributes['trackerno'] ?? null;
         $model->ShipViaType = $attributes['shipviaty'] ?? null;
 
