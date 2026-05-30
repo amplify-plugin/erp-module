@@ -10,6 +10,7 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @class TrackShipment
  *
  * @property mixed|null $OrderNumber
+ * @property mixed|null $OrderSuffix
  * @property mixed|null $TrackerNo
  * @property string|null $ShipViaType
  */
@@ -22,6 +23,7 @@ class TrackShipment extends Wrapper implements ErpApiWrapperInterface
      */
     protected array $fillable = [
         'OrderNumber',
+        'OrderSuffix',
         'TrackerNo',
         'ShipViaType',
     ];
