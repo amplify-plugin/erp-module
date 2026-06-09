@@ -2392,10 +2392,10 @@ class CsdErpService implements ErpApiInterface
                     $docTypes
                 );
 
-                $query = implode(' UNION ', $unionParts) . ' SORTBY(@LASTCHANGEDTS DESCENDING)';
+                $query = implode(' UNION ', $unionParts) . ' SORTBY(@LASTCHANGEDTS ASCENDING)';
             } else {
                 $query = sprintf(
-                    '/%s[%s] SORTBY(@LASTCHANGEDTS DESCENDING)',
+                    '/%s[%s] SORTBY(@LASTCHANGEDTS ASCENDING)',
                     ucfirst($type),
                     $conditionString
                 );
