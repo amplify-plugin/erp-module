@@ -5,7 +5,6 @@ namespace Amplify\ErpApi;
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ProductSyncNameResolver;
 use Amplify\ErpApi\Jobs\PromptProductSyncJob;
-use Amplify\ErpApi\Resolvers\DefaultProductSyncNameResolver;
 use Amplify\ErpApi\Wrappers\ProductSync as ProductSyncWrapper;
 use Amplify\System\Backend\Jobs\GenerateProductSlugJob;
 use Amplify\System\Backend\Models\Brand;
@@ -32,15 +31,6 @@ class ProductSyncService
     private array $syncLogData = [];
 
     private int $approveId;
-
-    /**
-     * The resolver defaults to {@see DefaultProductSyncNameResolver}. Applications can
-     * override it by binding {@see ProductSyncNameResolver} in their service provider.
-     */
-    public function __construct(
-        private ProductSyncNameResolver $nameResolver = new DefaultProductSyncNameResolver()
-    ) {
-    }
 
     /**
      * @throws Exception
@@ -186,7 +176,7 @@ class ProductSyncService
             foreach ($items as $item) {
 
                 $changes = [
-                    'product_name' => $this->nameResolver->handle($productSync),
+                    'product_name' => app(ProductSyncNameResolver::class)->handle($productSync),
                     'product_code' => $productSync->item_number,
                     'msrp' => $productSync->list_price ?? null,
                     'selling_price' => $productSync->list_price ?? null,
@@ -259,7 +249,7 @@ class ProductSyncService
 
             $brand = $this->getBrand($productSync->brand);
 
-            $item->product_name = $this->nameResolver->handle($productSync);
+            $item->product_name = app(ProductSyncNameResolver::class)->handle($productSync);
             $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
             $item->product_code = $productSync->item_number;
             $item->msrp = $productSync->list_price ?? null;

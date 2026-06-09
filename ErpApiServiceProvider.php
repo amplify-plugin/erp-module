@@ -6,6 +6,8 @@ use Amplify\ErpApi\Commands\Csd\ContactSyncCommand;
 use Amplify\ErpApi\Commands\Csd\ManufactureSyncCommand;
 use Amplify\ErpApi\Commands\Csd\TokenRefreshCommand;
 use Amplify\ErpApi\Commands\ProductSyncCommand;
+use Amplify\ErpApi\Interfaces\ProductSyncNameResolver;
+use Amplify\ErpApi\Resolvers\DefaultProductSyncNameResolver;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -27,6 +29,10 @@ class ErpApiServiceProvider extends ServiceProvider
         $this->app->singleton('ErpApi', function () {
             return new ErpApiService;
         });
+
+        // Default product name resolver. Applications can override this by binding
+        // their own ProductSyncNameResolver implementation in their service provider.
+        $this->app->bind(ProductSyncNameResolver::class, DefaultProductSyncNameResolver::class);
 
         $this->registerBladeDirectives();
     }
