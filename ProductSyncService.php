@@ -3,6 +3,7 @@
 namespace Amplify\ErpApi;
 
 use Amplify\ErpApi\Facades\ErpApi;
+use Amplify\ErpApi\Interfaces\ProductSyncNameResolver;
 use Amplify\ErpApi\Jobs\PromptProductSyncJob;
 use Amplify\ErpApi\Wrappers\ProductSync as ProductSyncWrapper;
 use Amplify\System\Backend\Jobs\GenerateProductSlugJob;
@@ -175,10 +176,7 @@ class ProductSyncService
             foreach ($items as $item) {
 
                 $changes = [
-                    'product_name' => match (config('amplify.erp.default')) {
-                        'facts-erp' => $productSync->description_1,
-                        default => "{$productSync->description_1} {$productSync->description_2}"
-                    },
+                    'product_name' => app(ProductSyncNameResolver::class)->handle($productSync),
                     'product_code' => $productSync->item_number,
                     'msrp' => $productSync->list_price ?? null,
                     'selling_price' => $productSync->list_price ?? null,
@@ -251,10 +249,7 @@ class ProductSyncService
 
             $brand = $this->getBrand($productSync->brand);
 
-            $item->product_name = match (config('amplify.erp.default')) {
-                'facts-erp' => $productSync->description_1,
-                default => "{$productSync->description_1} {$productSync->description_2}"
-            };
+            $item->product_name = app(ProductSyncNameResolver::class)->handle($productSync);
             $item->flags = ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''];
             $item->product_code = $productSync->item_number;
             $item->msrp = $productSync->list_price ?? null;
