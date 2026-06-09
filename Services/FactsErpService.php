@@ -657,7 +657,7 @@ class FactsErpService implements ErpApiInterface
                 ],
             ];
 
-            $url = in_array(config('amplify.client_code'), ['MW', 'RHS'])
+            $url = in_array(config('amplify.client_code'), ['MW', 'RHS', 'ALR'])
                 ? 'getOrder'
                 : 'get_order.php';
 
@@ -975,6 +975,7 @@ class FactsErpService implements ErpApiInterface
 
             $url = match (config('amplify.client_code')) {
                 'RHS' => 'opArInvoice',
+                'ALR' => 'opArInvoice',
                 default => 'op_ar_invoice.php',
             };
 
@@ -1016,6 +1017,7 @@ class FactsErpService implements ErpApiInterface
 
             $url = match (config('amplify.client_code')) {
                 'RHS' => 'opArInvoice',
+                'ALR' => 'opArInvoice',
                 default => 'op_ar_invoice.php',
             };
 
@@ -1275,6 +1277,7 @@ class FactsErpService implements ErpApiInterface
 
             $url = match (config('amplify.client_code')) {
                 'RHS' => '/getPastSales',
+                'ALR' => '/getPastSales',
                 default => '/get_pastsales.php',
             };
             $response = $this->post($url, $query);
