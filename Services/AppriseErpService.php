@@ -137,7 +137,7 @@ class AppriseErpService implements ErpApiInterface
     {
         $response = Http::csdErp()
             ->baseUrl($this->config['url'])
-            ->post($url, $attchedPayload);
+            ->post($url, $payload);
 
         if ($url == '/proxy/FetchWhere') {
             return $response->json();
@@ -282,7 +282,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'tMntTt' => ['t-mnt-tt' => $tMnTt],
             ];
 
@@ -326,7 +325,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'includeInactiveCustomers' => true,
                 'recordLimit' => $limit,
                 'postalCode' => (string)($filters['zip_code'] ?? null),
@@ -441,7 +439,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
                 'tInAddrValidation' => [
                     't-in-addr-validation' => [$shipTo],
@@ -507,7 +504,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
                 'tMntTt' => ['t-mnt-tt' => $tMnTt],
             ];
@@ -552,7 +548,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
                 'sort' => 'A'
             ];
@@ -640,9 +635,7 @@ class AppriseErpService implements ErpApiInterface
 
             foreach ($responses as $response) {
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
-
                     $res = $this->validate($response->json(), '/price', $response->ok());
-
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
             }
@@ -691,7 +684,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'CompanyNumber' => $this->systemId,
-                'Operator' => $this->operatorInit,
                 'TableName' => 'smsew',
                 'WhereClause' => $whereClause,
                 'BatchSize' => $filters['batch_size'] ?? 100,
@@ -732,7 +724,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'updateDate' => now()->format('Y-m-d'),
                 'updateRecords' => $processUpdates == 'Y',
                 'recordLimit' => $maxRecords,
@@ -851,7 +842,6 @@ class AppriseErpService implements ErpApiInterface
 
         $payload = [
             'companyNumber' => $this->systemId,
-            'operatorInit' => $this->operatorInit,
             'tInputccdata' => [
                 't-Inputccdata' => [],
             ],
@@ -888,10 +878,6 @@ class AppriseErpService implements ErpApiInterface
             ],
             'tInputheaderextradata' => [
                 't-inputheaderextradata' => [
-                    [
-                        'fieldname' => 'placedby',
-                        'fieldvalue' => $this->operatorInit,
-                    ],
                     [
                         'fieldname' => 'email',
                         'fieldvalue' => $order['customer_email'],
@@ -1056,7 +1042,6 @@ class AppriseErpService implements ErpApiInterface
 
         $payload = [
             'companyNumber' => $this->systemId,
-            'operatorInit' => $this->operatorInit,
             'tInputccdata' => [
                 't-Inputccdata' => [],
             ],
@@ -1091,10 +1076,6 @@ class AppriseErpService implements ErpApiInterface
 
             'tInputheaderextradata' => [
                 't-inputheaderextradata' => [
-                    [
-                        'fieldname' => 'placedby',
-                        'fieldvalue' => $this->operatorInit,
-                    ],
                     [
                         'fieldname' => 'email',
                         'fieldvalue' => $order['customer_email'],
@@ -1185,7 +1166,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
                 'transactionTypes' => $transaction_types,
                 'startEnterDate' => $fromEntryDate,
@@ -1221,7 +1201,6 @@ class AppriseErpService implements ErpApiInterface
             $payload = [
                 'companyNumber' => $this->systemId,
                 'customerNumber' => $customer_number,
-                'operatorInit' => $this->operatorInit,
                 'operatorPassword' => '',
                 'orderNumber' => $order_number,
                 'orderSuffix' => $order_suffix,
@@ -1269,7 +1248,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'tInputccdata' => [
                     't-Inputccdata' => [],
                 ],
@@ -1438,7 +1416,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
                 'transactionTypes' => $transaction_types,
                 'startEnterDate' => $fromEntryDate,
@@ -1474,7 +1451,6 @@ class AppriseErpService implements ErpApiInterface
             $payload = [
                 'companyNumber' => $this->systemId,
                 'customerNumber' => $customer_number,
-                'operatorInit' => $this->operatorInit,
                 'operatorPassword' => '',
                 'orderNumber' => $quote_number,
                 'orderSuffix' => $quote_suffix,
@@ -1509,7 +1485,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
             ];
 
@@ -1558,7 +1533,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = array_merge([
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'operatorPassword' => '',
                 'customerNumber' => $customer_number,
                 'shipTo' => '',
@@ -1609,7 +1583,6 @@ class AppriseErpService implements ErpApiInterface
             $payload = [
                 'companyNumber' => $this->systemId,
                 'customerNumber' => $customer_number,
-                'operatorInit' => $this->operatorInit,
                 'operatorPassword' => '',
                 'orderNumber' => $order_number,
                 'orderSuffix' => $suffix,
@@ -1837,7 +1810,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
                 'fromMonth' => $filters['start_month'] ?? '',
                 'toMonth' => $filters['end_month'] ?? '',
@@ -1866,7 +1838,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'orderNumber' => $inputs['order_number'] ?? null,
                 'orderSuffix' => $inputs['order_suffix'] ?? 0,
             ];
@@ -1892,7 +1863,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $this->customerId($filters),
                 'requestType' => 'credit',
             ];
@@ -1980,7 +1950,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'tMntTt' => ['t-mnt-tt' => $tMnTt],
             ];
 
@@ -2026,7 +1995,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'subjectRoleType' => 'arsc',
                 'subjectPrimaryKey' => (string)$customer_number,
             ];
@@ -2079,7 +2047,6 @@ class AppriseErpService implements ErpApiInterface
 
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'contactID' => $contact_code,
                 'subjectRoleType' => 'arsc',
                 'subjectPrimaryKey' => (string)$customer_number,
@@ -2116,7 +2083,6 @@ class AppriseErpService implements ErpApiInterface
                 // First call to arsc
                 $firstPayload = [
                     'CompanyNumber' => $this->systemId,
-                    'Operator' => $this->operatorInit,
                     'TableName' => 'arsc',
                     'WhereClause' => "arsc.cono = 1 and arsc.custno = $customerNumber",
                     'BatchSize' => 1,
@@ -2141,7 +2107,6 @@ class AppriseErpService implements ErpApiInterface
                 if ($rowpointer) {
                     $secondPayload = [
                         'CompanyNumber' => $this->systemId,
-                        'Operator' => $this->operatorInit,
                         'TableName' => 'sastf',
                         'WhereClause' => "sastf.cono = 1 and sastf.srcrowpointer = '$rowpointer' and sastf.billlevelcd = 'c'",
                         'BatchSize' => 50,
@@ -2182,7 +2147,6 @@ class AppriseErpService implements ErpApiInterface
             $primary_key = $inputs['order_number'] ?? null;
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'notesType' => 'o',
                 'primaryKey' => $primary_key,
                 'secondaryKey' => '',
@@ -2209,7 +2173,6 @@ class AppriseErpService implements ErpApiInterface
             $poNumber = str_replace('PO#', '', $inputs['poNumber']);
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'purchaseOrderNumber' => $poNumber,
                 'purchaseOrderSuffix' => 0,
                 'lineSort' => 'A',
@@ -2232,7 +2195,6 @@ class AppriseErpService implements ErpApiInterface
         try {
             $payload = [
                 'companyNumber' => $this->systemId,
-                'operatorInit' => $this->operatorInit,
                 'customerNumber' => $this->customerId($inputs),
                 'invoiceType' => '',
                 'invoiceNumber' => $inputs['invoice_number'] ?? null,
@@ -2261,7 +2223,6 @@ class AppriseErpService implements ErpApiInterface
 
         $payload = [
             'companyNumber' => $this->systemId,
-            'operatorInit' => $this->operatorInit,
             'customerNumber' => $customer_number,
             'productCode' => $inputs['customer_product_code'] ?? '',
             'alternateProductCode' => $inputs['item_number'] ?? '',
