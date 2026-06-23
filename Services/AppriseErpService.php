@@ -97,27 +97,36 @@ class AppriseErpService implements ErpApiInterface
         $expirationAt = $this->config['expires_at'] ?? null;
 
         if (!$forceReset) {
-            if (!empty($expirationAt) && now()->lessThan(CarbonImmutable::parse($expirationAt))){
+            if (!empty($expirationAt) && now()->lessThan(CarbonImmutable::parse($expirationAt))) {
                 return;
             }
         }
 
-        $response = Http::withoutVerifying()->asForm()
-            ->withBasicAuth($this->config['client_id'], $this->config['client_secret'])
+        $response = Http::withoutVerifying()
+            ->asForm()
+            ->withHeaders($this->commonHeaders)
+            ->acceptJson()
+            ->withBasicAuth(
+                trim($this->config['client_id']),
+                trim($this->config['client_secret']))
             ->post($this->config['token_url'], [
                 'grant_type' => 'client_credentials',
             ]);
 
         if (!$response->ok()) {
-            throw new ErpApiException('Apprise-ERP token refresh failed');
+            throw new ErpApiException("Apprise-ERP token refresh failed. Error: [{$response->reason()}]");
         }
 
         $response = $response->json();
 
+        if (is_string($response)) {
+            $response = json_decode($response, true);
+        }
+
         $this->config['access_token'] = $response['access_token'];
         $this->config['expires_at'] = (string)Carbon::createFromTimestamp($response['expires_in']);
 
-        SystemConfiguration::setValue('erp', 'configurations.apprise-erp.access_token',  $this->config['access_token'], 'string');
+        SystemConfiguration::setValue('erp', 'configurations.apprise-erp.access_token', $this->config['access_token'], 'string');
         SystemConfiguration::setValue('erp', 'configurations.apprise-erp.expires_at', $this->config['expires_at'], 'string');
     }
 
@@ -126,22 +135,9 @@ class AppriseErpService implements ErpApiInterface
      */
     public function post(string $url, array $payload = []): array
     {
-        if (isset($payload['customerNumber'])) {
-            $payload['customerNumber'] = intval($payload['customerNumber']);
-        }
-
-        $attchedPayload = ['request' => $payload];
-
-        $baseUrl = $this->config['url'];
-
-        if ($url == '/proxy/FetchWhere') {
-            $baseUrl = str_replace('web/sxapirestservice', 'rest/serviceinterface', $baseUrl);
-            $attchedPayload = $payload;
-        }
-
         $response = Http::csdErp()
-            ->baseUrl($baseUrl)
-            ->post($url, $attchedPayload);
+            ->baseUrl($this->config['url'])
+            ->post($url, $payload);
 
         if ($url == '/proxy/FetchWhere') {
             return $response->json();
@@ -154,18 +150,17 @@ class AppriseErpService implements ErpApiInterface
     /**
      * @throws ErpApiException
      */
-    public function get(string $url, array $payload = [])
+    public function get(string $url, array $payload = []): array
     {
-
-        $baseUrl = $this->config['url'];
-
         $response = Http::appriseErp()
-            ->baseUrl($baseUrl)
+            ->baseUrl($this->config['url'])
+            ->acceptJson()
             ->get($url, $payload);
 
         return $this->validate($response->json(), $url, $response->ok());
 
     }
+
 
     /**
      * Validate the API call response
@@ -177,12 +172,17 @@ class AppriseErpService implements ErpApiInterface
     private function validate(array $response, ?string $url = null, $status = true): array
     {
         try {
-            if (!empty($response['errorMessage'])) {
-                $friendlyMessage = $this->mapErpErrorMessage($response['errorMessage']);
-                throw new ErpApiException($friendlyMessage, 422);
-            }
 
-            unset($response['errorMessage']);
+            if (!empty($response['errorMessage'])) {
+                if (is_string($response['errorMessage'])) {
+                    match ($response['errorMessage']) {
+                        'Unauthorized' => throw new ErpApiException('ERP authentication token expired. Please try again later.', 403),
+                        'invalid_grant' => throw new ErpApiException("Invalid ERP Credentials ({$response['errorMessage']})", 500),
+                        'unsupported_grant_type' => throw new ErpApiException($response['errorMessage'], 500),
+                        default => throw new ErpApiException('Unexpected Exception: ' . $response['errorMessage'], 500),
+                    };
+                }
+            }
 
             return $response;
 
@@ -380,12 +380,10 @@ class AppriseErpService implements ErpApiInterface
             }
 
             $payload = [
-                'systemId' => $this->systemId,
+                'system_id' => $this->systemId
             ];
 
-            $response = $this->get("/api/customers/{$customer_number}", $payload);
-
-            $response['customerNumber'] = $customer_number;
+            $response = $this->get("/customers/{$customer_number}", $payload);
 
             return $this->adapter->getCustomerDetail($response);
         } catch (Exception $exception) {
@@ -609,53 +607,27 @@ class AppriseErpService implements ErpApiInterface
 
             $shipTo = $filters['ship_to_address'] ?? session('ship_to_address.ShipToNumber', ErpApi::getCustomerDetail()->DefaultShipTo ?? null);
 
-            $reminder = ceil(count($items) / 3);
-
-            $entries = [];
-
-            foreach ($items as $itemIndex => $item) {
-                foreach ($warehouses as $warehouseIndex => $warehouse) {
-                    $entries[$itemIndex % $reminder][] = [
-                        'seqno' => (900 + $itemIndex) . (600 + $warehouseIndex),
-                        'whse' => $warehouse,
-                        'qtyord' => $item['qty'] ?? 1,
-                        'unit' => $item['uom'] ?? 'ea',
-                        'prod' => $item['item'],
-                    ];
-                }
-            }
-
             $payloads = [];
 
-            foreach ($entries as $entry) {
-                $payloads[] = [
-                    'companyNumber' => $this->systemId,
-                    'customerNumber' => $customer_number,
-                    'getPriceBreaks' => true,
-                    'checkOtherWhseInventory' => true,
-                    'shipTo' => $shipTo,
-                    'tOemultprcinV2' => [
-                        't-oemultprcinV2' => $entry,
-                    ],
-                    'tInfieldvalue' => [
-                        't-infieldvalue' => [
-                            'lineno' => 0,
-                        ],
-                    ],
-                ];
+            foreach ($items as $item) {
+                    $payloads[] = [
+                        'customer_code' => $customer_number,
+                        'product_code' => $item['item'],
+                        'um_code' => $item['uom'] ?? 'ea',
+                        'quantity' => $item['qty'] ?? 1,
+                        'date' => date('Y-m-d'),
+                        'currency' => config('amplify.basic.global_currency', 'USD'),
+                        'exchange_rate' => 1,
+//                        'ship_location' => $shipTo,
+                    ];
             }
 
             $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
                 foreach ($payloads as $index => $payload) {
-
-                    if (empty($payload['shipTo'])) {
-                        unset($payload['shipTo']);
-                    }
-
                     $pool->as($index)
-                        ->withOptions(Http::csdErp()->getOptions())
+                        ->withOptions(Http::appriseErp()->getOptions())
                         ->baseUrl($this->config['url'])
-                        ->post("/sxapioepricingmultiplev5", ['request' => $payload]);
+                        ->get("/price", $payload);
                 }
             });
 
@@ -663,7 +635,7 @@ class AppriseErpService implements ErpApiInterface
 
             foreach ($responses as $response) {
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
-                    $res = $this->validate($response->json());
+                    $res = $this->validate($response->json(), '/price', $response->ok());
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
             }
@@ -922,7 +894,7 @@ class AppriseErpService implements ErpApiInterface
 
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
-        if(\array_key_exists('error', $response)) {
+        if (\array_key_exists('error', $response)) {
             throw new ErpApiException($response['error']);
         }
 
