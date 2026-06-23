@@ -55,6 +55,16 @@ class ErpApiServiceProvider extends ServiceProvider
             $this->registerScheduler();
         }
 
+        Http::macro('appriseErp', function () {
+
+            return Http::timeout(7 * MINUTE)
+                ->withoutVerifying()
+                ->contentType('application/json')
+                ->withUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
+                ->acceptJson()
+                ->withToken(config('amplify.erp.configurations.apprise-erp.access_token'));
+        });
+
         Http::macro('csdErp', function () {
 
             return Http::timeout(7 * MINUTE)
