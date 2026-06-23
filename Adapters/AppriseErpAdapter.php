@@ -310,31 +310,7 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $collection = new ProductPriceAvailabilityCollection;
 
-        $tOemultprcoutV3 = collect($filters['tOemultprcoutV3']['t-oemultprcoutV3'] ?? [])->groupBy('seqno')->toArray();
-        $tOemultprcoutbrk = collect($filters['tOemultprcoutbrk']['t-oemultprcoutbrk'] ?? [])->groupBy('seqno')->toArray();
-        $tOutfieldValue = $filters['tOutfieldvalue']['t-outfieldvalue'] ?? [];
-
-        foreach ($tOutfieldValue as $index => $value) {
-            if (preg_match('/(\d{6})\|(.+)\|(.+)/', $value['level']) !== 0) {
-                $tOutfieldValue[$index]['seqno'] = intval($value['level']);
-            }
-        }
-
-        $tOutfieldValue = collect($tOutfieldValue)->groupBy('seqno')->toArray();
-
-        $items = [];
-
-        foreach ($tOemultprcoutV3 as $seqno => $entry) {
-            $items[$seqno] = array_merge(
-                array_shift($entry),
-                empty($tOemultprcoutbrk[$seqno]) ? [] : array_shift($tOemultprcoutbrk[$seqno]),
-                empty($tOutfieldValue[$seqno]) ? [] : $this->mapFieldAttributes($tOutfieldValue[$seqno])
-            );
-        }
-
-        foreach ($items as $item) {
-            $collection->push($this->renderSingleProductPriceAvailability($item));
-        }
+        $collection->push($this->renderSingleProductPriceAvailability($filters));
 
         return $collection;
     }
@@ -740,35 +716,37 @@ class AppriseErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
 
-            $attributes['tFieldvaluepair'] = $this->mapFieldAttributes($attributes['tFieldvaluepair']['t-fieldvaluepair'] ?? []);
+            $customer = $attributes['custname'] ?? [];
+            $salesAgent = $attributes['salesAgent'] ?? [];
+
             $model->Message = $errorMessage;
-            $model->CustomerNumber = $attributes['customerNumber'] ?? null;
-            $model->ArCustomerNumber = $attributes['arCustomerNumber'] ?? null;
-            $model->CustomerName = $attributes['customerName'] ?? null;
-            $model->CustomerAddress1 = $attributes['customerAddress1'] ?? null;
-            $model->CustomerAddress2 = $attributes['customerAddress2'] ?? null;
-            $model->CustomerAddress3 = $attributes['customerAddress3'] ?? null;
-            $model->CustomerCity = $attributes['customerCity'] ?? null;
-            $model->CustomerState = $attributes['customerState'] ?? null;
-            $model->CustomerZipCode = $attributes['customerZipCode'] ?? null;
-            $model->CustomerCountry = isset($attributes['customerCountry']) ? strtoupper($attributes['customerCountry']) : null;
-            $model->CustomerPhone = $attributes['phone'] ?? null;
-            $model->CustomerContact = $attributes['CustomerContact'] ?? null;
-            $model->DefaultShipTo = $attributes['defaultShipTo'] ?? null;
-            $model->DefaultWarehouse = $attributes['defaultWarehouse'] ?? null;
-            $model->CarrierCode = $attributes['carrierCode'] ?? null;
-            $model->PriceList = $attributes['priceList'] ?? null;
-            $model->BackorderCode = $attributes['BackorderCode'] ?? null;
-            $model->CustomerClass = $attributes['customerClass'] ?? null;
-            $model->SuspendCode = $attributes['suspendCode'] ?? null;
-            $model->AllowArPayments = $attributes['AllowArPayments'] ?? null;
-            $model->CreditCardOnly = $attributes['CreditCardOnly'] ?? null;
-            $model->FreightOptionAmount = !empty($attributes['FreightOptionAmount']) ? floatval($attributes['FreightOptionAmount']) : null;
-            $model->PoRequired = $attributes['poRequired'] ?? null;
-            $model->SalesPersonCode = $attributes['SalesPersonCode'] ?? null;
-            $model->SalesPersonName = $attributes['SalesPersonName'] ?? null;
-            $model->SalesPersonEmail = $attributes['SalesPersonEmail'] ?? null;
-            $model->ProductRestriction = $attributes['productRestriction'] ?? null;
+            $model->CustomerNumber = $customer['custCode'] ?? null;
+            $model->ArCustomerNumber = $customer['custCode'] ?? null;
+            $model->CustomerName = $customer['custName'] ?? null;
+            $model->CustomerAddress1 = $customer['address1'] ?? null;
+            $model->CustomerAddress2 = $customer['address2'] ?? null;
+            $model->CustomerAddress3 = $customer['address3'] ?? null;
+            $model->CustomerCity = $customer['city'] ?? null;
+            $model->CustomerState = $customer['state'] ?? null;
+            $model->CustomerZipCode = $customer['postalCode'] ?? null;
+            $model->CustomerCountry = isset($customer['country']) ? substr($customer['country'], 0, 2) : null;
+            $model->CustomerPhone = $customer['phone'] ?? null;
+            $model->CustomerContact = $customer['CustomerContact'] ?? null;
+            $model->DefaultShipTo = $customer['preferredShipper'] ?? null;
+            $model->DefaultWarehouse = null;
+            $model->CarrierCode = $customer['shippingMethod'] ?? null;
+            $model->PriceList = $customer['priceList'] ?? null;
+            $model->BackorderCode = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
+            $model->CustomerClass = $customer['cfCustGroupKey'] ?? null;
+            $model->SuspendCode = isset($customer['suspendCode']) ? !$customer['active'] ? 'Y' : 'N' : null;
+            $model->AllowArPayments = $customer['AllowArPayments'] ?? null;
+            $model->CreditCardOnly = $customer['CreditCardOnly'] ?? null;
+            $model->FreightOptionAmount = !empty($customer['FreightOptionAmount']) ? floatval($customer['FreightOptionAmount']) : null;
+            $model->PoRequired = $customer['poRequired'] ?? null;
+            $model->SalesPersonCode = $salesAgent['salesAgentId'] ?? null;
+            $model->SalesPersonName = trim(($salesAgent['firstName'] ?? '') . ' ' . ($salesAgent['lastName'] ?? ''));
+            $model->SalesPersonEmail = $salesAgent['emailAddress'] ?? null;
+            $model->ProductRestriction = $customer['productRestriction'] ?? null;
         }
 
         return $model;
@@ -807,11 +785,11 @@ class AppriseErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
 
-            $price = $attributes['extamt'] ?? $attributes['price'];
+            $price = $attributes['price'] ?? null;
 
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->QuantityOnOrder = $attributes['qtyord'] ?? 0;
+            $model->QuantityOnOrder = $attributes['qtyord'] ?? 1;
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
