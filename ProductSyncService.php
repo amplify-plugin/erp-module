@@ -146,19 +146,13 @@ class ProductSyncService
      */
     private function updateItemData(ProductSyncModel $productSync): void
     {
-        $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
-        $productCode = $oldProductCode ?? $productSync->item_number;
-
         try {
-            $items = Product::productCode($productCode)->get();
+            $items = $this->findProductsForSync($productSync);
 
             if ($items->isEmpty()) {
+                Log::error("No products in table: {$productSync->item_number}");
 
-                Log::error("No products in table: {$productCode}");
-
-                $productSync->update_action = self::ACTION_NEW;
-                $productSync->save();
-
+                $productSync->update(['update_action' => self::ACTION_NEW]);
                 $this->createNewItem($productSync);
 
                 return;
@@ -229,17 +223,8 @@ class ProductSyncService
      */
     private function createNewItem(ProductSyncModel $productSync): void
     {
-        $oldProductCode = $productSync->payload["AdditionalData"] ?? null;
-
-        if (!empty($oldProductCode)) {
-            // Check if product with old product code exists and update it instead of creating new one
-            $existingProduct = Product::productCode($oldProductCode)->first();
-            if ($existingProduct) {
-                $productSync->update_action = self::ACTION_CHANGE;
-                $productSync->save();
-                $this->updateItemData($productSync);
-                return;
-            }
+        if ($this->reconcileNewSyncWithExistingProduct($productSync)) {
+            return;
         }
 
         try {
@@ -281,6 +266,71 @@ class ProductSyncService
 
             $this->setProcessedFlag($productSync, $th->getMessage());
         }
+    }
+
+    /**
+     * ERP may send NEW for records that already exist locally (e.g. item renames or
+     * incorrect UpdateAction from FACTS). Reconcile before creating a duplicate product.
+     */
+    private function reconcileNewSyncWithExistingProduct(ProductSyncModel $productSync): bool
+    {
+        $resolvedAction = $this->resolveExistingProductSyncAction($productSync);
+
+        if ($resolvedAction === null) {
+            return false;
+        }
+
+        $productSync->update(['update_action' => $resolvedAction]);
+        $this->updateItemData($productSync);
+
+        return true;
+    }
+
+    /**
+     * Determine whether a NEW sync should update an existing product instead.
+     *
+     * CHANGE — item number changed; match by previous code in AdditionalData.
+     * UPDATE — same item number already exists despite ERP sending NEW.
+     */
+    private function resolveExistingProductSyncAction(ProductSyncModel $productSync): ?string
+    {
+        $previousProductCode = $this->getPreviousProductCode($productSync);
+
+        if ($previousProductCode !== null && Product::productCode($previousProductCode)->exists()) {
+            return self::ACTION_CHANGE;
+        }
+
+        if (Product::productCode($productSync->item_number)->exists()) {
+            return self::ACTION_UPDATE;
+        }
+
+        return null;
+    }
+
+    /**
+     * Find products to update. Prefer previous item code from AdditionalData (renames),
+     * then fall back to the current item number.
+     */
+    private function findProductsForSync(ProductSyncModel $productSync)
+    {
+        $previousProductCode = $this->getPreviousProductCode($productSync);
+
+        if ($previousProductCode !== null) {
+            $items = Product::productCode($previousProductCode)->get();
+
+            if ($items->isNotEmpty()) {
+                return $items;
+            }
+        }
+
+        return Product::productCode($productSync->item_number)->get();
+    }
+
+    private function getPreviousProductCode(ProductSyncModel $productSync): ?string
+    {
+        $code = Arr::get($productSync->payload, 'AdditionalData');
+
+        return filled($code) ? $code : null;
     }
 
     /**
