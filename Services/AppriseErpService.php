@@ -135,13 +135,10 @@ class AppriseErpService implements ErpApiInterface
      */
     public function post(string $url, array $payload = []): array
     {
-        $response = Http::csdErp()
+        $response = Http::appriseErp()
             ->baseUrl($this->config['url'])
+            ->acceptJson()
             ->post($url, $payload);
-
-        if ($url == '/proxy/FetchWhere') {
-            return $response->json();
-        }
 
         return $this->validate($response->json(), $url, $response->ok());
 
@@ -169,7 +166,7 @@ class AppriseErpService implements ErpApiInterface
      *
      * @throws ErpApiException|Exception
      */
-    private function validate(array $response, ?string $url = null, $status = true): array
+    private function validate(?array $response, ?string $url = null, $status = true): array
     {
         try {
 
