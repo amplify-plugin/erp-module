@@ -787,12 +787,12 @@ class AppriseErpAdapter implements ErpApiInterface
 
             $price = $attributes['price'] ?? null;
 
-            $model->ItemNumber = $attributes['prod'] ?? null;
+            $model->ItemNumber = $attributes['product_code'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->QuantityOnOrder = $attributes['qtyord'] ?? 1;
+            $model->QuantityOnOrder = $attributes['quantity'] ?? 0;
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
-            $model->ListPrice = $attributes['listprice'] ?? null;
-            $model->StandardPrice = $attributes['baseprice'] ?? null;
+            $model->ListPrice = $attributes['price'] ?? null;
+            $model->StandardPrice = $attributes['price'] ?? null;
             $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
             $model->QtyPrice_1 = $attributes['Price_1'] ?? null;
             $model->QtyBreak_1 = $attributes['quantitybreak1'] ?? null;
@@ -812,9 +812,9 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->QtyBreak_8 = $attributes['quantitybreak8'] ?? null;
             $model->QtyPrice_9 = $attributes['Price_9'] ?? null;
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
-            $model->ExtendedPrice = $attributes['extamt'] ?? null;
-            $model->OrderPrice = $model->Price / $model->QuantityOnOrder;
-            $model->UnitOfMeasure = $attributes['unit'] ?? null;
+            $model->ExtendedPrice = $model->Price * $model->QuantityOnOrder;
+            $model->OrderPrice = $model->Price;
+            $model->UnitOfMeasure = $attributes['um_code'] ?? null;
             $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
             $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
