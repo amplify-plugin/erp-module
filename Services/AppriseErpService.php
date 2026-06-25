@@ -198,21 +198,6 @@ class AppriseErpService implements ErpApiInterface
         }
     }
 
-    private function mapErpErrorMessage(string $rawMessage): string
-    {
-        $message = trim($rawMessage);
-
-        // Case 1: Customer PO already exists
-        if (preg_match('/Customer PO# Already Exists.*RequestCustPo:(\S+)/i', $message, $matches)) {
-            $poNumber = $matches[1];
-            return "PO Number ({$poNumber}) already exists in the system. Please enter a different PO number.";
-        }
-
-        // Default fallback
-        return $message;
-    }
-
-
     /*
     |--------------------------------------------------------------------------
     | CUSTOMER FUNCTIONS
@@ -610,7 +595,7 @@ class AppriseErpService implements ErpApiInterface
             $payloads = [];
 
             foreach ($items as $item) {
-                    $payloads[] = [
+                    $payloads[$item['item']] = [
                         'customer_code' => $customer_number,
                         'product_code' => $item['item'],
                         'um_code' => $item['uom'] ?? 'ea',
@@ -623,8 +608,8 @@ class AppriseErpService implements ErpApiInterface
             }
 
             $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
-                foreach ($payloads as $index => $payload) {
-                    $pool->as($index)
+                foreach ($payloads as $itemNumber => $payload) {
+                    $pool->as($itemNumber)
                         ->withOptions(Http::appriseErp()->getOptions())
                         ->baseUrl($this->config['url'])
                         ->get("/price", $payload);
@@ -633,9 +618,14 @@ class AppriseErpService implements ErpApiInterface
 
             $collection = new ProductPriceAvailabilityCollection();
 
-            foreach ($responses as $response) {
+            foreach ($responses as $itemNumber => $response) {
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
                     $res = $this->validate($response->json(), '/price', $response->ok());
+
+                    $item = $payloads[$itemNumber];
+
+                    $res = array_merge($res, $item);
+
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
                 }
             }
