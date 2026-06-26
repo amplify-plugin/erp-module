@@ -3,9 +3,6 @@
 namespace Amplify\ErpApi\Commands;
 
 use Amplify\ErpApi\Jobs\StoreErpProductSyncDataJob;
-use Amplify\System\Backend\Models\Event;
-use Amplify\System\Events\ProductSynced;
-use Amplify\System\Factories\NotificationFactory;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -38,7 +35,7 @@ class ProductSyncCommand extends Command
     public function handle(): int
     {
 
-        if (config('amplify.schedule.catalog_sync_enabled', false) == false) {
+        if (!config('amplify.schedule.catalog_sync_enabled', false)) {
             $this->info(now()->format('r') . ' Product Sync Disabled.');
             return self::SUCCESS;
         }

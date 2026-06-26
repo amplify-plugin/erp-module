@@ -6,6 +6,7 @@ use Amplify\ErpApi\Commands\Csd\ContactSyncCommand;
 use Amplify\ErpApi\Commands\Csd\ManufactureSyncCommand;
 use Amplify\ErpApi\Commands\Csd\TokenRefreshCommand as CsdTokenRefreshCommand;
 use Amplify\ErpApi\Commands\Apprise\TokenRefreshCommand as AppriseTokenRefreshCommand;
+use Amplify\ErpApi\Commands\PriceSyncCommand;
 use Amplify\ErpApi\Commands\ProductSyncCommand;
 use Amplify\ErpApi\Interfaces\ProductSyncNameResolver;
 use Amplify\ErpApi\Resolvers\DefaultProductSyncNameResolver;
@@ -31,11 +32,7 @@ class ErpApiServiceProvider extends ServiceProvider
             return new ErpApiService;
         });
 
-        // Default product name resolver. Applications can override this by binding
-        // their own ProductSyncNameResolver implementation in their service provider.
         $this->app->bind(ProductSyncNameResolver::class, DefaultProductSyncNameResolver::class);
-
-        $this->registerBladeDirectives();
     }
 
     /**
@@ -46,8 +43,10 @@ class ErpApiServiceProvider extends ServiceProvider
     public function boot()
     {
         if ($this->app->runningInConsole()) {
+
             $this->commands([
                 ProductSyncCommand::class,
+                PriceSyncCommand::class,
                 ContactSyncCommand::class,
                 ManufactureSyncCommand::class,
                 CsdTokenRefreshCommand::class,
@@ -88,6 +87,7 @@ class ErpApiServiceProvider extends ServiceProvider
         });
 
         Http::macro('factErp', function () {
+
             return Http::withoutVerifying()
                 ->contentType('application/json')
                 ->withUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
@@ -97,43 +97,6 @@ class ErpApiServiceProvider extends ServiceProvider
                     'Consumerkey' => config('amplify.erp.configurations.facts-erp.username'),
                     'Password' => config('amplify.erp.configurations.facts-erp.password'),
                 ]);
-        });
-    }
-
-    private function registerBladeDirectives()
-    {
-        $this->app->afterResolving('blade.compiler', function (BladeCompiler $bladeCompiler) {
-            $bladeCompiler->directive('erp', function () {
-                return '<?php if(erp()->enabled()): ?>';
-            });
-
-            $bladeCompiler->directive('enderp', function () {
-                return '<?php endif; ?>';
-            });
-
-            $bladeCompiler->directive('selectwarehouse', function () {
-                return '<?php if(erp()->allowMultiWarehouse()): ?>';
-            });
-
-            $bladeCompiler->directive('endselectwarehouse', function () {
-                return '<?php endif; ?>';
-            });
-
-            $bladeCompiler->directive('defaultwarehouse', function () {
-                return '<?php if(!erp()->allowMultiWarehouse()): ?>';
-            });
-
-            $bladeCompiler->directive('enddefaultwarehouse', function () {
-                return '<?php endif; ?>';
-            });
-
-            $bladeCompiler->directive('multiwarehouse', function () {
-                return '<?php if(\ErpApi::allowMultiWarehouse()): ?>';
-            });
-
-            $bladeCompiler->directive('endmultiwarehouse', function () {
-                return '<?php endif; ?>';
-            });
         });
     }
 
