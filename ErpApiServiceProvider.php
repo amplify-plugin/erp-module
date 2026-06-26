@@ -104,6 +104,9 @@ class ErpApiServiceProvider extends ServiceProvider
     {
         $this->app->booted(function () {
 
+            /**
+             * @var \Illuminate\Console\Scheduling\Schedule $schedule
+             */
             $schedule = app(\Illuminate\Console\Scheduling\Schedule::class);
 
             if (config('amplify.erp.default') == 'csd-erp') {
@@ -112,9 +115,18 @@ class ErpApiServiceProvider extends ServiceProvider
                     ->withoutOverlapping()
                     ->onOneServer();
             }
+
             if (config('amplify.erp.default') == 'apprise-erp') {
                 $schedule->command(AppriseTokenRefreshCommand::class)
                     ->hourly()
+                    ->withoutOverlapping()
+                    ->onOneServer();
+            }
+
+            if (config('amplify.basic.enable_guest_pricing')) {
+                $schedule->command(AppriseTokenRefreshCommand::class)
+                    ->dailyAt('05:00')
+                    ->when(fn () => now()->day % 2 === 1)
                     ->withoutOverlapping()
                     ->onOneServer();
             }
