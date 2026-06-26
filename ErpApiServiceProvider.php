@@ -123,7 +123,7 @@ class ErpApiServiceProvider extends ServiceProvider
                     ->onOneServer();
             }
 
-            if (config('amplify.basic.enable_guest_pricing')) {
+            if (config('amplify.basic.enable_guest_pricing') && $this->app->isProduction()) {
                 $schedule->command(AppriseTokenRefreshCommand::class)
                     ->dailyAt('05:00')
                     ->when(fn () => now()->day % 2 === 1)
