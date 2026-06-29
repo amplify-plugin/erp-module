@@ -33,6 +33,11 @@ class PriceSyncCommand extends Command
     {
         try {
 
+            throw_unless(
+                empty(config('amplify.frontend.guest_default')),
+                'ERP Pricing sync can only work with Default Customer ID'
+            );
+
             $startTime = now();
 
             $range = Product::selectRaw('MIN(`id`) as first_id, MAX(`id`) as last_id')->first();
@@ -44,13 +49,13 @@ class PriceSyncCommand extends Command
                 $this->error("No Products Found");
             }
 
-            PriceSyncJob::dispatch($firstId, $lastId, 20, $startTime);
+            PriceSyncJob::dispatch($firstId, $lastId, 20, $startTime)->onQueue('worker');
 
             return self::SUCCESS;
 
         } catch (\Exception $exception) {
 
-            $this->error(now()->format('r') . ' Product Sync Exception: ' . $exception->getMessage());
+            $this->error(now()->format('r') . ' Price Sync Exception: ' . $exception->getMessage());
 
             return self::FAILURE;
         }
