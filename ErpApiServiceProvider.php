@@ -12,7 +12,6 @@ use Amplify\ErpApi\Interfaces\ProductSyncNameResolver;
 use Amplify\ErpApi\Resolvers\DefaultProductSyncNameResolver;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\View\Compilers\BladeCompiler;
 
 class ErpApiServiceProvider extends ServiceProvider
 {
@@ -123,8 +122,8 @@ class ErpApiServiceProvider extends ServiceProvider
                     ->onOneServer();
             }
 
-            if (config('amplify.basic.enable_guest_pricing') && $this->app->isProduction()) {
-                $schedule->command(AppriseTokenRefreshCommand::class)
+            if (!empty(config('amplify.frontend.guest_default')) && $this->app->isProduction()) {
+                $schedule->command(PriceSyncCommand::class)
                     ->dailyAt('05:00')
                     ->when(fn () => now()->day % 2 === 1)
                     ->withoutOverlapping()
