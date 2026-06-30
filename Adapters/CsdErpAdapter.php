@@ -813,7 +813,16 @@ class CsdErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
 
-            $price = $attributes['extamt'] ?? $attributes['price'];
+            //this approach return exact price returned from ERP
+            $price = isset($attributes['price']) ? (float)str_replace([',', '$'], '', $attributes['price']) : null;
+            $extamt = isset($attributes['extamt']) ? (float)str_replace([',', '$'], '', $attributes['extamt']) : null;
+
+            $calculatedPrice = match (true) {
+                $extamt != null => intval($extamt) == intval($price) ? $price : $extamt,
+              default => $price,
+            };
+
+
 
             $model->ItemNumber = $attributes['prod'] ?? null;
             $model->WarehouseID = $attributes['whse'] ?? null;
@@ -823,7 +832,7 @@ class CsdErpAdapter implements ErpApiInterface
                     : $attributes['stkqtyord']
                 : null;
 
-            $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
+            $model->Price = $calculatedPrice;
             $model->ListPrice = $attributes['listprice'] ?? null;
             $model->StandardPrice = $attributes['baseprice'] ?? null;
             $model->QtyBreakExist = $attributes['qtybreakexistfl'] ?? false;
@@ -846,7 +855,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QtyPrice_9 = $attributes['Price_9'] ?? null;
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
             $model->ExtendedPrice = $attributes['extamt'] ?? null;
-            $model->OrderPrice = ($model->Price > 0 ) ? $model->Price / $model->QuantityOnOrder: $model->Price;
+            $model->OrderPrice = ($model->Price > 0) ? $model->Price / $model->QuantityOnOrder : $model->Price;
             $model->UnitOfMeasure = $attributes['unit'] ?? null;
             $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
             $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
