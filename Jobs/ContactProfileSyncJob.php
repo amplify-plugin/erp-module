@@ -4,6 +4,8 @@ namespace Amplify\ErpApi\Jobs;
 
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\System\Backend\Models\Contact;
+use Amplify\System\Backend\Models\Event;
+use Amplify\System\Factories\NotificationFactory;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -43,13 +45,38 @@ class ContactProfileSyncJob implements ShouldQueue
 
         if ($erpContactCollection->isNotEmpty()) {
             if ($erpContactData = $erpContactCollection->firstWhere('ContactEmail', Str::lower($this->contact->email))) {
+
+
+                /**
+                 * @custom steven hook for first signup call
+                 */
+                if (config('amplify.client_code') == 'STV' && !$this->contact->enabled && $this->contact->enabled_at == null) {
+
+                    $this->contact->update([
+                        'contact_code' => $erpContactData->ContactNumber,
+                        'synced_at' => now(),
+                        'enabled' => true,
+                        'enabled_at' => now()
+                    ]);
+
+                    NotificationFactory::callif(
+                        config('amplify.security.request_account_verification_method') == 'backend'
+                        || config('amplify.security.new_retail_customer_verification_method') == 'backend',
+                        Event::CONTACT_ACCOUNT_REQUEST_ACCEPTED, [
+                        'contact_id' => $this->contact->id,
+                        'customer_id' => $this->contact->customer_id,
+                    ]);
+
+                    return;
+                }
+
                 $this->contact->update(['contact_code' => $erpContactData->ContactNumber, 'synced_at' => now()]);
                 return;
             }
         }
 
         $erpContactData = ErpApi::createUpdateContact($attributes);
-        if (! empty($erpContactData->ContactNumber)) {
+        if (!empty($erpContactData->ContactNumber)) {
             $this->contact->update(['contact_code' => $erpContactData->ContactNumber, 'synced_at' => now()]);
         }
     }
