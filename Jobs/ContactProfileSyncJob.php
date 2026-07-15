@@ -41,7 +41,7 @@ class ContactProfileSyncJob implements ShouldQueue
         $attributes['customer_number'] = $customer_number;
         $attributes['account_title_code'] = $this->contact->accountTitle?->code ?? null;
 
-        $erpContactCollection = ErpApi::getContactList(['customer_number' => $customer_number, 'name' => $this->contact->name]);
+        $erpContactCollection = ErpApi::getContactList(['customer_number' => $customer_number]);
 
         if ($erpContactCollection->isNotEmpty()) {
             if ($erpContactData = $erpContactCollection->first(fn($item) => strcasecmp($item->ContactEmail, $this->contact->email) === 0)) {
