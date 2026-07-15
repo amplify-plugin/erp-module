@@ -44,8 +44,7 @@ class ContactProfileSyncJob implements ShouldQueue
         $erpContactCollection = ErpApi::getContactList(['customer_number' => $customer_number, 'name' => $this->contact->name]);
 
         if ($erpContactCollection->isNotEmpty()) {
-            if ($erpContactData = $erpContactCollection->firstWhere('ContactEmail', Str::lower($this->contact->email))) {
-
+            if ($erpContactData = $erpContactCollection->first(fn($item) => strcasecmp($item->ContactEmail, $this->contact->email) === 0)) {
 
                 /**
                  * @custom steven hook for first signup call
