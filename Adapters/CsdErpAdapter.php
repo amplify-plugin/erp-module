@@ -1246,7 +1246,7 @@ class CsdErpAdapter implements ErpApiInterface
         if (!empty($attributes)) {
             $model->CustomerNumber = $attributes['custno'] ?? $attributes['custNo'] ?? null;
             $model->QuoteNumber = $attributes['orderno'] ?? $attributes['orderNo'] ?? null;
-            $model->Suffix = isset($attributes['ordersuf']) || isset($attributes['orderSuf'])
+            $model->Suffix = !empty($attributes['ordersuf']) || !empty($attributes['orderSuf'])
                 ? str_pad($attributes['ordersuf'] ?? $attributes['orderSuf'], 2, '0', STR_PAD_LEFT)
                 : null;
             $model->CustomerName = $attributes['name'] ?? null;
@@ -1279,25 +1279,25 @@ class CsdErpAdapter implements ErpApiInterface
             $model->QuoteType = $attributes['transtype'] ?? $attributes['transType'] ?? null;
             $model->OrderStatus = $attributes['stage'] ?? $attributes['stageCd'] ?? null;
 
-            $model->ItemSalesAmount = isset($attributes['totlineamt']) || isset($attributes['totLineAmt'])
+            $model->ItemSalesAmount = !empty($attributes['totlineamt']) || !empty($attributes['totLineAmt'])
                 ? (float)filter_var($attributes['totlineamt'] ?? $attributes['totLineAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
                 : null;
 
-            $model->DiscountAmountTrading = isset($attributes['totdiscamt'])
+            $model->DiscountAmountTrading = !empty($attributes['totdiscamt'])
                 ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
                 : null;
 
-            $model->SalesTaxAmount = isset($attributes['taxamt'])
+            $model->SalesTaxAmount = !empty($attributes['taxamt'])
                 ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
                 : null;
 
-            $model->FreightAmount = $attributes['actfreight'] ?? null;
+            $model->FreightAmount = !empty($attributes['actfreight']) ? $attributes['actfreight'] : null;
 
-            $model->QuoteAmount = isset($attributes['totinvamt']) || isset($attributes['totInvAmt'])
+            $model->QuoteAmount = !empty($attributes['totinvamt']) || !empty($attributes['totInvAmt'])
                 ? (float)filter_var($attributes['totinvamt'] ?? $attributes['totInvAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
                 : null;
 
-            $model->TotalOrderValue = isset($attributes['totinvamt']) || isset($attributes['totInvAmt'])
+            $model->TotalOrderValue = !empty($attributes['totinvamt']) || !empty($attributes['totInvAmt'])
                 ? (float)filter_var($attributes['totinvamt'] ?? $attributes['totInvAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
                 : null;
 
@@ -1341,7 +1341,7 @@ class CsdErpAdapter implements ErpApiInterface
             $model->FreightAccountNumber = $attributes['zFreightAcct'] ?? null;
             $model->AllowArPayments = $attributes['AllowArPayments'] ?? 'No';
             $model->InvoiceNumber = $attributes['invnoraw'] ?? $attributes['orderno'] ?? null;
-            $model->InvoiceSuffix = isset($attributes['ordersuf']) || isset($attributes['invsufraw'])
+            $model->InvoiceSuffix = !empty($attributes['ordersuf']) || !empty($attributes['invsufraw'])
                 ? str_pad($attributes['ordersuf'] ?? $attributes['invsufraw'], 2, '0', STR_PAD_LEFT)
                 : null;
             $model->InvoiceType = $attributes['transcd'] ?? $attributes['transtype'] ?? null;
@@ -1352,9 +1352,9 @@ class CsdErpAdapter implements ErpApiInterface
             $model->AgeDate = $attributes['agedt'] ?? null;
             $model->EntryDate = $attributes['enterdt'] ?? null;
             $model->InvoiceAmount = $attributes['amountx'] ?? $attributes['totinvamt'] ?? null;
-            $model->InvoiceBalance = $attributes['amtduex'] ?? null;
+            $model->InvoiceBalance = !empty($attributes['amtduex']) ? $attributes['amtduex'] : null;
             $model->InvoiceDueDate = $attributes['duedt'] ?? null;
-            $model->PendingPayment = $attributes['PendingPayment'] ?? null;
+            $model->PendingPayment = !empty($attributes['amtduex']) ? $attributes['amtduex'] : null;
             $model->DiscountAmount = $attributes['disctakenamt'] ?? null;
             $model->DiscountDueDate = $attributes['discdt'] ?? null;
             $model->LastTransactionDate = $attributes['lasttransdt'] ?? null;
@@ -1375,18 +1375,18 @@ class CsdErpAdapter implements ErpApiInterface
             $model->OrderDisposition = $attributes['orderdisp'] ?? null;
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->CarrierCodeDescription = $attributes['shipviatydesc'] ?? null;
-            $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->FreightAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->TotalOrderValue = isset($attributes['totlineord']) || isset($attributes['totLineOrd'])
+            $model->DiscountAmountTrading = !empty($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->TotalSpecialCharges = !empty($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->FreightAmount = !empty($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->SalesTaxAmount = !empty($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->TotalOrderValue = !empty($attributes['totlineord']) || !empty($attributes['totLineOrd'])
                 ? (float)filter_var(
                     $attributes['totlineord'] ?? $attributes['totLineOrd'],
                     FILTER_SANITIZE_NUMBER_FLOAT,
                     FILTER_FLAG_ALLOW_FRACTION
                 )
                 : null;
-            $model->ItemSalesAmount = isset($attributes['totlineamt']) || isset($attributes['totLineAmt'])
+            $model->ItemSalesAmount = !empty($attributes['totlineamt']) || !empty($attributes['totLineAmt'])
                 ? (float)filter_var(
                     $attributes['totlineamt'] ?? $attributes['totLineAmt'],
                     FILTER_SANITIZE_NUMBER_FLOAT,
@@ -1397,7 +1397,7 @@ class CsdErpAdapter implements ErpApiInterface
                 ? Carbon::parse($model->InvoiceDate)->diffInDays(Carbon::now())
                 : null;
 
-            $model->RestockFee = isset($attributes['zRestockAmt'])
+            $model->RestockFee = !empty($attributes['zRestockAmt'])
                 ? (float)filter_var(
                     $attributes['zRestockAmt'],
                     FILTER_SANITIZE_NUMBER_FLOAT,
