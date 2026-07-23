@@ -614,7 +614,7 @@ class FactsErpAdapter implements ErpApiInterface
         $model->ItemClass = $attributes['ItemClass'] ?? null;
         $model->PriceClass = $attributes['PriceClass'] ?? null;
         $model->ListPrice = (isset($attributes['ListPrice']) && is_numeric($attributes['ListPrice'])) ? floatval($attributes['ListPrice']) : null;
-        $model->UnitOfMeasure = $attributes['UnitOfMeasureToPrice'] ?? null;
+        $model->UnitOfMeasure = $attributes['UnitOfMeasure'] ?? $attributes['UnitOfMeasureToPrice'] ?? null;
         $model->PricingUnitOfMeasure = $attributes['PricingUnitOfMeasure'] ?? null;
         $model->Manufacturer = !empty($attributes['Manufacturer']) ? $attributes['Manufacturer'] : $attributes['PrimaryVendor'] ?? null;
         $model->StandardPartNumber = $attributes['StandardPartNumber'] ?? null;
