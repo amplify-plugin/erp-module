@@ -59,9 +59,10 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
         $payload['items'] = $products->map(function ($product) {
             return [
                 'item' => $product->product_code,
-                'qty' => $product->min_order_qty ?? 1,
-                'uom' => $product->uom
+                'uom' => $product->uom,
+                'qty' => collect(config('amplify.pim.unit_of_measurements'))->firstWhere('code', '=', $product->uom)['quantity'] ?? $product->min_order_qty ?? 1,
             ];
+
         })->toArray();
 
         $priceAvailabilities = ErpApi::getProductPriceAvailability($payload)
@@ -94,7 +95,7 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
                         'list_price_3' => $item->ListPrice,
                         'list_price_4' => $item->ListPrice,
                         'list_price_5' => $item->ListPrice,
-                        'suspended' => 0,
+                        'suspended' => $product->status == 'archived',
                         'status' => $product->status,
                         'allow_backorder' => $product->allow_back_order ?? false,
                         'standard_price' => $item->StandardPrice,
