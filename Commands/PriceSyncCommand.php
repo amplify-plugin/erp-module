@@ -33,10 +33,9 @@ class PriceSyncCommand extends Command
     {
         try {
 
-            throw_unless(
-                empty(config('amplify.frontend.guest_default')),
-                'ERP Pricing sync can only work with Default Customer ID'
-            );
+            if(empty(config('amplify.frontend.guest_default'))) {
+                throw new \ErrorException('ERP Pricing sync can only work with Default Customer ID');
+            }
 
             $startTime = now();
 
