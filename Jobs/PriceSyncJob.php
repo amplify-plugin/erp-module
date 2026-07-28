@@ -21,12 +21,22 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 3;
+
+    public function retryUntil()
+    {
+        return now()->addSeconds(3);
+    }
+
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct(public int $firstId, public int $lastId, public int $chunk, public Carbon $startTime)
+    public function __construct(public int    $firstId,
+                                public int    $lastId,
+                                public int    $chunk,
+                                public Carbon $startTime)
     {
     }
 
@@ -37,84 +47,135 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
      */
     public function handle()
     {
-        /**
-         * @var Collection $products
-         */
-        $products = Product::where('id', '>=', $this->firstId)
-            ->limit($this->chunk)
-            ->where('status', '!=', 'archived')
-            ->orderBy('id', 'ASC')
-            ->get();
+        try {
+            /**
+             * @var Collection $products
+             */
+            $products = Product::where('id', '>=', $this->firstId)
+                ->limit($this->chunk)
+                ->where('status', '!=', 'archived')
+                ->orderBy('id', 'ASC')
+                ->get();
 
-        $lastProduct = $products->last();
+            $lastProduct = $products->last();
 
-        $warehouses = ErpApi::getWarehouses([['enabled', '=', true]]);
+            $warehouses = ErpApi::getWarehouses([['enabled', '=', true]]);
 
-        $warehousePair = $warehouses->pluck('InternalId', 'WarehouseNumber')->toArray();
+            $warehousePair = $warehouses->pluck('InternalId', 'WarehouseNumber')->toArray();
 
-        $payload = [
-            'warehouse' => $warehouses->pluck('WarehouseNumber')->implode(','),
-        ];
-
-        $payload['items'] = $products->map(function ($product) {
-            return [
-                'item' => $product->product_code,
-                'uom' => $product->uom,
-                'qty' => collect(config('amplify.pim.unit_of_measurements'))->firstWhere('code', '=', $product->uom)['quantity'] ?? $product->min_order_qty ?? 1,
+            $payload = [
+                'warehouse' => $warehouses->pluck('WarehouseNumber')->implode(','),
             ];
 
-        })->toArray();
+            $payload['items'] = $products->map(function ($product) {
+                return [
+                    'item' => $product->product_code,
+                    'uom' => $product->uom,
+                    'qty' => collect(config('amplify.pim.unit_of_measurements'))->firstWhere('code', '=', $product->uom)['quantity'] ?? $product->min_order_qty ?? 1,
+                ];
 
-        $priceAvailabilities = ErpApi::getProductPriceAvailability($payload)
-            ->groupBy('ItemNumber');
+            })->toArray();
 
-        $priceAvailabilities->each(function ($collection, $itemNumber) use ($products, $warehousePair) {
+            $priceAvailabilities = ErpApi::getProductPriceAvailability($payload)
+                ->groupBy('ItemNumber');
 
-            $firstItem = $collection->first();
-            Product::where('product_code', '=', $itemNumber)
-                ->update([
-                    'selling_price' => $firstItem->ListPrice,
-                    'msrp' => $firstItem->StandardPrice,
-                    'is_updated' => 1,
-                ]);
+            $productUpdates = [];
+            $availabilityRows = [];
 
-            $collection->each(function ($item) use ($products, $warehousePair) {
+            foreach ($priceAvailabilities as $itemNumber => $collection) {
+                /**
+                 * @var ProductPriceAvailability $firstItem
+                 */
+                $firstItem = $collection->first();
 
-                $product = $products->firstWhere('product_code', $item->ItemNumber);
+                $productUpdates[] = [
+                    'product_code'   => $itemNumber,
+                    'selling_price'  => $firstItem->ListPrice,
+                    'msrp'           => $firstItem->StandardPrice,
+                    'is_updated'     => 1
+                ];
 
-                ProductAvailability::updateOrCreate(
-                    [
+
+                foreach ($collection as $item) {
+
+                    $product = $products->firstWhere('product_code', $item->ItemNumber);
+
+                    if (!$product) {
+                        continue;
+                    }
+
+                    $availabilityRows[] = [
                         'item_number' => $item->ItemNumber,
                         'warehouse_id' => $warehousePair[$item->WarehouseID] ?? null,
-                    ],
-                    [
+
                         'product_id' => $product->id,
+
                         'price' => $item->Price,
+
                         'list_price_1' => $item->ListPrice,
                         'list_price_2' => $item->ListPrice,
                         'list_price_3' => $item->ListPrice,
                         'list_price_4' => $item->ListPrice,
                         'list_price_5' => $item->ListPrice,
+
                         'suspended' => $product->status == 'archived',
                         'status' => $product->status,
                         'allow_backorder' => $product->allow_back_order ?? false,
+
                         'standard_price' => $item->StandardPrice,
                         'extended_price' => $item->ExtendedPrice,
                         'order_price' => $item->OrderPrice,
+
                         'unit_of_measure' => $item->UnitOfMeasure,
                         'pricing_unit_of_measure' => $item->UnitOfMeasure,
                         'default_selling_unit_of_measure' => $item->UnitOfMeasure,
+
                         'quantity_available' => $item->QuantityAvailable,
                         'quantity_on_order' => $item->QuantityOnOrder,
-                    ]);
-            });
+                    ];
+                }
+            }
 
-        });
+            Product::upsert(
+                $productUpdates,
+                ['product_code'],
+                ['selling_price', 'msrp', 'is_updated']
+            );
 
-        if ($lastProduct->getKey() < $this->lastId) {
-            self::dispatch($lastProduct->getKey(), $this->lastId, $this->chunk, $this->startTime);
-        } else {
-            logger()->info("Erp pricing sync job completed in " . str_replace([' before', ' after'], '', now()->diffForHumans($this->startTime)));
+            ProductAvailability::upsert(
+                $availabilityRows,
+                ['item_number', 'warehouse_id'],
+                [
+                    'product_id',
+                    'price',
+                    'list_price_1',
+                    'list_price_2',
+                    'list_price_3',
+                    'list_price_4',
+                    'list_price_5',
+                    'suspended',
+                    'status',
+                    'allow_backorder',
+                    'standard_price',
+                    'extended_price',
+                    'order_price',
+                    'unit_of_measure',
+                    'pricing_unit_of_measure',
+                    'default_selling_unit_of_measure',
+                    'quantity_available',
+                    'quantity_on_order',
+                ]
+            );
+
+            if ($lastProduct->getKey() < $this->lastId) {
+                self::dispatch($lastProduct->getKey(), $this->lastId, $this->chunk, $this->startTime);
+            } else {
+                logger()->info("Erp pricing sync job completed in " . str_replace([' before', ' after'], '', now()->diffForHumans($this->startTime)));
+            }
+
+        } catch (\Throwable $th) {
+
+            report(new \Error("{$this->firstId} - {$this->lastId} Price Sync Failed: Error:  {$th->getMessage()}", 500, $th));
         }
     }
 

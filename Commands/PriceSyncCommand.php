@@ -15,7 +15,7 @@ class PriceSyncCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'amplify:erp-price-sync';
+    protected $signature = 'amplify:erp-price-sync {chunk=15}';
 
     /**
      * The console command description.
@@ -37,6 +37,10 @@ class PriceSyncCommand extends Command
                 throw new \ErrorException('ERP Pricing sync can only work with Default Customer ID');
             }
 
+            if (!filter_var($this->argument('chunk'), FILTER_VALIDATE_INT)) {
+                throw new \InvalidArgumentException('Argument chunk must be an integer');
+            }
+
             $startTime = now();
 
             $range = Product::selectRaw('MIN(`id`) as first_id, MAX(`id`) as last_id')->first();
@@ -48,7 +52,7 @@ class PriceSyncCommand extends Command
                 $this->error("No Products Found");
             }
 
-            PriceSyncJob::dispatch($firstId, $lastId, 20, $startTime)->onQueue('worker');
+            PriceSyncJob::dispatch($firstId, $lastId, $this->argument('chunk'), $startTime)->onQueue('worker');
 
             return self::SUCCESS;
 
