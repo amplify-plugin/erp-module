@@ -2,12 +2,9 @@
 
 namespace Amplify\ErpApi\Jobs;
 
-use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Facades\ErpApi;
-use Amplify\ErpApi\Wrappers\ProductPriceAvailability;
 use Amplify\System\Backend\Models\Product;
 use Amplify\System\Backend\Models\ProductAvailability;
-use Amplify\System\Backend\Models\ProductSync;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -79,34 +76,40 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
             $priceAvailabilities = ErpApi::getProductPriceAvailability($payload)
                 ->groupBy('ItemNumber');
 
-            $productUpdates = [];
-            $availabilityRows = [];
+            $productsByCode = $products->groupBy('product_code');
 
-            foreach ($priceAvailabilities as $itemNumber => $collection) {
-                /**
-                 * @var ProductPriceAvailability $firstItem
-                 */
-                $firstItem = $collection->first();
+            $productUpdates = $products
+                ->map(function (Product $product) use ($priceAvailabilities) {
+                    $collection = $priceAvailabilities->get($product->product_code);
 
-                $matchedProducts = $products->where('product_code', $itemNumber);
+                    if (!$collection) {
+                        return null;
+                    }
 
-                foreach ($matchedProducts as $product) {
-                    $productUpdates[] = [
+                    $firstItem = $collection->first();
+
+                    return [
                         'id' => $product->id,
                         'product_code' => $product->product_code,
                         'selling_price' => $firstItem->ListPrice,
                         'msrp' => $firstItem->StandardPrice,
                         'is_updated' => 1,
                     ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            $availabilityRows = [];
+
+            foreach ($priceAvailabilities as $itemNumber => $collection) {
+                $product = $productsByCode->get($itemNumber)?->first();
+
+                if (!$product) {
+                    continue;
                 }
 
                 foreach ($collection as $item) {
-                    $product = $matchedProducts->first();
-
-                    if (!$product) {
-                        continue;
-                    }
-
                     $availabilityRows[] = [
                         'item_number' => $item->ItemNumber,
                         'warehouse_id' => $warehousePair[$item->WarehouseID] ?? null,
@@ -139,36 +142,40 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
                 }
             }
 
-            Product::upsert(
-                $productUpdates,
-                ['id'],
-                ['selling_price', 'msrp', 'is_updated']
-            );
+            if (!empty($productUpdates)) {
+                Product::upsert(
+                    $productUpdates,
+                    ['id'],
+                    ['selling_price', 'msrp', 'is_updated']
+                );
+            }
 
-            ProductAvailability::upsert(
-                $availabilityRows,
-                ['item_number', 'warehouse_id'],
-                [
-                    'product_id',
-                    'price',
-                    'list_price_1',
-                    'list_price_2',
-                    'list_price_3',
-                    'list_price_4',
-                    'list_price_5',
-                    'suspended',
-                    'status',
-                    'allow_backorder',
-                    'standard_price',
-                    'extended_price',
-                    'order_price',
-                    'unit_of_measure',
-                    'pricing_unit_of_measure',
-                    'default_selling_unit_of_measure',
-                    'quantity_available',
-                    'quantity_on_order',
-                ]
-            );
+            if (!empty($availabilityRows)) {
+                ProductAvailability::upsert(
+                    $availabilityRows,
+                    ['item_number', 'warehouse_id'],
+                    [
+                        'product_id',
+                        'price',
+                        'list_price_1',
+                        'list_price_2',
+                        'list_price_3',
+                        'list_price_4',
+                        'list_price_5',
+                        'suspended',
+                        'status',
+                        'allow_backorder',
+                        'standard_price',
+                        'extended_price',
+                        'order_price',
+                        'unit_of_measure',
+                        'pricing_unit_of_measure',
+                        'default_selling_unit_of_measure',
+                        'quantity_available',
+                        'quantity_on_order',
+                    ]
+                );
+            }
 
             if ($lastProduct->getKey() < $this->lastId) {
                 self::dispatch($lastProduct->getKey(), $this->lastId, $this->chunk, $this->startTime);
