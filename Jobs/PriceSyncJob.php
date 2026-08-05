@@ -88,17 +88,20 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
                  */
                 $firstItem = $collection->first();
 
-                $productUpdates[] = [
-                    'product_code'   => $itemNumber,
-                    'selling_price'  => $firstItem->ListPrice,
-                    'msrp'           => $firstItem->StandardPrice,
-                    'is_updated'     => 1
-                ];
+                $matchedProducts = $products->where('product_code', $itemNumber);
 
+                foreach ($matchedProducts as $product) {
+                    $productUpdates[] = [
+                        'id' => $product->id,
+                        'product_code' => $product->product_code,
+                        'selling_price' => $firstItem->ListPrice,
+                        'msrp' => $firstItem->StandardPrice,
+                        'is_updated' => 1,
+                    ];
+                }
 
                 foreach ($collection as $item) {
-
-                    $product = $products->firstWhere('product_code', $item->ItemNumber);
+                    $product = $matchedProducts->first();
 
                     if (!$product) {
                         continue;
@@ -138,7 +141,7 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
 
             Product::upsert(
                 $productUpdates,
-                ['product_code'],
+                ['id'],
                 ['selling_price', 'msrp', 'is_updated']
             );
 
