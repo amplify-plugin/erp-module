@@ -91,8 +91,8 @@ class PriceSyncJob implements ShouldQueue, ShouldBeUnique
                     return [
                         'id' => $product->id,
                         'product_code' => $product->product_code,
-                        'selling_price' => $firstItem->ListPrice,
-                        'msrp' => $firstItem->StandardPrice,
+                        'selling_price' => $firstItem->StandardPrice,
+                        'msrp' => $firstItem->ListPrice,
                         'is_updated' => 1,
                     ];
                 })
