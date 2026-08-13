@@ -95,7 +95,7 @@ class ProductSyncService
         $productSyncModel->brand = $productSync->Brand;
         $productSyncModel->rhs_parts_note = $productSync->RHSpartscomNotes;
         $productSyncModel->is_processed = false;
-        $productSyncModel->allow_backorder = $productSync->AllowBackOrder !== null ? $productSync->AllowBackOrder : null;
+        $productSyncModel->allow_backorder = $this->catalogSyncAllowBackOrderValue($productSync->AllowBackOrder);
 
         if ($productSyncModel->update_action != null || strlen($productSyncModel->update_action) > 0) {
             $productSyncModel->save();
@@ -181,7 +181,7 @@ class ProductSyncService
                     'manufacturer' => $productSync->standard_part_number ?? null,
                     'is_updated' => true,
                     'flags' => empty($item->flags) ? ['availability' => 'A', 'price' => 'D', 'ship_restriction' => ''] : $item->flags,
-                    'allow_back_order' => $this->catalogSyncAllowBackOrderValue($productSync)
+                    'allow_back_order' => $this->catalogSyncAllowBackOrderValue($productSync->allow_backorder)
                 ];
 
                 $updates = Arr::only($changes, $allowedFields);
@@ -249,7 +249,7 @@ class ProductSyncService
             $item->uom = $productSync->unit_of_measure;
             $item->manufacturer = $productSync->standard_part_number ?? null;
             $item->status = config('amplify.pim.default_status', 'draft');
-            $item->allow_back_order = $this->catalogSyncAllowBackOrderValue($productSync);
+            $item->allow_back_order = $this->catalogSyncAllowBackOrderValue($productSync->allow_backorder);
             $item->user_id = $this->approveId;
 
             if ($item->status == 'published') {
@@ -334,16 +334,17 @@ class ProductSyncService
     }
 
     /**
-     * When `allow_back_order_on_catalog_sync` is enabled, synced products always allow back order.
+     * When `allow_back_order_on_catalog_sync` is enabled, catalog sync always allows back order.
+     * Used both when storing ERP rows on product_syncs and when writing products.
      * Otherwise use the ERP payload (and null when not provided).
      */
-    private function catalogSyncAllowBackOrderValue(ProductSyncModel $productSync): ?bool
+    private function catalogSyncAllowBackOrderValue(mixed $erpAllowBackOrder = null): ?bool
     {
         if (config('amplify.pim.allow_back_order_on_catalog_sync', false)) {
             return true;
         }
 
-        return $productSync->allow_backorder !== null ? $productSync->allow_backorder : null;
+        return $erpAllowBackOrder !== null ? (bool) $erpAllowBackOrder : null;
     }
 
     private function getManufacturer(string $keyword = null): ?Manufacturer
