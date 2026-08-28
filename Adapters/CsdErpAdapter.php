@@ -818,7 +818,7 @@ class CsdErpAdapter implements ErpApiInterface
             $extamt = isset($attributes['extamt']) ? (float)str_replace([',', '$'], '', $attributes['extamt']) : null;
 
             $calculatedPrice = match (true) {
-                $extamt != null => intval($extamt) == intval($price) ? $price : $extamt,
+                $extamt !== null => intval($extamt) == intval($price) ? $price : $extamt,
               default => $price,
             };
 
