@@ -169,6 +169,8 @@ class AppriseErpService implements ErpApiInterface
      */
     private function validate(?array $response, ?string $url = null, $status = true): array
     {
+
+        logger("status: $status");
         try {
 
             if (!empty($response['code']) && $response['code'] != 'Success') {
@@ -625,7 +627,7 @@ class AppriseErpService implements ErpApiInterface
 
             $uoms = collect($items)->pluck('uom', 'item')->toArray();
 
-            foreach ($responses as $itemNumber => $response) {
+            foreach ($responses as $qtyNumber => $response) {
 
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
 
@@ -635,6 +637,7 @@ class AppriseErpService implements ErpApiInterface
 
                     foreach ($records as $index => $record) {
                         $records[$index]['um'] = $uoms[$record['productCode']] ?? $record['um'] ?? null;
+                        $records[$index]['qtyOnOrder'] = $qtyNumber;
                     }
 
                     $collection = $collection->merge($this->adapter->getProductPriceAvailability($records));

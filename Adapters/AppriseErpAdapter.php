@@ -826,34 +826,14 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
             $model->QuantityInterval = 1;
             $model->ItemRestricted = isset($attributes['Restricted']) && $attributes['Restricted'] == 'Y';
+            $model->QuantityOnHand = $attributes['qtyOnHand'] ?? null;
+            $model->QuantityAllocated = $attributes['qtyAllocated'] ?? null;
+            $model->QuantityFuture = $attributes['qtyFuture'] ?? null;
+            $model->QuantityPending = $attributes['qtyPending'] ?? null;
+            $model->QuantityInTransit = $attributes['qtyInTransit'] ?? null;
         }
 
         return $model;
-    }
-
-    private function getPriceBasedOnQtyBreak(ProductPriceAvailability $model, float $orderedQty): float
-    {
-        $breaks = [
-            ['qty' => $model->QtyBreak_9, 'price' => $model->QtyPrice_9],
-            ['qty' => $model->QtyBreak_8, 'price' => $model->QtyPrice_8],
-            ['qty' => $model->QtyBreak_7, 'price' => $model->QtyPrice_7],
-            ['qty' => $model->QtyBreak_6, 'price' => $model->QtyPrice_6],
-            ['qty' => $model->QtyBreak_5, 'price' => $model->QtyPrice_5],
-            ['qty' => $model->QtyBreak_4, 'price' => $model->QtyPrice_4],
-            ['qty' => $model->QtyBreak_3, 'price' => $model->QtyPrice_3],
-            ['qty' => $model->QtyBreak_2, 'price' => $model->QtyPrice_2],
-            ['qty' => $model->QtyBreak_1, 'price' => $model->QtyPrice_1],
-        ];
-
-        foreach ($breaks as $break) {
-            if (!empty($break['qty']) && $orderedQty >= $break['qty']) {
-                return !empty($break['price'])
-                    ? (float)str_replace([',', '$'], '', $break['price'])
-                    : 0;
-            }
-        }
-
-        return $model->Price;
     }
 
     private function renderProductSync($attributes): ProductSync
