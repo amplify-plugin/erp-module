@@ -111,6 +111,7 @@ class AppriseErpService implements ErpApiInterface
                 trim($this->config['client_secret']))
             ->post($this->config['token_url'], [
                 'grant_type' => 'client_credentials',
+                'user_id' => 'apiuser'
             ]);
 
         if (!$response->ok()) {
@@ -170,18 +171,18 @@ class AppriseErpService implements ErpApiInterface
     {
         try {
 
-            if (!empty($response['errorMessage'])) {
-                if (is_string($response['errorMessage'])) {
-                    match ($response['errorMessage']) {
+            if (!empty($response['code']) && $response['code'] != 'Success') {
+                if (is_string($response['message'])) {
+                    match ($response['message']) {
                         'Unauthorized' => throw new ErpApiException('ERP authentication token expired. Please try again later.', 403),
-                        'invalid_grant' => throw new ErpApiException("Invalid ERP Credentials ({$response['errorMessage']})", 500),
-                        'unsupported_grant_type' => throw new ErpApiException($response['errorMessage'], 500),
-                        default => throw new ErpApiException('Unexpected Exception: ' . $response['errorMessage'], 500),
+                        'invalid_grant' => throw new ErpApiException("Invalid ERP Credentials ({$response['message']})", 500),
+                        'unsupported_grant_type' => throw new ErpApiException($response['message'], 500),
+                        default => throw new ErpApiException('Unexpected Exception: ' . $response['message'], 500),
                     };
                 }
             }
 
-            return $response;
+            return $response['data'] ?? [];
 
         } catch (ErpApiException $exception) {
             if ($exception->getCode() != 422) {
@@ -365,7 +366,7 @@ class AppriseErpService implements ErpApiInterface
                 'system_id' => $this->systemId
             ];
 
-            $response = $this->get("/customers/{$customer_number}", $payload);
+            $response = $this->get("/customer/{$customer_number}/information", $payload);
 
             return $this->adapter->getCustomerDetail($response);
         } catch (Exception $exception) {
@@ -592,38 +593,51 @@ class AppriseErpService implements ErpApiInterface
             $payloads = [];
 
             foreach ($items as $item) {
-                    $payloads[$item['item']] = [
-                        'customer_code' => $customer_number,
-                        'product_code' => $item['item'],
-                        'um_code' => $item['uom'] ?? 'ea',
-                        'quantity' => $item['qty'] ?? 1,
-                        'date' => date('Y-m-d'),
+                if (isset($payloads[$item['qty']])) {
+                    $payloads[$item['qty']]['productCodes'][] = $item['item'];
+                } else {
+                    $payloads[$item['qty']] = [
+                        'productCodes' => [$item['item']],
+                        'displayFutureAvailabilityDetails' => true,
+                        'customerCode' => $customer_number,
+                        'trackingLevel' => 'location',
+                        'salesLocationPrefix' => '',
+                        'shippingLocationPrefix' => '',
+                        'binName' => '',
+                        'qty' => $item['qty'],
+                        'date' => \now('UTC')->toIso8601ZuluString('m'),
                         'currency' => config('amplify.basic.global_currency', 'USD'),
-                        'exchange_rate' => 1,
-//                        'ship_location' => $shipTo,
+                        'exchRate' => 1,
                     ];
+                }
             }
 
             $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($payloads) {
-                foreach ($payloads as $itemNumber => $payload) {
-                    $pool->as($itemNumber)
+                foreach ($payloads as $qtyNumber => $payload) {
+                    $pool->as($qtyNumber)
                         ->withOptions(Http::appriseErp()->getOptions())
                         ->baseUrl($this->config['url'])
-                        ->get("/price", $payload);
+                        ->post("/inventory/price-lookup", $payload);
                 }
             });
 
             $collection = new ProductPriceAvailabilityCollection();
 
+            $uoms = collect($items)->pluck('uom', 'item')->toArray();
+
             foreach ($responses as $itemNumber => $response) {
+
                 if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
-                    $res = $this->validate($response->json(), '/price', $response->ok());
 
-                    $item = $payloads[$itemNumber];
+                    $res = $this->validate($response->json(), "/inventory/price-lookup", $response->ok());
 
-                    $res = array_merge($res, $item);
+                    $records = $res['records'] ?? [];
 
-                    $collection = $collection->merge($this->adapter->getProductPriceAvailability($res));
+                    foreach ($records as $index => $record) {
+                        $records[$index]['um'] = $uoms[$record['productCode']] ?? $record['um'] ?? null;
+                    }
+
+                    $collection = $collection->merge($this->adapter->getProductPriceAvailability($records));
                 }
             }
 

@@ -310,7 +310,9 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $collection = new ProductPriceAvailabilityCollection;
 
-        $collection->push($this->renderSingleProductPriceAvailability($filters));
+        foreach ($filters as $filter) {
+            $collection->push($this->renderSingleProductPriceAvailability($filter));
+        }
 
         return $collection;
     }
@@ -787,9 +789,9 @@ class AppriseErpAdapter implements ErpApiInterface
 
             $price = $attributes['price'] ?? null;
 
-            $model->ItemNumber = $attributes['product_code'] ?? null;
-            $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->QuantityOnOrder = $attributes['quantity'] ?? 0;
+            $model->ItemNumber = $attributes['productCode'] ?? null;
+            $model->WarehouseID = $attributes['locationPrefix'] ?? null;
+            $model->QuantityOnOrder = $attributes['qtyOnOrder'] ?? 0;
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['price'] ?? null;
             $model->StandardPrice = $attributes['price'] ?? null;
@@ -814,15 +816,15 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
             $model->ExtendedPrice = $model->Price * $model->QuantityOnOrder;
             $model->OrderPrice = $model->Price;
-            $model->UnitOfMeasure = $attributes['um_code'] ?? null;
-            $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
-            $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
-            $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
+            $model->UnitOfMeasure = $attributes['um'] ?? null;
+            $model->DiscountAmount = $attributes['priceAdjustment'] ?? 0;
+            $model->PricingUnitOfMeasure = $attributes['um'] ?? null;
+            $model->DefaultSellingUnitOfMeasure = $attributes['um'] ?? null;
             $model->AverageLeadTime = $attributes['leadtmavg'] ?? null;
-            $model->QuantityAvailable = $attributes['netavail'] ?? null;
-            $model->MinOrderQuantity = $attributes['MOQ'] ?? 1;
+            $model->QuantityAvailable = $attributes['qtyAvailable'] ?? null;
+            $model->MinOrderQuantity = 1;
             $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
-            $model->QuantityInterval = $attributes['SellMult'] ?? null;
+            $model->QuantityInterval = 1;
             $model->ItemRestricted = isset($attributes['Restricted']) && $attributes['Restricted'] == 'Y';
         }
 
