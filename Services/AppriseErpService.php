@@ -1487,15 +1487,17 @@ class AppriseErpService implements ErpApiInterface
         try {
             $customer_number = $this->customerId($filters);
 
+            if ($customer_number == null) {
+                throw new ErpApiException('Customer Code is missing.');
+            }
+
             $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
+                'system_id' => $this->systemId
             ];
 
-            $response = $this->post('/sxapisfcustomersummary', $payload);
+            $response = $this->get("/customer/{$customer_number}/information", $payload);
 
             return $this->adapter->getCustomerARSummary($response);
-
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 

@@ -723,7 +723,7 @@ class AppriseErpAdapter implements ErpApiInterface
 
             $model->Message = $errorMessage;
             $model->CustomerNumber = $customer['custCode'] ?? null;
-            $model->ArCustomerNumber = $customer['custCode'] ?? null;
+            $model->ArCustomerNumber = $attributes['customerAr']['creditCustomerKey'] ?? $customer['custCode'] ?? null;
             $model->CustomerName = $customer['custName'] ?? null;
             $model->CustomerAddress1 = $customer['address1'] ?? null;
             $model->CustomerAddress2 = $customer['address2'] ?? null;
@@ -732,20 +732,21 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->CustomerState = $customer['state'] ?? null;
             $model->CustomerZipCode = $customer['postalCode'] ?? null;
             $model->CustomerCountry = isset($customer['country']) ? substr($customer['country'], 0, 2) : null;
+            $model->CustomerEmail = $customer['emailAddress'] ?? null;
             $model->CustomerPhone = $customer['phone'] ?? null;
             $model->CustomerContact = $customer['CustomerContact'] ?? null;
             $model->DefaultShipTo = $customer['preferredShipper'] ?? null;
-            $model->DefaultWarehouse = null;
+            $model->DefaultWarehouse = $attributes['locationSales']['locationPrefix'] ?? null;
             $model->CarrierCode = $customer['shippingMethod'] ?? null;
             $model->PriceList = $customer['priceList'] ?? null;
             $model->BackorderCode = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
-            $model->CustomerClass = $customer['cfCustGroupKey'] ?? null;
-            $model->SuspendCode = isset($customer['suspendCode']) ? !$customer['active'] ? 'Y' : 'N' : null;
-            $model->AllowArPayments = $customer['AllowArPayments'] ?? null;
-            $model->CreditCardOnly = $customer['CreditCardOnly'] ?? null;
+            $model->CustomerClass = $customer['groupId'] ?? null;
+            $model->SuspendCode = isset($customer['active']) ? !$customer['active'] ? 'Y' : 'N' : null;
+            $model->AllowArPayments = isset($attributes['arPaymentRemit']) ? $attributes['arPaymentRemit']['active'] ? 'Y' : 'N' : null;
+            $model->CreditCardOnly = isset($attributes['locationSales']) ? $attributes['locationSales']['useCreditcard'] ? 'Y' : 'N' : null;
             $model->FreightOptionAmount = !empty($customer['FreightOptionAmount']) ? floatval($customer['FreightOptionAmount']) : null;
             $model->PoRequired = $customer['poRequired'] ?? null;
-            $model->SalesPersonCode = $salesAgent['salesAgentId'] ?? null;
+            $model->SalesPersonCode = $customer['defaultSalesAgent'] ?? null;
             $model->SalesPersonName = trim(($salesAgent['firstName'] ?? '') . ' ' . ($salesAgent['lastName'] ?? ''));
             $model->SalesPersonEmail = $salesAgent['emailAddress'] ?? null;
             $model->ProductRestriction = $customer['productRestriction'] ?? null;
@@ -831,6 +832,7 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->QuantityFuture = $attributes['qtyFuture'] ?? null;
             $model->QuantityPending = $attributes['qtyPending'] ?? null;
             $model->QuantityInTransit = $attributes['qtyInTransit'] ?? null;
+            $model->FutureReceiptDetails = $attributes['futureReceiptDetails'] ?? [];
         }
 
         return $model;
