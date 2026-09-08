@@ -70,59 +70,6 @@ class AppriseErpAdapter implements ErpApiInterface
     |--------------------------------------------------------------------------
     */
 
-    private function mapFieldAttributes(array $fields = []): array
-    {
-        $values = [];
-
-        if (!empty($fields)) {
-            foreach ($fields as $field) {
-                if (isset($field['fieldName']) && isset($field['fieldValue'])) {
-                    $values[$field['fieldName']] = trim($field['fieldValue']);
-                } elseif (isset($field['fieldname']) && isset($field['fieldvalue'])) {
-                    $values[$field['fieldname']] = trim($field['fieldvalue']);
-                }
-            }
-        }
-
-        return $values;
-    }
-
-    /**
-     * Extract In-House Delivery Dates from tFieldlist, keyed by seqNo
-     *
-     * @param array $orderInfo
-     * @return array [seqNo => inHouseDeliveryDate]
-     */
-    private function extractLineLevelFieldMap(array $orderInfo): array
-    {
-        $map = [];
-
-        foreach ($orderInfo['tFieldlist']['t-fieldlist'] ?? [] as $field) {
-            $fieldName = $field['fieldName'] ?? null;
-            $seqNo = $field['seqNo'] ?? null;
-            $fieldValue = $field['fieldValue'] ?? null;
-
-            // Only process fields with seqNo
-            if ($seqNo === null || $fieldName === null) {
-                continue;
-            }
-
-            // only interested in linelevel- prefixed fields
-            if (str_starts_with($fieldName, 'linelevel-')) {
-                // Initialize sequence entry if not present
-                if (!isset($map[$seqNo])) {
-                    $map[$seqNo] = [];
-                }
-
-                // Strip prefix "linelevel-" and store field
-                $cleanName = str_replace('linelevel-', '', $fieldName);
-                $map[$seqNo][$cleanName] = $fieldValue;
-            }
-        }
-
-        return $map;
-    }
-
     /**
      * Extract extra charges from attributes.
      *
