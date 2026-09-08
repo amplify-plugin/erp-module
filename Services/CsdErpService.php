@@ -280,6 +280,18 @@ class CsdErpService implements ErpApiInterface
             if (isset($attributes['edicatprodfl'])) {
                 $fields['edicatprodfl'] = $attributes['edicatprodfl'];
             }
+            if (isset($attributes['createdby'])) {
+                $fields['createdby'] = $attributes['createdby'];
+            }
+            if (isset($attributes['createddt'])) {
+                $fields['createddt'] = $attributes['createddt'];
+            }
+            if (isset($attributes['createdtm'])) {
+                $fields['createdtm'] = $attributes['createdtm'];
+            }
+            if (isset($attributes['createdproc'])) {
+                $fields['createdproc'] = $attributes['createdproc'];
+            }
 
             $tMnTt = [];
 
@@ -512,6 +524,19 @@ class CsdErpService implements ErpApiInterface
             $fields['email'] = $attributes['email_1'] ?? '';
             $fields['faxphoneno'] = '';
             $fields['statustype'] = $attributes['statustype'] ?? 'Active';
+
+            if (isset($attributes['createdby'])) {
+                $fields['createdby'] = $attributes['createdby'];
+            }
+            if (isset($attributes['createddt'])) {
+                $fields['createddt'] = $attributes['createddt'];
+            }
+            if (isset($attributes['createdtm'])) {
+                $fields['createdtm'] = $attributes['createdtm'];
+            }
+            if (isset($attributes['createdproc'])) {
+                $fields['createdproc'] = $attributes['createdproc'];
+            }
 
             $tMnTt = [];
 
