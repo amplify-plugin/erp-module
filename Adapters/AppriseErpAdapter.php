@@ -495,12 +495,9 @@ class AppriseErpAdapter implements ErpApiInterface
      */
     public function getCustomerARSummary(array $attributes = []): CustomerAR
     {
-        $attributes = $attributes['tCustsummary']['t-custsummary'] ?? [];
-
         $model = new CustomerAR($attributes);
 
         if (!empty($attributes)) {
-            $attributes = array_shift($attributes);
 
             $model->CustomerNum = $attributes['CustomerNum'] ?? null;
 
@@ -520,7 +517,7 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->DateOfLastPayment = $attributes['lastpaydt'] ?? null;
             $model->DateOfLastSale = $attributes['lastsaledt'] ?? null;
             $model->FutureAmount = $attributes['futureamt'] ?? null;
-            $model->OpenOrderAmount = $attributes['openordamt'] ?? null;
+            $model->OpenOrderAmount = $attributes['totalOpenAmt'] ?? null;
             $model->SalesLastYearToDate = $attributes['salesLYTD'] ?? null;
             $model->SalesMonthToDate = $attributes['salesMTD'] ?? null;
             $model->SalesYearToDate = $attributes['salesYTD'] ?? null;
@@ -1730,9 +1727,9 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $model = new TrackShipment($attributes);
 
-        $model->OrderNumber = $attributes['orderno'] ?? null;
-        $model->TrackerNo = $attributes['trackerno'] ?? null;
-        $model->ShipViaType = $attributes['shipviaty'] ?? null;
+        $model->OrderNumber = $attributes['orderNumber'] ?? null;
+        $model->TrackerNo = $attributes['trackingNumber'] ?? null;
+        $model->ShipViaType = $attributes['shipperID'] ?? null;
 
         return $model;
     }

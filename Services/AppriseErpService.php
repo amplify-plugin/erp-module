@@ -809,332 +809,6 @@ class AppriseErpService implements ErpApiInterface
     }
 
     /**
-     * @throws ErpApiException
-     */
-    private function createOrderDkLok(array $orderInfo = []): Order
-    {
-        $order = $orderInfo['order'] ?? [];
-        $items = $orderInfo['items'] ?? [];
-        $orderRequest = $order['request'] ?? [];
-        $customerNumber = $this->customerId($orderInfo);
-
-        $orderLine = [];
-        foreach ($items as $key => $item) {
-            $orderLine[] = [
-                'seqno' => ($key + 1),
-                'itemnumber' => $item['ItemNumber'],
-                'orderqty' => $item['OrderQty'],
-                'unitofmeasure' => $item['UnitOfMeasure'],
-                'warehouseid' => $item['WarehouseID'],
-                'itemdesc1' => $item['ItemComment'],
-                'shipinstrty' => $item['OrderQty'],
-            ];
-        }
-
-        $warehouseId = !empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
-
-        $noteText = trim($order['order_note'] ?? '');
-
-        if (!empty($noteText)) {
-            $cleanedNoteText = implode("\n", array_map('trim', explode("\n", $noteText)));
-            $orderLine[] = [
-                'itemdesc1' => $cleanedNoteText,
-                'itemnumber' => '/',
-                'lineitemtype' => 'C ',
-            ];
-        }
-
-        $payload = [
-            'companyNumber' => $this->systemId,
-            'tInputccdata' => [
-                't-Inputccdata' => [],
-            ],
-            'tInputheaderdata' => [
-                't-inputheaderdata' => [
-                    [
-                        'taxamount' => 0,
-                        'authorizationamount' => 0,
-                        'customerid' => '00000000000' . $customerNumber,
-                        'ordersource' => 'WEB',
-                        'carriercode' => $order['shipping_method'],
-                        'paymenttype' => 'PO',
-                        'ponumber' => $orderRequest['customer_order_ref'],
-                        'shiptoaddr1' => $order['ship_to_address1'],
-                        'shiptoaddr2' => $order['ship_to_address2'],
-                        'shiptoaddr3' => $order['ship_to_address3'],
-                        'shiptocontact' => $order['ship_to_name'],
-                        'shiptocity' => $order['ship_to_city'],
-                        'shiptocountry' => $order['ship_to_country_code'],
-                        'shiptoname' => $order['ship_to_name'],
-                        'shiptonumber' => $order['ship_to_number'],
-                        'shiptostate' => $order['ship_to_state'],
-                        'shiptophone' => $order['phone_number'],
-                        'shiptophoneext' => '',
-                        'shiptozip' => $order['ship_to_zip_code'],
-                        'webtransactiontype' => 'LSF',
-                        'ordertype' => $order['order_type'],
-                        'warehouseid' => $warehouseId,
-                    ],
-                ],
-            ],
-            'tInputlinedata' => [
-                't-inputlinedata' => $orderLine,
-            ],
-            'tInputheaderextradata' => [
-                't-inputheaderextradata' => [
-                    [
-                        'fieldname' => 'email',
-                        'fieldvalue' => $order['customer_email'],
-                    ],
-                ],
-            ],
-            'tInputlineextradata' => [
-                't-inputlineextradata' => [],
-            ],
-            'tInfieldvalue' => [
-                't-infieldvalue' => [],
-            ],
-        ];
-
-        $response = $this->post('/sxapisfoeordertotloadv4', $payload);
-
-        if (\array_key_exists('error', $response)) {
-            throw new ErpApiException($response['error']);
-        }
-
-        if (empty($data = $response['tOrdloadhdrdata']['t-ordloadhdrdata'][0])) {
-            throw new ErpApiException('Something went wrong please try again');
-        }
-
-        $orderData = $this->getOrderDetail([
-            'order_number' => $data['orderno'],
-            'customer_number' => $customerNumber,
-            'order_suffix' => $data['ordersuf'],
-        ]);
-
-        $orderData->OrderStatus = 'Accepted';
-
-        return $orderData;
-    }
-
-    /**
-     * @throws ErpApiException
-     */
-    private function createOrderSteven(array $orderInfo = []): Order
-    {
-        $order = $orderInfo['order'] ?? [];
-        $items = $orderInfo['items'] ?? [];
-        $customer_number = $this->customerId($orderInfo);
-        $contact_code = $order['contact_code'] ?? null;
-        $review_order_hold = $order['review_order_hold'] ?? 'V';
-
-        $orderLine = array_map(function ($item) {
-            return [
-                'itemnumber' => $item['ItemNumber'],
-                'orderqty' => $item['OrderQty'],
-                'unitofmeasure' => $item['UnitOfMeasure'],
-                'warehouseid' => $item['WarehouseID'],
-                'itemdesc1' => $item['ItemComment'] ?? '',
-                'shipinstrty' => $item['OrderQty'],
-            ];
-        }, $items);
-
-        $noteText = '';
-        $orderNote = trim($order['order_note'] ?? '');
-        $internalNote = trim($order['internal_note'] ?? '');
-
-        if (!empty($orderNote)) {
-            $noteText .= "SEI Instructions: {$orderNote}";
-        }
-
-        if (!empty($internalNote)) {
-            if (!empty($noteText)) {
-                $noteText .= "\n\n* * * * * * * *\n\n";
-            }
-            $noteText .= "Customer Comments: {$internalNote}";
-        }
-
-        if (!empty($noteText)) {
-            $cleanedNoteText = implode("\n", array_map('trim', explode("\n", $noteText)));
-            $orderLine[] = [
-                'itemdesc1' => $cleanedNoteText,
-                'itemnumber' => '/',
-                'lineitemtype' => 'C ',
-            ];
-        }
-
-        if (!empty($order['wtdo_note'])) {
-
-            $wtdoNote = $order['wtdo_note'];
-
-            // If previous note exists, start WTDO note from a new line
-            if (!empty($noteText)) {
-                $wtdoNote = "\n" . $wtdoNote;
-            }
-
-            // Clean leading/trailing spaces from each line
-            $cleanedWtdoNote = implode("\n", array_map('trim', explode("\n", $wtdoNote)));
-
-            $orderLine[] = [
-                'itemdesc1' => $cleanedWtdoNote,
-                'itemnumber' => '/',
-                'lineitemtype' => 'cx',
-            ];
-        }
-
-        $tinfieldvalue = [];
-        if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
-            $tinfieldvalue = [
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'AuthAmt',
-                    'fieldvalue' => $order['total_order_value'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'ProcPaymentType',
-                    'fieldvalue' => $order['card_type'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'MerchantID',
-                    'fieldvalue' => $order['merchant_id'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'CardNumber',
-                    'fieldvalue' => $order['card_number'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'PaymentType',
-                    'fieldvalue' => 'cenpos',
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'Token',
-                    'fieldvalue' => $order['card_token'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'AuthNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'ReferenceNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
-                ],
-            ];
-        }
-
-        $payload = [
-            'companyNumber' => $this->systemId,
-            'tInputccdata' => [
-                't-Inputccdata' => [],
-            ],
-
-            'tInputheaderdata' => [
-                't-inputheaderdata' => [
-                    [
-                        'taxamount' => 0,
-                        'authorizationamount' => 0,
-                        'customerid' => '0000' . $customer_number,
-                        'ordersource' => 'WEB',
-                        'carriercode' => $order['shipping_method'],
-                        'shiptoaddr1' => $order['ship_to_address1'],
-                        'shiptoaddr2' => $order['ship_to_address2'],
-                        'shiptoaddr3' => $order['ship_to_address3'],
-                        'shiptocontact' => $order['ship_to_name'],
-                        'shiptocity' => $order['ship_to_city'],
-                        'shiptocountry' => $order['ship_to_country_code'],
-                        'shiptoname' => $order['ship_to_name'],
-                        'shiptonumber' => '',
-                        'shiptostate' => $order['ship_to_state'],
-                        'shiptophone' => $order['ship_to_phone'],
-                        'shiptophoneext' => '',
-                        'shiptozip' => $order['ship_to_zip_code'],
-                        'webtransactiontype' => 'LSF',
-                        'ordertype' => $order['order_type'],
-                        'ponumber' => $order['po_number'],
-                        'revieworderhold' => $review_order_hold,
-                    ],
-                ],
-            ],
-
-            'tInputheaderextradata' => [
-                't-inputheaderextradata' => [
-                    [
-                        'fieldname' => 'email',
-                        'fieldvalue' => $order['customer_email'],
-                    ],
-                    [
-                        'fieldname' => 'contactid',
-                        'fieldvalue' => $contact_code,
-                    ],
-                    [
-                        'fieldname' => 'origincd',
-                        'fieldvalue' => 'Web',
-                    ],
-                ],
-            ],
-
-            'tInputlinedata' => [
-                't-inputlinedata' => $orderLine,
-            ],
-
-            'tInputlineextradata' => [
-                't-inputlineextradata' => [],
-            ],
-
-            'tInfieldvalue' => [
-                't-infieldvalue' => $tinfieldvalue,
-            ],
-        ];
-
-        if (!empty($order['freight_account_number']) && $order['freight_terms_type'] == "C") {
-            $payload['tInputheaderextradata']['t-inputheaderextradata'][] = [
-                'fieldname' => 'frtbillacct',
-                'fieldvalue' => $order['freight_account_number'],
-            ];
-        }
-
-        if (!empty($order['freight_terms_type']) && $order['freight_terms_type'] !== 'CPU') {
-            $payload['tInputheaderextradata']['t-inputheaderextradata'][] = [
-                'fieldname' => 'frtterms',
-                'fieldvalue' => $order['freight_terms_type'],
-            ];
-        }
-
-        if ($order['freight_terms_type'] === 'CPU') {
-            $payload['tInputheaderextradata']['t-inputheaderextradata'][] = [
-                'fieldname' => 'pickuporder',
-                'fieldvalue' => 'yes',
-            ];
-        }
-
-        $response = $this->post('/sxapisfoeordertotloadv4', $payload);
-
-        return $this->adapter->createOrder($response);
-    }
-
-    /**
      * This API is to get details of an order/invoice, or list of orders from a date range
      */
     public function getOrderList(array $filters = []): OrderCollection
@@ -1169,19 +843,12 @@ class AppriseErpService implements ErpApiInterface
             $holdOnlyFlg = $filters['hold_only_flag'] ?? false;
 
             $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'transactionTypes' => $transaction_types,
-                'startEnterDate' => $fromEntryDate,
-                'endEnterDate' => $toEntryDate,
-                'startStage' => $startStage,
-                'endStage' => $endStage,
-                'orderNumber' => $filters['order_number'] ?? '',
-                'customerPurchaseOrder' => $filters['po_number'] ?? '',
-                'holdOnlyFlg' => (bool)$holdOnlyFlg,
+                'sales_agent_id' => null
             ];
 
-            $response = $this->post('/sxapioegetlistofordersv5', $payload);
+            $response = $this->post('/open-orders/sales-rep', $payload);
+
+            dd($response);
 
             return $this->adapter->getOrderList($response);
 
@@ -1202,21 +869,9 @@ class AppriseErpService implements ErpApiInterface
             $customer_number = $this->customerId($orderInfo);
             $order_suffix = $orderInfo['order_suffix'] ?? 'O';
 
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'operatorPassword' => '',
-                'orderNumber' => $order_number,
-                'orderSuffix' => $order_suffix,
-                'getOrderInfo' => 'Y',
-                'lineSort' => 'A',
-                'includeHeaderData' => true,
-                'includeTotalData' => true,
-                'includeTaxData' => true,
-                'includeLineData' => true,
-            ];
+            $response = $this->get("/orders/{$order_number}/information");
 
-            $response = $this->post('/sxapioegetsingleorderv3', $payload);
+            dd($response);
 
             return $this->adapter->getOrderDetail($response);
 
@@ -1492,10 +1147,10 @@ class AppriseErpService implements ErpApiInterface
             }
 
             $payload = [
-                'system_id' => $this->systemId
+                'currency' => config('amplify.basic.global_currency', 'USD'),
             ];
 
-            $response = $this->get("/customer/{$customer_number}/information", $payload);
+            $response = $this->get("/ar/customers/{$customer_number}/open-invoices", $payload);
 
             return $this->adapter->getCustomerARSummary($response);
         } catch (Exception $exception) {
@@ -1843,12 +1498,10 @@ class AppriseErpService implements ErpApiInterface
         try {
 
             $payload = [
-                'companyNumber' => $this->systemId,
-                'orderNumber' => $inputs['order_number'] ?? null,
-                'orderSuffix' => $inputs['order_suffix'] ?? 0,
+                'orders' => $inputs['order_number'] ?? [],
             ];
 
-            $response = $this->post('/sxapisfgettrackingnum', $payload);
+            $response = $this->get('/trackingnumbers', $payload);
 
             return $this->adapter->getTrackShipment($response);
         } catch (Exception $exception) {
