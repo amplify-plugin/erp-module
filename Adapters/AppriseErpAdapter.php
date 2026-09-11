@@ -236,15 +236,12 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $customerShippingLocations = new ShippingLocationCollection;
 
-        if (!empty($locations)) {
-            $locationFields = $locations['tShiptovaluepair']['t-shiptovaluepair'] ?? [];
+        $location = $locations['custShipto'] ?? [];
 
-            foreach (($locations['tShiptolstv3']['t-shiptolstv3'] ?? []) as $location) {
-                $supportFields = array_filter($locationFields, fn($item) => $location['shipto'] == $item['shipto']);
-                $supportFields = $this->mapFieldAttributes($supportFields);
-                $location = array_merge($location, $supportFields);
+        if (!empty($locations)) {
+//            foreach (($locations['tShiptolstv3']['t-shiptolstv3'] ?? []) as $location) {
                 $customerShippingLocations->push($this->renderSingleCustomerShippingLocation($location));
-            }
+//            }
         }
 
         return $customerShippingLocations;
@@ -679,7 +676,7 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->CustomerEmail = $customer['emailAddress'] ?? null;
             $model->CustomerPhone = $customer['phone'] ?? null;
             $model->CustomerContact = $customer['CustomerContact'] ?? null;
-            $model->DefaultShipTo = $customer['preferredShipper'] ?? null;
+            $model->DefaultShipTo = $attributes['custShipto']['custShiptoKey'] ?? null;
             $model->DefaultWarehouse = $attributes['locationSales']['locationPrefix'] ?? null;
             $model->CarrierCode = $customer['shippingMethod'] ?? null;
             $model->PriceList = $customer['priceList'] ?? null;
@@ -704,16 +701,16 @@ class AppriseErpAdapter implements ErpApiInterface
         $model = new ShippingLocation($attributes);
 
         if (!empty($attributes)) {
-            $model->ShipToNumber = $attributes['shipto'] ?? null;
-            $model->ShipToName = $attributes['name'] ?? null;
-            $model->ShipToCountryCode = strtoupper($attributes['countrycd'] ?? null);
-            $model->ShipToAddress1 = $attributes['addr1'] ?? null;
-            $model->ShipToAddress2 = $attributes['addr2'] ?? null;
-            $model->ShipToAddress3 = $attributes['addr3'] ?? null;
+            $model->ShipToNumber = $attributes['custShiptoKey'] ?? null;
+            $model->ShipToName = $attributes['shiptoName'] ?? null;
+            $model->ShipToCountryCode = substr(strtoupper($attributes['country'] ?? ''), 0, 2);
+            $model->ShipToAddress1 = $attributes['address1'] ?? null;
+            $model->ShipToAddress2 = $attributes['address2'] ?? null;
+            $model->ShipToAddress3 = $attributes['address3'] ?? null;
             $model->ShipToCity = $attributes['city'] ?? null;
             $model->ShipToState = $attributes['state'] ?? null;
-            $model->ShipToZipCode = $attributes['zipcd'] ?? null;
-            $model->ShipToPhoneNumber = $attributes['phoneno'] ?? null;
+            $model->ShipToZipCode = $attributes['postalCode'] ?? null;
+            $model->ShipToPhoneNumber = $attributes['phone'] ?? null;
             $model->ShipToContact = $attributes['contact'] ?? null;
             $model->ShipToWarehouse = $attributes['whse'] ?? null;
             $model->BackorderCode = isset($attributes['bofl']) ? $attributes['bofl'] == 'yes' : null;

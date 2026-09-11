@@ -531,36 +531,20 @@ class AppriseErpService implements ErpApiInterface
         try {
             $customer_number = $this->customerId($filters);
 
+            if ($customer_number == null) {
+                throw new ErpApiException('Customer Code is missing.');
+            }
+
             $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'sort' => 'A'
+                'system_id' => $this->systemId
             ];
 
-            if (!empty($filters['address_name'])) {
-                $payload['name'] = $filters['address_name'];
-            }
-
-            if (!empty($filters['city'])) {
-                $payload['city'] = $filters['city'];
-            }
-
-            if (!empty($filters['address_code'])) {
-                $payload['shipTo'] = $filters['address_code'];
-            }
-
-            if (!empty($filters['state'])) {
-                $payload['state'] = $filters['state'];
-            }
-
-            if (!empty($filters['zip_code'])) {
-                $payload['postalCode'] = $filters['zip_code'];
-            }
-
-            $response = $this->post('/sxapiargetshiptolistv4', $payload);
+            $response = $this->get("/customer/{$customer_number}/information", $payload);
 
             return $this->adapter->getCustomerShippingLocationList($response);
+
         } catch (Exception $exception) {
+
             $this->exceptionHandler($exception);
 
             return $this->adapter->getCustomerShippingLocationList();
