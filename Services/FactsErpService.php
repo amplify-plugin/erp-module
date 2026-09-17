@@ -613,6 +613,23 @@ class FactsErpService implements ErpApiInterface
                 ],
             ];
 
+            if (strcasecmp((string) ($order['payment_type'] ?? ''), 'ACH') === 0) {
+                $achToken = trim((string) ($order['ach_token'] ?? $order['card_token'] ?? ''));
+                $payload['content']['PaymentType'] = 'ACH';
+                $payload['content']['CardToken'] = $achToken;
+
+                $accountNumber = trim((string) ($order['account_number'] ?? ''));
+                $routingNumber = trim((string) ($order['aba_number'] ?? ''));
+                if ($achToken !== '' && $accountNumber !== '' && $routingNumber !== '') {
+                    $payload['content']['AchPayment'] = [
+                        'AccountNumber' => $accountNumber,
+                        'RoutingNumber' => $routingNumber,
+                        'Token' => $achToken,
+                        'Amount' => $order['total_order_value'] ?? '',
+                    ];
+                }
+            }
+
             if (config('amplify.erp.use_amplify_shipping')) {
                 $payload['content']['FreightAmount'] = $order['freight_amount'] ?? 0;
             }
