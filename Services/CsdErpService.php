@@ -981,7 +981,7 @@ class CsdErpService implements ErpApiInterface
                 't-inputlineextradata' => [],
             ],
             'tInfieldvalue' => [
-                't-infieldvalue' => [],
+                't-infieldvalue' => $this->creditCardToken($order),
             ],
         ];
 
@@ -1073,67 +1073,6 @@ class CsdErpService implements ErpApiInterface
             ];
         }
 
-        $tinfieldvalue = [];
-        if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
-            $tinfieldvalue = [
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'AuthAmt',
-                    'fieldvalue' => $order['total_order_value'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'ProcPaymentType',
-                    'fieldvalue' => $order['card_type'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'MerchantID',
-                    'fieldvalue' => $order['merchant_id'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'CardNumber',
-                    'fieldvalue' => $order['card_number'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'PaymentType',
-                    'fieldvalue' => 'cenpos',
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'Token',
-                    'fieldvalue' => $order['card_token'],
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'AuthNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
-                ],
-                [
-                    'level' => 'SFOEOrderTotLoadV4',
-                    'lineno' => 0,
-                    'seqno' => 0,
-                    'fieldname' => 'ReferenceNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
-                ],
-            ];
-        }
 
         $payload = [
             'companyNumber' => $this->companyNumber,
@@ -1201,7 +1140,7 @@ class CsdErpService implements ErpApiInterface
             ],
 
             'tInfieldvalue' => [
-                't-infieldvalue' => $tinfieldvalue,
+                't-infieldvalue' => $this->creditCardToken($order),
             ],
         ];
 
@@ -1231,6 +1170,73 @@ class CsdErpService implements ErpApiInterface
         return $this->adapter->createOrder($response);
     }
 
+    private function creditCardToken(array $order): array
+    {
+        $tinfieldvalue = [];
+
+        if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
+            $tinfieldvalue = [
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'AuthAmt',
+                    'fieldvalue' => $order['total_order_value'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'ProcPaymentType',
+                    'fieldvalue' => $order['card_type'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'MerchantID',
+                    'fieldvalue' => $order['merchant_id'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'CardNumber',
+                    'fieldvalue' => $order['card_number'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'PaymentType',
+                    'fieldvalue' => 'cenpos',
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'Token',
+                    'fieldvalue' => $order['card_token'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'AuthNumber',
+                    'fieldvalue' => 'PDKWA9ZC',
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'ReferenceNumber',
+                    'fieldvalue' => 'PDKWA9ZC',
+                ],
+            ];
+        }
+
+        return $tinfieldvalue;
+    }
     /**
      * This API is to get details of an order/invoice, or list of orders from a date range
      */
