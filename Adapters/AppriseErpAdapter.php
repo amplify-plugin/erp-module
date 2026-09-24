@@ -90,6 +90,13 @@ class AppriseErpAdapter implements ErpApiInterface
             ->toArray();
     }
 
+    private function getAttribute($collection, $pattern): ?array
+    {
+        $result = array_filter($collection, fn($item) => str_starts_with($item['statLine'] ?? '', $pattern));
+
+        return empty($result) ? null : array_shift($result);
+    }
+
     /**
      * This function will check if the ERP can be enabled
      */
@@ -236,12 +243,10 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $customerShippingLocations = new ShippingLocationCollection;
 
-        $location = $locations['custShipto'] ?? [];
-
         if (!empty($locations)) {
-//            foreach (($locations['tShiptolstv3']['t-shiptolstv3'] ?? []) as $location) {
+            foreach ($locations as $location) {
                 $customerShippingLocations->push($this->renderSingleCustomerShippingLocation($location));
-//            }
+            }
         }
 
         return $customerShippingLocations;
@@ -402,12 +407,12 @@ class AppriseErpAdapter implements ErpApiInterface
         if (!empty($attributes['OrderLines'])) {
             foreach ($attributes['OrderLines'] as $line) {
                 $model->OrderLines->push((object)[
-                    'ItemNumber' => $line['shipprod'] ?? '',
-                    'ItemDesc' => $line['descrip'] ?? '',
-                    'Quantity' => $line['qtyord'] ?? 0,
-                    'UoM' => $line['unit'] ?? '',
-                    'UnitPrice' => $line['price'] ?? 0,
-                    'TotalLineAmount' => $line['netamt'] ?? 0,
+                    'ItemNumber' => $line['product_code'] ?? '',
+                    'ItemDesc' => $line['product_name'] ?? '',
+                    'Quantity' => floatval($line['quantity'] ?? 0),
+                    'UoM' => $line['uom'] ?? '',
+                    'UnitPrice' => floatval($line['unitprice'] ?? 0),
+                    'TotalLineAmount' => floatval($line['subtotal'] ?? 0),
                 ]);
             }
         }
@@ -662,6 +667,16 @@ class AppriseErpAdapter implements ErpApiInterface
             $customer = $attributes['custname'] ?? [];
             $salesAgent = $attributes['salesAgent'] ?? [];
 
+            $customerModel = \Amplify\System\Backend\Models\Customer::whereCustomerCode($customer['custCode'])->first();
+
+            $guessDefaultShipTo = \Amplify\System\Backend\Models\CustomerAddress::where('customer_id', $customerModel->id ?? null)
+                ->where('address_1', 'like', "%{$customer['address1']}%")
+                ->where('city', 'like', "%{$customer['city']}%")
+                ->where('state', 'like', "%{$customer['state']}%")
+                ->where('zip_code', 'like', "%{$customer['postalCode']}%")
+                ->where('country_code', '=', substr($customer['country'],0, 2))
+                ->first();
+
             $model->Message = $errorMessage;
             $model->CustomerNumber = $customer['custCode'] ?? null;
             $model->ArCustomerNumber = $attributes['customerAr']['creditCustomerKey'] ?? $customer['custCode'] ?? null;
@@ -675,18 +690,18 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->CustomerCountry = isset($customer['country']) ? substr($customer['country'], 0, 2) : null;
             $model->CustomerEmail = $customer['emailAddress'] ?? null;
             $model->CustomerPhone = $customer['phone'] ?? null;
-            $model->CustomerContact = $customer['CustomerContact'] ?? null;
-            $model->DefaultShipTo = $attributes['custShipto']['custShiptoKey'] ?? null;
+            $model->CustomerContact = $customerModel['business_contact'] ?? null;
+            $model->DefaultShipTo = $customerModel['shipto_address_code'] ?? $guessDefaultShipTo?->address_code ?? null;
             $model->DefaultWarehouse = $attributes['locationSales']['locationPrefix'] ?? null;
-            $model->CarrierCode = $customer['shippingMethod'] ?? null;
-            $model->PriceList = $customer['priceList'] ?? null;
+            $model->CarrierCode = $customer['preferredShipper'] ?? null;
+            $model->PriceList = $customerModel['list_price'] ?? null;
             $model->BackorderCode = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
             $model->CustomerClass = $customer['groupId'] ?? null;
             $model->SuspendCode = isset($customer['active']) ? !$customer['active'] ? 'Y' : 'N' : null;
             $model->AllowArPayments = isset($attributes['arPaymentRemit']) ? $attributes['arPaymentRemit']['active'] ? 'Y' : 'N' : null;
             $model->CreditCardOnly = isset($attributes['locationSales']) ? $attributes['locationSales']['useCreditcard'] ? 'Y' : 'N' : null;
             $model->FreightOptionAmount = !empty($customer['FreightOptionAmount']) ? floatval($customer['FreightOptionAmount']) : null;
-            $model->PoRequired = $customer['poRequired'] ?? null;
+            $model->PoRequired = isset($customer['reqPoNum']) ? $customer['reqPoNum'] ? 'Y' : 'N' : null;
             $model->SalesPersonCode = $customer['defaultSalesAgent'] ?? null;
             $model->SalesPersonName = trim(($salesAgent['firstName'] ?? '') . ' ' . ($salesAgent['lastName'] ?? ''));
             $model->SalesPersonEmail = $salesAgent['emailAddress'] ?? null;
@@ -701,19 +716,19 @@ class AppriseErpAdapter implements ErpApiInterface
         $model = new ShippingLocation($attributes);
 
         if (!empty($attributes)) {
-            $model->ShipToNumber = $attributes['custShiptoKey'] ?? null;
-            $model->ShipToName = $attributes['shiptoName'] ?? null;
-            $model->ShipToCountryCode = substr(strtoupper($attributes['country'] ?? ''), 0, 2);
-            $model->ShipToAddress1 = $attributes['address1'] ?? null;
-            $model->ShipToAddress2 = $attributes['address2'] ?? null;
-            $model->ShipToAddress3 = $attributes['address3'] ?? null;
+            $model->ShipToNumber = $attributes['address_code'] ?? null;
+            $model->ShipToName = $attributes['address_name'] ?? null;
+            $model->ShipToCountryCode = $attributes['country_code'] ?? '';
+            $model->ShipToAddress1 = $attributes['address_1'] ?? null;
+            $model->ShipToAddress2 = $attributes['address_2'] ?? null;
+            $model->ShipToAddress3 = $attributes['address_3'] ?? null;
             $model->ShipToCity = $attributes['city'] ?? null;
             $model->ShipToState = $attributes['state'] ?? null;
-            $model->ShipToZipCode = $attributes['postalCode'] ?? null;
+            $model->ShipToZipCode = $attributes['zip_code'] ?? null;
             $model->ShipToPhoneNumber = $attributes['phone'] ?? null;
             $model->ShipToContact = $attributes['contact'] ?? null;
             $model->ShipToWarehouse = $attributes['whse'] ?? null;
-            $model->BackorderCode = isset($attributes['bofl']) ? $attributes['bofl'] == 'yes' : null;
+            $model->BackorderCode = null;
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->PoRequired = $attributes['poreqfl'] ?? null;
         }
@@ -1771,31 +1786,9 @@ class AppriseErpAdapter implements ErpApiInterface
         return $model;
     }
 
-    private function getPODetails(array $inputs = [])
+    public function getPODetails(array $inputs = [])
     {
-        if (!in_array(config('amplify.client_code'), ['NUX', 'DKL']) || empty($inputs['poNumber'])) {
-            return [];
-        }
-
-        $poDetails = Cache::remember(
-            'po_details_' . $inputs['poNumber'],
-            now()->addMinutes(5),
-            function () use ($inputs) {
-                return ErpApi::getPODetails($inputs);
-            }
-        );
-
-        if (empty($poDetails['tPolineitemv2']['t-polineitemv2'])) {
-            return [];
-        }
-
-        $productCode = $inputs['productCode'];
-        $filteredPoDetails = array_filter($poDetails['tPolineitemv2']['t-polineitemv2'], function ($item) use ($productCode) {
-            return $item['shipprod'] === $productCode;
-        });
-
-        $orderPODetails = array_shift($filteredPoDetails);
-        $model = new OrderPODetails($orderPODetails);
+        $model = new OrderPODetails($inputs);
 
         if (!empty($orderPODetails)) {
             $model->BoType = $this->clearFix($orderPODetails['botype']);

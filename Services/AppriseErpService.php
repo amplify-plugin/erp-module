@@ -535,13 +535,11 @@ class AppriseErpService implements ErpApiInterface
                 throw new ErpApiException('Customer Code is missing.');
             }
 
-            $payload = [
-                'system_id' => $this->systemId
-            ];
+            $customer = \Amplify\System\Backend\Models\Customer::with('addresses')
+                ->whereCustomerCode($customer_number)
+                ->first();
 
-            $response = $this->get("/customer/{$customer_number}/information", $payload);
-
-            return $this->adapter->getCustomerShippingLocationList($response);
+            return $this->adapter->getCustomerShippingLocationList($customer->addresses->toArray());
 
         } catch (Exception $exception) {
 
@@ -778,17 +776,96 @@ class AppriseErpService implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         try {
-            if (config('amplify.client_code') === 'STV') {
-                return $this->createOrderSteven($orderInfo);
+
+            $customer_number = $this->customerId($orderInfo);
+
+            $items = $orderInfo['items'] ?? [];
+
+            $orderLines = [];
+
+            foreach ($items as $index => $item) {
+                $orderLines[] = [
+                    "lineKey" => $index,
+                    "productCode" => $item['product_code'],
+                    "productDesc" => $item['product_name'],
+                    "qtyOrdered" => $item['quantity'],
+                    "unitOfMeasureCode" => $item['uom'] ?? '',
+                    "unitOfMeasure" => "",
+                    "unitPrice" => floatval($item['unitprice']),
+                    "cancelBackorder" => !$item['product_back_order'],
+                    "notes" => $item['additional_info']['notes'] ?? '',
+                    "remarks" => $item['additional_info']['remarks'] ?? '',
+                    "remarksDocuments" => $item['additional_info']['remarksDocuments'] ?? '',
+                    "dropShip" => false,
+                    "custProdCode" => "",
+                ];
             }
 
-            return $this->createOrderDkLok($orderInfo);
+            $payload = [
+                "viewErrorsOnly" => true,
+                "importAndValidate" => true,
+                "overridePrice" => false,
+                "language" => "en",
+                "headers" => [
+                    [
+                        "customerCode" => (string)$customer_number,
+                        "customerName" => $this->getCustomerDetail()->CustomerName,
+                        "phoneNumber" => $this->getCustomerDetail()->CustomerPhone,
+                        "orderClass" => "Sale",
+                        "customerPONumber" => $orderInfo['customer_order_ref'] ?? null,
+                        "notes" => "test notes",
+                        "remarks" => "test header remark added to order ack",
+                        "orderCreateInput" => "",
+                        "documentsForRemarks" => "Order Acknowledgement",
+                        "customerBillToCode" => "",
+                        "customerBillToName" => $this->getCustomerDetail()->CustomerName,
+                        "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
+                        "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
+                        "customerBillToCity" => $this->getCustomerDetail()->CustomerCity,
+                        "customerBillToState" => $this->getCustomerDetail()->CustomerState,
+                        "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
+                        "customerBillToCountry" => $this->getCustomerDetail()->CustomerCountry,
+                        "customerShipToCode" => '',
+                        "customerShipToName" => $orderInfo['shipping_name'] ?? '',
+                        "customerShipToAddress1" => $orderInfo['ship_to_address1'] ?? '',
+                        "customerShipToAddress2" => $orderInfo['ship_to_address2'] ?? '',
+                        "customerShipToCity" => $orderInfo['ship_to_city'] ?? '',
+                        "customerShipToState" => $orderInfo['ship_to_state'] ?? '',
+                        "customerShipToZipcode" => $orderInfo['ship_to_zip_code'] ?? '',
+                        "customerShipToCountry" => $orderInfo['ship_to_country_code'] ?? '',
+                        "orderDate" => now()->toIso8601ZuluString('m'),
+                        "requiredDate" => now()->toIso8601ZuluString('m'),
+                        "shippingLocation" => 'IN1',
+                        "shippingMethod" => $orderInfo['shipping_method'] ?? 'AT',
+                        "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
+                        "shipToAddress3" => $orderInfo['ship_to_address3'] ?? '',
+                        "billToEmail" => $this->getCustomerDetail()->CustomerEmail,
+                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
+                        "customerBillToPhone" => $this->getCustomerDetail()->CustomerPhone,
+                        "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
+                        "lines" => $orderLines,
+                        "saleType" => "web",
+                        "salesLocation" => "IN1",
+                        "manualHold" => true,
+                        "ccClaimTicket" => false,
+                        "ecommSaveCC" => false,
+                        "prepaidOrder" => false,
+                        "charges" => []
+
+                    ],
+                ],
+            ];
+
+            $response = $this->post('/orders', $payload);
+
+            return $this->adapter->getOrderTotal($response);
+
 
         } catch (Exception $exception) {
 
             $this->exceptionHandler($exception);
 
-            return $this->adapter->createOrder();
+            return $this->adapter->getOrderTotal();
         }
     }
 
@@ -874,116 +951,96 @@ class AppriseErpService implements ErpApiInterface
     public function getOrderTotal(array $orderInfo = []): OrderTotal
     {
         try {
-            $customer_number = $this->customerId($orderInfo);
-            $items = $orderInfo['items'] ?? [];
-            $orderLine = array_map(function ($item) {
-                return [
-                    'itemnumber' => $item['product_code'],
-                    'orderqty' => $item['quantity'],
-                    'unitofmeasure' => $item['uom'],
-                    'warehouseid' => $item['product_warehouse_code'],
-                    'itemdesc1' => $item['ItemComment'] ?? $item['product_name'] ?? '',
-                    'shipinstrty' => $item['quantity'],
-                ];
-            }, $items);
 
-            $warehouseId = !empty($orderLine[0]['warehouseid']) ? $orderLine[0]['warehouseid'] : null;
+            /*$customer_number = $this->customerId($orderInfo);
+
+            $billToCountry = $this->countryByIso2($orderInfo['bill_to_country_code'] ?? $this->getCustomerDetail()->CustomerCountry ?? '');
+            $shipToCountry = $this->countryByIso2($orderInfo['ship_to_country_code'] ?? $this->getCustomerDetail()->CustomerCountry ?? '');
+
+            $items = $orderInfo['items'] ?? [];
+
+            $orderLines = [];
+
+            foreach ($items as $index => $item) {
+                $orderLines[] = [
+                    "lineKey" => $index,
+                    "productCode" => $item['product_code'],
+                    "productDesc" => $item['product_name'],
+                    "qtyOrdered" => $item['quantity'],
+                    "unitOfMeasureCode" => $item['uom'] ?? '',
+                    "unitOfMeasure" => "",
+                    "unitPrice" => floatval($item['unitprice']),
+                    "cancelBackorder" => !$item['product_back_order'],
+                    "notes" => $item['additional_info']['notes'] ?? '',
+                    "dropShip" => false,
+                    "custProdCode" => "",
+                ];
+            }
 
             $payload = [
-                'companyNumber' => $this->systemId,
-                'tInputccdata' => [
-                    't-Inputccdata' => [],
-                ],
-                'tInputheaderdata' => [
-                    't-inputheaderdata' => [
-                        [
-                            'taxamount' => 0,
-                            'authorizationamount' => 0,
-                            'customerid' => '0000' . $customer_number,
-                            'ordersource' => 'WEB',
-                            'carriercode' => '',
-                            'shiptoaddr1' => $orderInfo['ship_to_address1'],
-                            'shiptoaddr2' => $orderInfo['ship_to_address2'],
-                            'shiptoaddr3' => $orderInfo['ship_to_address3'],
-                            'shiptocontact' => $orderInfo['shipping_name'],
-                            'shiptocity' => $orderInfo['ship_to_city'],
-                            'shiptocountry' => $orderInfo['ship_to_country_code'],
-                            'shiptoname' => $orderInfo['shipping_name'],
-                            'shiptonumber' => $orderInfo['ship_to_number'],
-                            'shiptostate' => $orderInfo['ship_to_state'],
-                            'shiptophone' => $orderInfo['phone_number'],
-                            'shiptophoneext' => '',
-                            'shiptozip' => $orderInfo['ship_to_zip_code'],
-                            'webtransactiontype' => 'TSF',
-                        ],
+                "viewErrorsOnly" => true,
+                "importAndValidate" => true,
+                "overridePrice" => false,
+                "language" => "en",
+                "headers" => [
+                    [
+                        "customerCode" => (string)$customer_number,
+                        "customerName" => $this->getCustomerDetail()->CustomerName,
+                        "phoneNumber" => $this->getCustomerDetail()->CustomerPhone,
+                        "orderClass" => "Quote",
+                        "customerPONumber" => $orderInfo['customer_order_ref'] ?? null,
+                        "notes" => "test notes",
+                        "orderCreateInput" => "",
+                        "customerBillToCode" => "",
+                        "customerBillToName" => $this->getCustomerDetail()->CustomerName,
+                        "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
+                        "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
+                        "customerBillToCity" => $this->getCustomerDetail()->CustomerCity,
+                        "customerBillToState" => $this->getCustomerDetail()->CustomerState,
+                        "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
+                        "customerBillToCountry" => $billToCountry?->iso3 ?? '',
+                        "customerShipToCode" => '',
+                        "customerShipToName" => $orderInfo['shipping_name'] ?? '',
+                        "customerShipToAddress1" => $orderInfo['ship_to_address1'] ?? '',
+                        "customerShipToAddress2" => $orderInfo['ship_to_address2'] ?? '',
+                        "customerShipToCity" => $orderInfo['ship_to_city'] ?? '',
+                        "customerShipToState" => $orderInfo['ship_to_state'] ?? '',
+                        "customerShipToZipcode" => $orderInfo['ship_to_zip_code'] ?? '',
+                        "customerShipToCountry" => $shipToCountry?->iso3 ?? '',
+                        "orderDate" => now()->toIso8601ZuluString('m'),
+                        "requiredDate" => now()->toIso8601ZuluString('m'),
+                        "shippingLocation" => 'IN1',
+                        "shippingMethod" => $orderInfo['shipping_method'] ?? 'AT',
+                        "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
+                        "shipToAddress3" => $orderInfo['ship_to_address3'] ?? '',
+                        "billToEmail" => $this->getCustomerDetail()->CustomerEmail,
+                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
+                        "customerBillToPhone" => $this->getCustomerDetail()->CustomerPhone,
+                        "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
+                        "lines" => $orderLines,
+                        "saleType" => "web",
+                        "salesLocation" => "IN1",
+                        "manualHold" => false,
+                        "ccClaimTicket" => false,
+                        "ecommSaveCC" => false,
+                        "prepaidOrder" => false,
+                        "charges" => []
+
                     ],
-                ],
-                'tInputlinedata' => [
-                    't-inputlinedata' => $orderLine,
                 ],
             ];
 
-            if (in_array(config('amplify.basic.client_code'), ['DKL', 'NUX'])) {
-                $payload['tInputheaderdata']['t-inputheaderdata'][0]['warehouseid'] = $warehouseId;
-            }
-
-            $response = $this->post('/sxapisfoeordertotloadv4', $payload);
-
-            $wireTrasnsferFee = 0.00;
-
-            if (!empty($response['tOrdtotextamt']['t-ordtotextamt'])) {
-                foreach ($response['tOrdtotextamt']['t-ordtotextamt'] as $tax) {
-                    // Wire Transfer addon
-                    if (
-                        !empty($tax['type']) &&
-                        !empty($tax['descrip']) &&
-                        strtolower($tax['type']) === 'addon' &&
-                        trim(strtolower($tax['descrip'])) === 'wire transfer'
-                    ) {
-                        $wireTrasnsferFee = $tax['amount'];
-                    }
-                }
-            }
-
-            // Get total order amount from tOrdtotdata
-            $salesTaxAmount = $response['tOrdtotdata']['t-ordtotdata'][0]['tottaxamt'] ?? 0.00;
-            $totalOrderValue = $response['tOrdtotdata']['t-ordtotdata'][0]['totordamt'] ?? 0.00;
-            $totalLineAmount = $response['tOrdtotdata']['t-ordtotdata'][0]['totlineamt'] ?? 0.00;
-            $orderLines = $response['tOrdloadlinedata']['t-ordloadlinedata'] ?? [];
+            $response = $this->post('/orders', $payload);
 
             if (config('amplify.erp.use_amplify_shipping')) {
-
-                if (config('amplify.client_code') === 'STV') {
-                    $this->setShippingInfo([
-                        'country_code' => $orderInfo['ship_to_country_code'],
-                        'ship_via' => $orderInfo['shipping_method'],
-                        'default_warehouse' => $orderInfo['customer_default_warehouse'],
-                    ]);
-                }
-
-                $responseBackEnd = $this->getOrderTotalUsingBackend($orderInfo);
-
-                $freightAmount = $responseBackEnd['Order'][0]['FreightAmount'] ?? '0.00';
-                $freightRate = $responseBackEnd['Order'][0]['FreightRate'] ?? [];
+                $response['shipping'] = $this->getOrderTotalUsingBackend($payload);
             }
 
-            $mergedResponse = [
-                'Order' => [
-                    [
-                        'OrderNumber' => '',
-                        'TotalLineAmount' => $totalLineAmount,
-                        'TotalOrderValue' => $totalOrderValue,
-                        'SalesTaxAmount' => $salesTaxAmount,
-                        'WireTrasnsferFee' => $wireTrasnsferFee,
-                        'FreightAmount' => $freightAmount,
-                        'FreightRate' => $freightRate,
-                        'OrderLines' => $orderLines,
-                        'HazMatCharge' => 0
-                    ],
-                ],
-            ];
+            $response['items'] = $items;*/
 
-            return $this->adapter->getOrderTotal($mergedResponse);
+            $response = $this->getOrderTotalUsingBackend($orderInfo);
+
+            return $this->adapter->getOrderTotal($response);
 
 
         } catch (Exception $exception) {
@@ -1006,41 +1063,85 @@ class AppriseErpService implements ErpApiInterface
     public function createQuotation(array $orderInfo = []): CreateQuotationCollection
     {
         try {
-            $order = $orderInfo['order'] ?? [];
-            $items = $orderInfo['items'] ?? [];
+
             $customer_number = $this->customerId($orderInfo);
 
+            $items = $orderInfo['items'] ?? [];
+
+            $orderLines = [];
+
+            foreach ($items as $index => $item) {
+                $orderLines[] = [
+                    "orderKey" => 0,
+                    "lineKey" => $index,
+                    "productCode" => $item['product_code'],
+                    "productDesc" => $item['product_name'],
+                    "qtyOrdered" => $item['quantity'],
+                    "unitOfMeasureCode" => "",
+                    "unitOfMeasure" => "",
+                    "unitPrice" => $item['unitprice'],
+                    "cancelBackorder" => !$item['product_back_order'],
+                ];
+            }
+
+
             $payload = [
-                'content' => [
-                    'CustomerNumber' => $customer_number,
-                    'CustomerEmail' => $order['customer_email'] ?? $this->getCustomerDetail()->CustomerEmail,
-                    'CarrierCode' => $order['carrier_code'] ?? 'UPS',
-                    'PaymentType' => $order['payment_type'] ?? 'Standard',
-                    'PoNumber' => $order['customer_order_ref'] ?? '',
-                    'RequestedShipDate' => $order['requested_ship_date'] ?? '',
-                    'ShipToNumber' => $order['ship_to_number'] ?? '',
-                    'ShipToAddress1' => $order['ship_to_address1'] ?? '',
-                    'ShipToAddress2' => $order['ship_to_address2'] ?? '',
-                    'ShipToAddress3' => $order['ship_to_address3'] ?? '',
-                    'ShipToCity' => $order['ship_to_city'] ?? '',
-                    'ShipToCntryCode' => $order['ship_to_country_code'] ?? '',
-                    'ShipToState' => $order['ship_to_state'] ?? '',
-                    'ShipToZipCode' => $order['ship_to_zip_code'] ?? '',
-                    'OrderType' => $order['order_type'] ?? 'T',
-                    'ReturnType' => $order['return_type'] ?? 'D',
-                    'CardToken' => $order['card_token'] ?? '',
-                    'WarehouseID' => $order['warehouse_id'] ?? '',
-                    'Items' => $items,
+                "viewErrorsOnly" => true,
+                "importAndValidate" => true,
+                "overridePrice" => false,
+                "language" => "en",
+                "headers" => [
+                    [
+                        "orderKey" => 0,
+                        "customerCode" => (string)$customer_number,
+                        "customerName" => $this->getCustomerDetail()->CustomerName,
+                        "phoneNumber" => $this->getCustomerDetail()->CustomerPhone,
+                        "orderClass" => "Quote",
+//                        "orderClass" => "Sale" -> order
+                        "customerPONumber" => $orderInfo['customer_order_ref'] ?? null,
+//                        "notes" => "test",
+                        "orderCreateInput" => " ",
+                        "customerBillToCode" => '1175-0001',
+//                        "customerBillToCode" => $this->getCustomerDetail()->CustomerNumber,
+                        "customerBillToName" => $this->getCustomerDetail()->CustomerName,
+                        "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
+                        "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
+                        "customerBillToCity" => $this->getCustomerDetail()->CustomerCity,
+                        "customerBillToState" => $this->getCustomerDetail()->CustomerState,
+                        "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
+                        "customerBillToCountry" => $this->getCustomerDetail()->CustomerCountry,
+                        "customerShipToCode" => '1175-0001',
+                        "customerShipToName" => $orderInfo['shipping_name'] ?? '',
+                        "customerShipToAddress1" => $orderInfo['ship_to_address1'] ?? '',
+                        "customerShipToAddress2" => $orderInfo['ship_to_address2'] ?? '',
+                        "customerShipToCity" => $orderInfo['ship_to_city'] ?? '',
+                        "customerShipToState" => $orderInfo['ship_to_state'] ?? '',
+                        "customerShipToZipcode" => $orderInfo['ship_to_zip_code'] ?? '',
+                        "customerShipToCountry" => $orderInfo['ship_to_country_code'] ?? '',
+                        "orderDate" => now()->toIso8601ZuluString('m'),
+                        "shippingMethod" => $orderInfo['shipping_method'] ?? '',
+                        "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
+                        "shipToAddress3" => $orderInfo['ship_to_address3'] ?? '',
+                        "billToEmail" => $this->getCustomerDetail()->CustomerEmail,
+                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
+                        "customerBillToPhone" => $this->getCustomerDetail()->CustomerPhone,
+                        "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
+                        "lines" => $orderLines,
+                    ],
                 ],
             ];
 
-            $response = $this->post('/sxapioefullordermntv6', $payload);
+            $response = $this->post('/orders', $payload);
+//            $response = $this->get('/order-classes');
 
-            return $this->adapter->createQuotation($response);
+            return $this->adapter->getOrderTotal($response);
+
+
         } catch (Exception $exception) {
+
             $this->exceptionHandler($exception);
 
-            return $this->adapter->createQuotation();
+            return $this->adapter->getOrderTotal();
         }
     }
 
@@ -1813,18 +1914,10 @@ class AppriseErpService implements ErpApiInterface
     public function getPODetails($inputs = []): array
     {
         try {
-            $poNumber = str_replace('PO#', '', $inputs['poNumber']);
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'purchaseOrderNumber' => $poNumber,
-                'purchaseOrderSuffix' => 0,
-                'lineSort' => 'A',
-                'includeHeaderData' => false,
-                'includeTotalData' => false,
-                'includeLineData' => true,
-            ];
 
-            return $this->post('/sxapipogetsinglepurchaseorderv2', $payload);
+            $response = $this->get("/purchaseorder/{$inputs['po_number']}/information");
+
+            return $this->adapter->getPODetails($response);
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);

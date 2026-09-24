@@ -40,7 +40,7 @@ class ErpApiService
      *
      * @var CsdErpService|FactsErpService|AppriseErpService
      */
-    protected $serviceInstance;
+    public $serviceInstance;
 
 
     /**
