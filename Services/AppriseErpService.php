@@ -36,6 +36,7 @@ use Amplify\ErpApi\Wrappers\CustomerAR;
 use Amplify\ErpApi\Wrappers\Document;
 use Amplify\ErpApi\Wrappers\Invoice;
 use Amplify\ErpApi\Wrappers\Order;
+use Amplify\ErpApi\Wrappers\OrderPODetails;
 use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
@@ -1911,7 +1912,7 @@ class AppriseErpService implements ErpApiInterface
         }
     }
 
-    public function getPODetails($inputs = []): array
+    public function getPODetails($inputs = []): OrderPODetails
     {
         try {
 
@@ -1920,9 +1921,10 @@ class AppriseErpService implements ErpApiInterface
             return $this->adapter->getPODetails($response);
 
         } catch (Exception $exception) {
+
             $this->exceptionHandler($exception);
 
-            return [];
+            return $this->adapter->getPODetails();
         }
     }
 
