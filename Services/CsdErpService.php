@@ -280,6 +280,18 @@ class CsdErpService implements ErpApiInterface
             if (isset($attributes['edicatprodfl'])) {
                 $fields['edicatprodfl'] = $attributes['edicatprodfl'];
             }
+            if (isset($attributes['createdby'])) {
+                $fields['createdby'] = $attributes['createdby'];
+            }
+            if (isset($attributes['createddt'])) {
+                $fields['createddt'] = $attributes['createddt'];
+            }
+            if (isset($attributes['createdtm'])) {
+                $fields['createdtm'] = $attributes['createdtm'];
+            }
+            if (isset($attributes['createdproc'])) {
+                $fields['createdproc'] = $attributes['createdproc'];
+            }
 
             $tMnTt = [];
 
@@ -512,6 +524,19 @@ class CsdErpService implements ErpApiInterface
             $fields['email'] = $attributes['email_1'] ?? '';
             $fields['faxphoneno'] = '';
             $fields['statustype'] = $attributes['statustype'] ?? 'Active';
+
+            if (isset($attributes['createdby'])) {
+                $fields['createdby'] = $attributes['createdby'];
+            }
+            if (isset($attributes['createddt'])) {
+                $fields['createddt'] = $attributes['createddt'];
+            }
+            if (isset($attributes['createdtm'])) {
+                $fields['createdtm'] = $attributes['createdtm'];
+            }
+            if (isset($attributes['createdproc'])) {
+                $fields['createdproc'] = $attributes['createdproc'];
+            }
 
             $tMnTt = [];
 
@@ -903,6 +928,68 @@ class CsdErpService implements ErpApiInterface
             ];
         }
 
+        $tinfieldvalue = [];
+        if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
+            $tinfieldvalue = [
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'AuthAmt',
+                    'fieldvalue' => $order['total_order_value'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'ProcPaymentType',
+                    'fieldvalue' => $order['card_type'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'MerchantID',
+                    'fieldvalue' => $order['merchant_id'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'CardNumber',
+                    'fieldvalue' => $order['card_number'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'PaymentType',
+                    'fieldvalue' => 'cenpos',
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'Token',
+                    'fieldvalue' => $order['card_token'],
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'AuthNumber',
+                    'fieldvalue' => 'PDKWA9ZC',
+                ],
+                [
+                    'level' => 'SFOEOrderTotLoadV4',
+                    'lineno' => 0,
+                    'seqno' => 0,
+                    'fieldname' => 'ReferenceNumber',
+                    'fieldvalue' => 'PDKWA9ZC',
+                ],
+            ];
+        }
+
         $payload = [
             'companyNumber' => $this->companyNumber,
             'operatorInit' => $this->operatorInit,
@@ -956,7 +1043,7 @@ class CsdErpService implements ErpApiInterface
                 't-inputlineextradata' => [],
             ],
             'tInfieldvalue' => [
-                't-infieldvalue' => [],
+                't-infieldvalue' => $tinfieldvalue,
             ],
         ];
 
@@ -1128,11 +1215,11 @@ class CsdErpService implements ErpApiInterface
                         'shiptoaddr1' => $order['ship_to_address1'],
                         'shiptoaddr2' => $order['ship_to_address2'],
                         'shiptoaddr3' => $order['ship_to_address3'],
-                        'shiptocontact' => $order['ship_to_name'],
+                        'shiptocontact' => $order['customer_name'],
                         'shiptocity' => $order['ship_to_city'],
                         'shiptocountry' => $order['ship_to_country_code'],
                         'shiptoname' => $order['ship_to_name'],
-                        'shiptonumber' => '',
+                        'shiptonumber' => $order['ship_to_number'],
                         'shiptostate' => $order['ship_to_state'],
                         'shiptophone' => $order['ship_to_phone'],
                         'shiptophoneext' => '',
