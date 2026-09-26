@@ -23,6 +23,7 @@ use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
+use Amplify\ErpApi\Traits\PersistsCustomerOrderErpCall;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
 use Amplify\ErpApi\Wrappers\ContactValidation;
@@ -50,6 +51,7 @@ class FactsErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
     use ErpApiConfigTrait;
+    use PersistsCustomerOrderErpCall;
 
     private array $commonHeaders;
 
@@ -77,9 +79,11 @@ class FactsErpService implements ErpApiInterface
     /**
      * @throws ErpApiException
      */
-    private function post(string $url, array $payload = []): array
+    private function post(string $url, array $payload = [], ?string &$rawResponseBody = null): array
     {
         $response = Http::factErp()->post($url, $payload);
+
+        $rawResponseBody = $response->body();
 
         // Item Master API Response RAW Logging
         if ($url == '/itemMaster') {
@@ -617,10 +621,24 @@ class FactsErpService implements ErpApiInterface
                 $payload['content']['FreightAmount'] = $order['freight_amount'] ?? 0;
             }
 
-            $response = $this->post('/createOrder', $payload);
+            $response = $this->sendCustomerOrderErpCall(
+                $orderInfo,
+                $payload,
+                function (&$rawResponseBody) use ($payload) {
+                    return $this->post('/createOrder', $payload, $rawResponseBody);
+                }
+            );
+
+            if (isset($response['error'])) {
+                $orderResponse = $this->adapter->createOrder();
+                $orderResponse->Message = $response['error'];
+
+                return $orderResponse;
+            }
 
             return $this->adapter->createOrder($response);
         } catch (Exception $exception) {
+            $this->recordCustomerOrderErpFailure($orderInfo, $exception);
             $this->exceptionHandler($exception);
 
             return $this->adapter->createOrder();
