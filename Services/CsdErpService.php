@@ -25,6 +25,7 @@ use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
+use Amplify\ErpApi\Traits\PersistsCustomerOrderErpCall;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
 use Amplify\ErpApi\Wrappers\ContactValidation;
@@ -57,6 +58,7 @@ class CsdErpService implements ErpApiInterface
     use BackendShippingCostTrait;
 
     use ErpApiConfigTrait;
+    use PersistsCustomerOrderErpCall;
 
     private array $commonHeaders;
 
@@ -136,7 +138,7 @@ class CsdErpService implements ErpApiInterface
     /**
      * @throws ErpApiException
      */
-    public function post(string $url, array $payload = []): array
+    public function post(string $url, array $payload = [], ?string &$rawResponseBody = null): array
     {
         if (isset($payload['customerNumber'])) {
             $payload['customerNumber'] = intval($payload['customerNumber']);
@@ -154,6 +156,8 @@ class CsdErpService implements ErpApiInterface
         $response = Http::csdErp()
             ->baseUrl($baseUrl)
             ->post($url, $attchedPayload);
+
+        $rawResponseBody = $response->body();
 
         if ($url == '/proxy/FetchWhere') {
             return $response->json();
@@ -885,10 +889,11 @@ class CsdErpService implements ErpApiInterface
             return $this->createOrderDkLok($orderInfo);
 
         } catch (Exception $exception) {
+            $this->recordCustomerOrderErpFailure($orderInfo, $exception);
 
             $this->exceptionHandler($exception);
 
-            return $this->adapter->createOrder();
+            return $this->adapter->createOrder(['error' => $exception->getMessage()]);
         }
     }
 
@@ -1047,7 +1052,13 @@ class CsdErpService implements ErpApiInterface
             ],
         ];
 
-        $response = $this->post('/sxapisfoeordertotloadv4', $payload);
+        $response = $this->sendCustomerOrderErpCall(
+            $orderInfo,
+            ['request' => $payload],
+            function (&$rawResponseBody) use ($payload) {
+                return $this->post('/sxapisfoeordertotloadv4', $payload, $rawResponseBody);
+            }
+        );
 
         if(\array_key_exists('error', $response)) {
             throw new ErpApiException($response['error']);
@@ -1288,7 +1299,13 @@ class CsdErpService implements ErpApiInterface
             ];
         }
 
-        $response = $this->post('/sxapisfoeordertotloadv4', $payload);
+        $response = $this->sendCustomerOrderErpCall(
+            $orderInfo,
+            ['request' => $payload],
+            function (&$rawResponseBody) use ($payload) {
+                return $this->post('/sxapisfoeordertotloadv4', $payload, $rawResponseBody);
+            }
+        );
 
         return $this->adapter->createOrder($response);
     }

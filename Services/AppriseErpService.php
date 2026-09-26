@@ -25,6 +25,7 @@ use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
+use Amplify\ErpApi\Traits\PersistsCustomerOrderErpCall;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
 use Amplify\ErpApi\Wrappers\ContactValidation;
@@ -58,6 +59,7 @@ class AppriseErpService implements ErpApiInterface
     use BackendShippingCostTrait;
 
     use ErpApiConfigTrait;
+    use PersistsCustomerOrderErpCall;
 
     private array $commonHeaders;
 
@@ -133,12 +135,14 @@ class AppriseErpService implements ErpApiInterface
     /**
      * @throws ErpApiException
      */
-    public function post(string $url, array $payload = []): array
+    public function post(string $url, array $payload = [], ?string &$rawResponseBody = null): array
     {
         $response = Http::appriseErp()
             ->baseUrl($this->config['url'])
             ->acceptJson()
             ->post($url, $payload);
+
+        $rawResponseBody = $response->body();
 
         return $this->validate($response->json(), $url, $response->ok());
 
@@ -785,6 +789,7 @@ class AppriseErpService implements ErpApiInterface
 
         } catch (Exception $exception) {
 
+            $this->recordCustomerOrderErpFailure($orderInfo, $exception);
             $this->exceptionHandler($exception);
 
             return $this->adapter->createOrder();
@@ -879,7 +884,13 @@ class AppriseErpService implements ErpApiInterface
             ],
         ];
 
-        $response = $this->post('/sxapisfoeordertotloadv4', $payload);
+        $response = $this->sendCustomerOrderErpCall(
+            $orderInfo,
+            ['request' => $payload],
+            function (&$rawResponseBody) use ($payload) {
+                return $this->post('/sxapisfoeordertotloadv4', $payload, $rawResponseBody);
+            }
+        );
 
         if (\array_key_exists('error', $response)) {
             throw new ErpApiException($response['error']);
@@ -1112,7 +1123,13 @@ class AppriseErpService implements ErpApiInterface
             ];
         }
 
-        $response = $this->post('/sxapisfoeordertotloadv4', $payload);
+        $response = $this->sendCustomerOrderErpCall(
+            $orderInfo,
+            ['request' => $payload],
+            function (&$rawResponseBody) use ($payload) {
+                return $this->post('/sxapisfoeordertotloadv4', $payload, $rawResponseBody);
+            }
+        );
 
         return $this->adapter->createOrder($response);
     }
