@@ -252,6 +252,32 @@ class AppriseErpAdapter implements ErpApiInterface
         return $customerShippingLocations;
     }
 
+    public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
+    {
+        $model = new ShippingLocation($attributes);
+
+        if (!empty($attributes)) {
+            $model->Message = $attributes['error'] ?? null;
+            $model->ShipToNumber = $attributes['address_code'] ?? null;
+            $model->ShipToName = $attributes['address_name'] ?? null;
+            $model->ShipToCountryCode = $attributes['country_code'] ?? null;
+            $model->ShipToAddress1 = $attributes['address_1'] ?? null;
+            $model->ShipToAddress2 = $attributes['address_2'] ?? null;
+            $model->ShipToAddress3 = $attributes['address_3'] ?? null;
+            $model->ShipToCity = $attributes['city'] ?? null;
+            $model->ShipToState = $attributes['state'] ?? null;
+            $model->ShipToZipCode = $attributes['zip_code'] ?? null;
+            $model->ShipToPhoneNumber = $attributes['phone_1'] ?? null;
+            $model->ShipToContact = $attributes['contact'] ?? null;
+            $model->ShipToWarehouse = $attributes['warehouse'] ?? null;
+            $model->BackorderCode = $attributes['backorder'] ?? null;
+            $model->CarrierCode = $attributes['carrier_code'] ?? null;
+            $model->PoRequired = $attributes['po_required'] ?? null;
+        }
+
+        return $model;
+    }
+
     /**
      * This API is to get item details with pricing and availability for the given warehouse location ID
      */
