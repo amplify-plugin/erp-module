@@ -20,6 +20,7 @@ use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\ErpApiService;
 use Amplify\ErpApi\Exceptions\ErpApiException;
+use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
@@ -79,7 +80,9 @@ class FactsErpService implements ErpApiInterface
      */
     private function post(string $url, array $payload = []): array
     {
-        $response = Http::factErp()->post($url, $payload);
+        $response = Http::factErp()
+            ->withMiddleware(new OrderCommunication($this->orderId))
+            ->post($url, $payload);
 
         // Item Master API Response RAW Logging
         if ($url == '/itemMaster') {
@@ -583,6 +586,12 @@ class FactsErpService implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         try {
+            $this->orderId = $orderInfo['order_id'] ?? null;
+
+            if (empty($this->orderId)) {
+                throw new ErpApiException('Order info is missing the Order Id.');
+            }
+
             $order = $orderInfo['order'] ?? [];
             $items = $orderInfo['items'] ?? [];
             $customer_number = $orderInfo['customer_number'] ?? $this->getCustomerDetail()->CustomerNumber;
@@ -618,6 +627,8 @@ class FactsErpService implements ErpApiInterface
             }
 
             $response = $this->post('/createOrder', $payload);
+
+            $this->orderId = null;
 
             return $this->adapter->createOrder($response);
         } catch (Exception $exception) {
