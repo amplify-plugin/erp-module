@@ -930,7 +930,7 @@ class CsdErpService implements ErpApiInterface
 
         $tinfieldvalue = [];
         if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
-            $totalOrderValue = $order['total_order_value'] ?? 0 + $order['sales_tax_amount'] ?? 0;
+            $totalOrderValue = ($orderRequest['total_order_value'] ?? 0) + ($orderRequest['sales_tax_amount'] ?? 0);
             $tinfieldvalue = [
                 [
                     'level' => 'SFOEOrderTotLoadV4',
