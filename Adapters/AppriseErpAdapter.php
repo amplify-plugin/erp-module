@@ -243,13 +243,59 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $customerShippingLocations = new ShippingLocationCollection;
 
-        if (!empty($locations)) {
-            foreach ($locations as $location) {
+        $location = [];
+
+        $customer = $locations['custname'] ?? [];
+        $default = $locations['custShipto'] ?? [];
+
+        $location['address_code'] = $customer['custCode'] ?? null;
+        $location['address_name'] = $default['shiptoName'] ?? null;
+        $location['country_code'] = substr($default['country'] ?? '', 0, 2);
+        $location['address_1'] = $default['address1'] ?? null;
+        $location['address_2'] = $default['address2'] ?? null;
+        $location['address_3'] = $default['address3'] ?? null;
+        $location['city'] = $default['city'] ?? null;
+        $location['state'] = $default['state'] ?? null;
+        $location['zip_code'] = $default['postalCode'] ?? null;
+        $location['phone'] = $default['phone'] ?? null;
+        $location['contact'] = null;
+        $location['whse'] = $locations['locationSales']['locationPrefix'] ?? null;
+        $location['shipviaty'] = $customer['preferredShipper'] ?? null;
+        $location['poreqfl'] = isset($customer['reqPoNum']) ? $customer['reqPoNum'] ? 'Y' : 'N' : null;
+        $location['backorder'] = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
+
+//        if (!empty($locations)) {
+//            foreach ($locations as $location) {
                 $customerShippingLocations->push($this->renderSingleCustomerShippingLocation($location));
-            }
-        }
+//            }
+//        }
 
         return $customerShippingLocations;
+    }
+
+    public function renderSingleCustomerShippingLocation($attributes): ShippingLocation
+    {
+        $model = new ShippingLocation($attributes);
+
+        if (!empty($attributes)) {
+            $model->ShipToNumber = $attributes['address_code'] ?? null;
+            $model->ShipToName = $attributes['address_name'] ?? null;
+            $model->ShipToCountryCode = $attributes['country_code'] ?? '';
+            $model->ShipToAddress1 = $attributes['address_1'] ?? null;
+            $model->ShipToAddress2 = $attributes['address_2'] ?? null;
+            $model->ShipToAddress3 = $attributes['address_3'] ?? null;
+            $model->ShipToCity = $attributes['city'] ?? null;
+            $model->ShipToState = $attributes['state'] ?? null;
+            $model->ShipToZipCode = $attributes['zip_code'] ?? null;
+            $model->ShipToPhoneNumber = $attributes['phone'] ?? null;
+            $model->ShipToContact = $attributes['contact'] ?? null;
+            $model->ShipToWarehouse = $attributes['whse'] ?? null;
+            $model->BackorderCode = $attributes['backorder'] ?? null;
+            $model->CarrierCode = $attributes['shipviaty'] ?? null;
+            $model->PoRequired = $attributes['poreqfl'] ?? null;
+        }
+
+        return $model;
     }
 
     public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
@@ -732,31 +778,6 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->SalesPersonName = trim(($salesAgent['firstName'] ?? '') . ' ' . ($salesAgent['lastName'] ?? ''));
             $model->SalesPersonEmail = $salesAgent['emailAddress'] ?? null;
             $model->ProductRestriction = $customer['productRestriction'] ?? null;
-        }
-
-        return $model;
-    }
-
-    public function renderSingleCustomerShippingLocation($attributes): ShippingLocation
-    {
-        $model = new ShippingLocation($attributes);
-
-        if (!empty($attributes)) {
-            $model->ShipToNumber = $attributes['address_code'] ?? null;
-            $model->ShipToName = $attributes['address_name'] ?? null;
-            $model->ShipToCountryCode = $attributes['country_code'] ?? '';
-            $model->ShipToAddress1 = $attributes['address_1'] ?? null;
-            $model->ShipToAddress2 = $attributes['address_2'] ?? null;
-            $model->ShipToAddress3 = $attributes['address_3'] ?? null;
-            $model->ShipToCity = $attributes['city'] ?? null;
-            $model->ShipToState = $attributes['state'] ?? null;
-            $model->ShipToZipCode = $attributes['zip_code'] ?? null;
-            $model->ShipToPhoneNumber = $attributes['phone'] ?? null;
-            $model->ShipToContact = $attributes['contact'] ?? null;
-            $model->ShipToWarehouse = $attributes['whse'] ?? null;
-            $model->BackorderCode = null;
-            $model->CarrierCode = $attributes['shipviaty'] ?? null;
-            $model->PoRequired = $attributes['poreqfl'] ?? null;
         }
 
         return $model;

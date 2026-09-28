@@ -482,11 +482,13 @@ class AppriseErpService implements ErpApiInterface
                 throw new ErpApiException('Customer Code is missing.');
             }
 
-            $customer = \Amplify\System\Backend\Models\Customer::with('addresses')
-                ->whereCustomerCode($customer_number)
-                ->first();
+            $payload = [
+                'system_id' => $this->systemId
+            ];
 
-            return $this->adapter->getCustomerShippingLocationList($customer->addresses->toArray());
+            $response = $this->get("/customer/{$customer_number}/information", $payload);
+
+            return $this->adapter->getCustomerShippingLocationList($response);
 
         } catch (Exception $exception) {
 
@@ -724,7 +726,11 @@ class AppriseErpService implements ErpApiInterface
     {
         try {
 
-            $customer_number = $this->customerId($orderInfo);
+            $order = $orderInfo['order'] ?? [];
+
+            $request = $order['request'] ?? [];
+
+            $customer_number = $this->customerId($order);
 
             $items = $orderInfo['items'] ?? [];
 
@@ -733,13 +739,12 @@ class AppriseErpService implements ErpApiInterface
             foreach ($items as $index => $item) {
                 $orderLines[] = [
                     "lineKey" => $index,
-                    "productCode" => $item['product_code'],
-                    "productDesc" => $item['product_name'],
-                    "qtyOrdered" => $item['quantity'],
-                    "unitOfMeasureCode" => $item['uom'] ?? '',
+                    "productCode" => $item['ItemNumber'],
+                    "productDesc" => $item['ItemName'],
+                    "qtyOrdered" => $item['OrderQty'],
+                    "unitOfMeasureCode" => $item['UnitOfMeasure'] ?? '',
                     "unitOfMeasure" => "",
-                    "unitPrice" => floatval($item['unitprice']),
-                    "cancelBackorder" => !$item['product_back_order'],
+                    "unitPrice" => floatval($item['Price']),
                     "notes" => $item['additional_info']['notes'] ?? '',
                     "remarks" => $item['additional_info']['remarks'] ?? '',
                     "remarksDocuments" => $item['additional_info']['remarksDocuments'] ?? '',
@@ -756,15 +761,13 @@ class AppriseErpService implements ErpApiInterface
                 "headers" => [
                     [
                         "customerCode" => (string)$customer_number,
-                        "customerName" => $this->getCustomerDetail()->CustomerName,
-                        "phoneNumber" => $this->getCustomerDetail()->CustomerPhone,
+                        "customerName" => $order['customer_name'] ?? $this->getCustomerDetail()->CustomerName,
+                        "phoneNumber" => $order['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
                         "orderClass" => "Sale",
-                        "customerPONumber" => $orderInfo['customer_order_ref'] ?? null,
-                        "notes" => "test notes",
-                        "remarks" => "test header remark added to order ack",
+                        "customerPONumber" => $order['po_number'] ?? $order['customer_order_ref'] ?? "",
+                        "notes" => $order['order_note'] ?? "",
+                        "remarks" => $order['internal_note'] ?? "",
                         "orderCreateInput" => "",
-                        "documentsForRemarks" => "Order Acknowledgement",
-                        "customerBillToCode" => "",
                         "customerBillToName" => $this->getCustomerDetail()->CustomerName,
                         "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
                         "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
@@ -772,27 +775,27 @@ class AppriseErpService implements ErpApiInterface
                         "customerBillToState" => $this->getCustomerDetail()->CustomerState,
                         "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
                         "customerBillToCountry" => $this->getCustomerDetail()->CustomerCountry,
-                        "customerShipToCode" => '',
-                        "customerShipToName" => $orderInfo['shipping_name'] ?? '',
-                        "customerShipToAddress1" => $orderInfo['ship_to_address1'] ?? '',
-                        "customerShipToAddress2" => $orderInfo['ship_to_address2'] ?? '',
-                        "customerShipToCity" => $orderInfo['ship_to_city'] ?? '',
-                        "customerShipToState" => $orderInfo['ship_to_state'] ?? '',
-                        "customerShipToZipcode" => $orderInfo['ship_to_zip_code'] ?? '',
-                        "customerShipToCountry" => $orderInfo['ship_to_country_code'] ?? '',
+                        "customerShipToCode" => $order['ship_to_number'] ?? '',
+                        "customerShipToName" => $order['ship_to_name'] ?? '',
+                        "customerShipToAddress1" => $request['address_1'] ?? '',
+                        "customerShipToAddress2" => $request['address_2'] ?? '',
+                        "customerShipToCity" => $request['address_city'] ?? '',
+                        "customerShipToState" => $request['address_state'] ?? '',
+                        "customerShipToZipcode" => $request['address_zip_code'] ?? '',
+                        "customerShipToCountry" => $request['address_country_code'] ?? '',
                         "orderDate" => now()->toIso8601ZuluString('m'),
                         "requiredDate" => now()->toIso8601ZuluString('m'),
-                        "shippingLocation" => 'IN1',
-                        "shippingMethod" => $orderInfo['shipping_method'] ?? 'AT',
+                        "shippingLocation" => $order['warehouse_id'] ?? '',
+                        "shippingMethod" => $order['shipping_method'] ?? '',
                         "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
-                        "shipToAddress3" => $orderInfo['ship_to_address3'] ?? '',
-                        "billToEmail" => $this->getCustomerDetail()->CustomerEmail,
-                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
-                        "customerBillToPhone" => $this->getCustomerDetail()->CustomerPhone,
+                        "shipToAddress3" => $request['address_3'] ?? '',
+                        "billToEmail" => $order['customer_email'] ?? $this->getCustomerDetail()->CustomerEmail,
+                        "customerShipToPhone" => $order['phone_number'] ?? '',
+                        "customerBillToPhone" => $request['customer_phone'] ?? $this->getCustomerDetail()->CustomerPhone,
                         "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
                         "lines" => $orderLines,
                         "saleType" => "web",
-                        "salesLocation" => "IN1",
+                        "salesLocation" => $order['warehouse_id'] ?? '',
                         "manualHold" => true,
                         "ccClaimTicket" => false,
                         "ecommSaveCC" => false,
@@ -805,14 +808,14 @@ class AppriseErpService implements ErpApiInterface
 
             $response = $this->post('/orders', $payload);
 
-            return $this->adapter->getOrderTotal($response);
+            return $this->adapter->createOrder($response);
 
 
         } catch (Exception $exception) {
 
             $this->exceptionHandler($exception);
 
-            return $this->adapter->getOrderTotal();
+            return $this->adapter->createOrder();
         }
     }
 
