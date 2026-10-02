@@ -13,6 +13,8 @@ trait ErpApiConfigTrait
 {
     public array $config;
 
+    public ?int $orderId = null;
+
     /**
      * @var FactsErpAdapter|DefaultErpAdapter|CsdErpAdapter
      */

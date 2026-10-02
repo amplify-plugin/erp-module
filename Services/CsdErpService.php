@@ -22,6 +22,7 @@ use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Facades\ErpApi;
+use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
@@ -152,6 +153,7 @@ class CsdErpService implements ErpApiInterface
         }
 
         $response = Http::csdErp()
+            ->withMiddleware(new OrderCommunication($this->orderId))
             ->baseUrl($baseUrl)
             ->post($url, $attchedPayload);
 
@@ -878,11 +880,22 @@ class CsdErpService implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         try {
-            if (config('amplify.client_code') === 'STV') {
-                return $this->createOrderSteven($orderInfo);
+
+            $this->orderId = $orderInfo['order_id'] ?? null;
+
+            if (empty($this->orderId)) {
+                throw new ErpApiException('Order info is missing the Order Id.');
             }
 
-            return $this->createOrderDkLok($orderInfo);
+
+            $response = match (config('amplify.client_code')) {
+                'STV' => $this->createOrderSteven($orderInfo),
+                default => $this->createOrderDkLok($orderInfo),
+            };
+
+            $this->orderId = null;
+
+            return $response;
 
         } catch (Exception $exception) {
 
@@ -930,13 +943,14 @@ class CsdErpService implements ErpApiInterface
 
         $tinfieldvalue = [];
         if (!empty($order['card_token']) && $order['payment_method'] == 'credit_card') {
+            $totalOrderValue = ($orderRequest['total_order_value'] ?? 0) + ($orderRequest['sales_tax_amount'] ?? 0);
             $tinfieldvalue = [
                 [
                     'level' => 'SFOEOrderTotLoadV4',
                     'lineno' => 0,
                     'seqno' => 0,
                     'fieldname' => 'AuthAmt',
-                    'fieldvalue' => $order['total_order_value'],
+                    'fieldvalue' => $totalOrderValue,
                 ],
                 [
                     'level' => 'SFOEOrderTotLoadV4',
