@@ -734,6 +734,9 @@ class AppriseErpService implements ErpApiInterface
 
             $items = $orderInfo['items'] ?? [];
 
+            $customer = ErpApi::getCustomerDetail(['customer_number' => $customer_number]);
+
+
             $orderLines = [];
 
             foreach ($items as $index => $item) {
@@ -761,20 +764,20 @@ class AppriseErpService implements ErpApiInterface
                 "headers" => [
                     [
                         "customerCode" => (string)$customer_number,
-                        "customerName" => $order['customer_name'] ?? $this->getCustomerDetail()->CustomerName,
-                        "phoneNumber" => $order['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
+                        "customerName" => $order['customer_name'] ?? $customer->CustomerName,
+                        "phoneNumber" => $order['phone_number'] ?? $customer->CustomerPhone,
                         "orderClass" => "Sale",
                         "customerPONumber" => $order['po_number'] ?? $order['customer_order_ref'] ?? "",
                         "notes" => $order['order_note'] ?? "",
                         "remarks" => $order['internal_note'] ?? "",
                         "orderCreateInput" => "",
-                        "customerBillToName" => $this->getCustomerDetail()->CustomerName,
-                        "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
-                        "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
-                        "customerBillToCity" => $this->getCustomerDetail()->CustomerCity,
-                        "customerBillToState" => $this->getCustomerDetail()->CustomerState,
-                        "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
-                        "customerBillToCountry" => $this->getCustomerDetail()->CustomerCountry,
+                        "customerBillToName" => $customer->CustomerName,
+                        "customerBillToAddress1" => $customer->CustomerAddress1,
+                        "customerBillToAddress2" => $customer->CustomerAddress2,
+                        "customerBillToCity" => $customer->CustomerCity,
+                        "customerBillToState" => $customer->CustomerState,
+                        "customerBillToZipcode" => $customer->CustomerZipCode,
+                        "customerBillToCountry" => $customer->CustomerCountry,
                         "customerShipToCode" => $order['ship_to_number'] ?? '',
                         "customerShipToName" => $order['ship_to_name'] ?? '',
                         "customerShipToAddress1" => $request['address_1'] ?? '',
@@ -787,21 +790,28 @@ class AppriseErpService implements ErpApiInterface
                         "requiredDate" => now()->toIso8601ZuluString('m'),
                         "shippingLocation" => $order['warehouse_id'] ?? '',
                         "shippingMethod" => $order['shipping_method'] ?? '',
-                        "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
+                        "billToAddress3" => $customer->CustomerAddress3,
                         "shipToAddress3" => $request['address_3'] ?? '',
-                        "billToEmail" => $order['customer_email'] ?? $this->getCustomerDetail()->CustomerEmail,
+                        "billToEmail" => $order['customer_email'] ?? $customer->CustomerEmail,
                         "customerShipToPhone" => $order['phone_number'] ?? '',
-                        "customerBillToPhone" => $request['customer_phone'] ?? $this->getCustomerDetail()->CustomerPhone,
+                        "customerBillToPhone" => $request['customer_phone'] ?? $customer->CustomerPhone,
                         "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
                         "lines" => $orderLines,
                         "saleType" => "web",
                         "salesLocation" => $order['warehouse_id'] ?? '',
                         "manualHold" => true,
-                        "ccClaimTicket" => false,
                         "ecommSaveCC" => false,
                         "prepaidOrder" => false,
-                        "charges" => []
+                        "charges" => [],
 
+                        "paymentAcctID" => "string",
+                        "ccLast4" => "string",
+                        "ccExpMonth" => 0,
+                        "ccExpYear" => 0,
+                        "ccClaimTicket" => true,
+                        "creditCardType" => "string",
+                        "creditCardName" => "string",
+                        "termsCode" => "string"
                     ],
                 ],
             ];
@@ -902,10 +912,12 @@ class AppriseErpService implements ErpApiInterface
     {
         try {
 
-            /*$customer_number = $this->customerId($orderInfo);
+            $customer_number = $this->customerId($orderInfo);
 
-            $billToCountry = $this->countryByIso2($orderInfo['bill_to_country_code'] ?? $this->getCustomerDetail()->CustomerCountry ?? '');
-            $shipToCountry = $this->countryByIso2($orderInfo['ship_to_country_code'] ?? $this->getCustomerDetail()->CustomerCountry ?? '');
+            $customer = ErpApi::getCustomerDetail(['customer_number' => $customer_number]);
+            /*
+            $billToCountry = $this->countryByIso2($orderInfo['bill_to_country_code'] ?? $customer->CustomerCountry ?? '');
+            $shipToCountry = $this->countryByIso2($orderInfo['ship_to_country_code'] ?? $customer->CustomerCountry ?? '');
 
             $items = $orderInfo['items'] ?? [];
 
@@ -935,19 +947,19 @@ class AppriseErpService implements ErpApiInterface
                 "headers" => [
                     [
                         "customerCode" => (string)$customer_number,
-                        "customerName" => $this->getCustomerDetail()->CustomerName,
-                        "phoneNumber" => $this->getCustomerDetail()->CustomerPhone,
+                        "customerName" => $customer->CustomerName,
+                        "phoneNumber" => $customer->CustomerPhone,
                         "orderClass" => "Quote",
                         "customerPONumber" => $orderInfo['customer_order_ref'] ?? null,
                         "notes" => "test notes",
                         "orderCreateInput" => "",
                         "customerBillToCode" => "",
-                        "customerBillToName" => $this->getCustomerDetail()->CustomerName,
-                        "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
-                        "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
-                        "customerBillToCity" => $this->getCustomerDetail()->CustomerCity,
-                        "customerBillToState" => $this->getCustomerDetail()->CustomerState,
-                        "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
+                        "customerBillToName" => $customer->CustomerName,
+                        "customerBillToAddress1" => $customer->CustomerAddress1,
+                        "customerBillToAddress2" => $customer->CustomerAddress2,
+                        "customerBillToCity" => $customer->CustomerCity,
+                        "customerBillToState" => $customer->CustomerState,
+                        "customerBillToZipcode" => $customer->CustomerZipCode,
                         "customerBillToCountry" => $billToCountry?->iso3 ?? '',
                         "customerShipToCode" => '',
                         "customerShipToName" => $orderInfo['shipping_name'] ?? '',
@@ -961,11 +973,11 @@ class AppriseErpService implements ErpApiInterface
                         "requiredDate" => now()->toIso8601ZuluString('m'),
                         "shippingLocation" => 'IN1',
                         "shippingMethod" => $orderInfo['shipping_method'] ?? 'AT',
-                        "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
+                        "billToAddress3" => $customer->CustomerAddress3,
                         "shipToAddress3" => $orderInfo['ship_to_address3'] ?? '',
-                        "billToEmail" => $this->getCustomerDetail()->CustomerEmail,
-                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
-                        "customerBillToPhone" => $this->getCustomerDetail()->CustomerPhone,
+                        "billToEmail" => $customer->CustomerEmail,
+                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $customer->CustomerPhone,
+                        "customerBillToPhone" => $customer->CustomerPhone,
                         "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
                         "lines" => $orderLines,
                         "saleType" => "web",
@@ -1016,6 +1028,8 @@ class AppriseErpService implements ErpApiInterface
 
             $customer_number = $this->customerId($orderInfo);
 
+            $customer = ErpApi::getCustomerDetail(['customer_number' => $customer_number]);
+
             $items = $orderInfo['items'] ?? [];
 
             $orderLines = [];
@@ -1044,22 +1058,22 @@ class AppriseErpService implements ErpApiInterface
                     [
                         "orderKey" => 0,
                         "customerCode" => (string)$customer_number,
-                        "customerName" => $this->getCustomerDetail()->CustomerName,
-                        "phoneNumber" => $this->getCustomerDetail()->CustomerPhone,
+                        "customerName" => $customer->CustomerName,
+                        "phoneNumber" => $customer->CustomerPhone,
                         "orderClass" => "Quote",
 //                        "orderClass" => "Sale" -> order
                         "customerPONumber" => $orderInfo['customer_order_ref'] ?? null,
 //                        "notes" => "test",
                         "orderCreateInput" => " ",
                         "customerBillToCode" => '1175-0001',
-//                        "customerBillToCode" => $this->getCustomerDetail()->CustomerNumber,
-                        "customerBillToName" => $this->getCustomerDetail()->CustomerName,
-                        "customerBillToAddress1" => $this->getCustomerDetail()->CustomerAddress1,
-                        "customerBillToAddress2" => $this->getCustomerDetail()->CustomerAddress2,
-                        "customerBillToCity" => $this->getCustomerDetail()->CustomerCity,
-                        "customerBillToState" => $this->getCustomerDetail()->CustomerState,
-                        "customerBillToZipcode" => $this->getCustomerDetail()->CustomerZipCode,
-                        "customerBillToCountry" => $this->getCustomerDetail()->CustomerCountry,
+//                        "customerBillToCode" => $customer->CustomerNumber,
+                        "customerBillToName" => $customer->CustomerName,
+                        "customerBillToAddress1" => $customer->CustomerAddress1,
+                        "customerBillToAddress2" => $customer->CustomerAddress2,
+                        "customerBillToCity" => $customer->CustomerCity,
+                        "customerBillToState" => $customer->CustomerState,
+                        "customerBillToZipcode" => $customer->CustomerZipCode,
+                        "customerBillToCountry" => $customer->CustomerCountry,
                         "customerShipToCode" => '1175-0001',
                         "customerShipToName" => $orderInfo['shipping_name'] ?? '',
                         "customerShipToAddress1" => $orderInfo['ship_to_address1'] ?? '',
@@ -1070,11 +1084,11 @@ class AppriseErpService implements ErpApiInterface
                         "customerShipToCountry" => $orderInfo['ship_to_country_code'] ?? '',
                         "orderDate" => now()->toIso8601ZuluString('m'),
                         "shippingMethod" => $orderInfo['shipping_method'] ?? '',
-                        "billToAddress3" => $this->getCustomerDetail()->CustomerAddress3,
+                        "billToAddress3" => $customer->CustomerAddress3,
                         "shipToAddress3" => $orderInfo['ship_to_address3'] ?? '',
-                        "billToEmail" => $this->getCustomerDetail()->CustomerEmail,
-                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $this->getCustomerDetail()->CustomerPhone,
-                        "customerBillToPhone" => $this->getCustomerDetail()->CustomerPhone,
+                        "billToEmail" => $customer->CustomerEmail,
+                        "customerShipToPhone" => $orderInfo['phone_number'] ?? $customer->CustomerPhone,
+                        "customerBillToPhone" => $customer->CustomerPhone,
                         "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
                         "lines" => $orderLines,
                     ],
@@ -1082,16 +1096,15 @@ class AppriseErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/orders', $payload);
-//            $response = $this->get('/order-classes');
 
-            return $this->adapter->getOrderTotal($response);
+            return $this->adapter->createQuotation($response);
 
 
         } catch (Exception $exception) {
 
             $this->exceptionHandler($exception);
 
-            return $this->adapter->getOrderTotal();
+            return $this->adapter->createQuotation();
         }
     }
 
@@ -1555,15 +1568,13 @@ class AppriseErpService implements ErpApiInterface
     {
         try {
 
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $this->customerId($filters),
-                'requestType' => 'credit',
-            ];
+            $customer_number = $this->customerId($filters);
 
-            $response = $this->post('/sxapiargetcustomerdata', $payload);
+            $customer = ErpApi::getCustomerDetail(['customer_number' => $customer_number]);
 
-            return $this->adapter->getTermsType($response);
+            $response = $customer->getRawContent();
+
+            return $this->adapter->getTermsType($response['customerAr'] ?? []);
 
         } catch (Exception $exception) {
 
@@ -1756,85 +1767,6 @@ class AppriseErpService implements ErpApiInterface
         }
     }
 
-
-    /**
-     * Acts as a query builder to fetch specific fields from the CSD ARSC table.
-     *
-     * This API fetches customer-level configuration such as freight terms code and row pointer
-     * from the CSD using the FetchWhere service.
-     *
-     * @return array Contains 'frttermscd' and 'rowpointer' if found; empty array otherwise.
-     *
-     * @throws Exception
-     */
-    public function getFreightDetails(array $inputs = []): array
-    {
-        try {
-            $customerNumber = $this->customerId($inputs);
-            $cacheKey = "freight_details_customer_{$customerNumber}";
-
-            return Cache::rememberForever($cacheKey, function () use ($customerNumber) {
-                // First call to arsc
-                $firstPayload = [
-                    'CompanyNumber' => $this->systemId,
-                    'TableName' => 'arsc',
-                    'WhereClause' => "arsc.cono = 1 and arsc.custno = $customerNumber",
-                    'BatchSize' => 1,
-                    'RestartRowID' => '',
-                ];
-
-                //Acts as a query builder to fetch specific fields from the CSD ARSC table.
-                $arscResponse = $this->post('/proxy/FetchWhere', $firstPayload);
-                $arscData = $arscResponse['ttblarsc'][0] ?? [];
-
-                $frttermscd = strtoupper($arscData['frttermscd'] ?? '');
-                $rowpointer = $arscData['rowpointer'] ?? null;
-
-                // Default single result (uppercase applied)
-                $results = [[
-                    'frttermscd' => $frttermscd,
-                    'accountnumber' => null,
-                    'carrierid' => null,
-                ]];
-
-                // rowpointer exists, do second call
-                if ($rowpointer) {
-                    $secondPayload = [
-                        'CompanyNumber' => $this->systemId,
-                        'TableName' => 'sastf',
-                        'WhereClause' => "sastf.cono = 1 and sastf.srcrowpointer = '$rowpointer' and sastf.billlevelcd = 'c'",
-                        'BatchSize' => 50,
-                        'RestartRowID' => '',
-                    ];
-                    //Acts as a query builder to fetch specific fields from the CSD ARSC table.
-                    $sastfResponse = $this->post('/proxy/FetchWhere', $secondPayload);
-                    $sastfDataList = $sastfResponse['ttblsastf'] ?? [];
-
-                    // Only override if second call returns results
-                    if (!empty($sastfDataList)) {
-                        $results = array_map(function ($item) use ($frttermscd) {
-                            return [
-                                'frttermscd' => $frttermscd,
-                                'accountnumber' => $item['billaccount'] ?? null,
-                                'carrierid' => strtoupper($item['carrierid'] ?? ''),
-                            ];
-                        }, $sastfDataList);
-                    }
-                }
-
-                return $results;
-            });
-        } catch (Exception $e) {
-            $this->exceptionHandler($e);
-
-            return [[
-                'frttermscd' => null,
-                'accountnumber' => null,
-                'carrierid' => null,
-            ]];
-        }
-    }
-
     public function getNotesList(array $inputs = []): OrderNoteCollection
     {
         try {
@@ -1927,20 +1859,10 @@ class AppriseErpService implements ErpApiInterface
         ];
     }
 
-    protected function getIdmBaseUrl(): string
-    {
-        // Remove SX path and point to IDM
-        return str_replace(
-            'SX/web/sxapirestservice',
-            'IDM',
-            $this->config['url']
-        );
-    }
-
     /**
      * Get printable document (Invoice / Order / Quote) from IDM
      *
-     * @throws ErpApiException
+     * @throws ErpApiException|Exception
      */
     public function getPrintableDocument(array $inputs = []): DocumentCollection
     {

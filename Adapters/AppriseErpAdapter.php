@@ -1674,16 +1674,7 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $model = new TermsType($attributes);
 
-        $termsTypeValue = null;
-        if (!empty($attributes['tFieldlist']['t-fieldlist'])) {
-            foreach ($attributes['tFieldlist']['t-fieldlist'] as $field) {
-                if ($field['fieldName'] === 'termstype') {
-                    $termsTypeValue = $field['fieldValue'];
-                    break;
-                }
-            }
-        }
-        $model->TermsType = $termsTypeValue;
+        $model->TermsType = $attributes['termsCode'] ?? null;
 
         return $model;
     }

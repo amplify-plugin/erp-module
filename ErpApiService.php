@@ -197,16 +197,14 @@ class ErpApiService
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * @throws \ErrorException
-     */
     public function getCustomerDetail(array $filters = []): Customer
     {
-        if (!empty($filters['customer_number'])) {
-            return $this->__call(__FUNCTION__, [$filters]);
-        }
+        $customer_number = empty($filters['customer_number'])
+            ? customer_check()
+                ? customer()->erp_id
+                : config('amplify.frontend.guest_default')
+            : $filters['customer_number'];
 
-        $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
         $filters['customer_number'] = $customer_number;
 
         return Cache::remember(
@@ -216,16 +214,14 @@ class ErpApiService
         );
     }
 
-    /**
-     * @throws \ErrorException
-     */
     public function getCustomerShippingLocationList(array $filters = []): ShippingLocationCollection
     {
-        if (!empty($filters['customer_number'])) {
-            return $this->__call(__FUNCTION__, [$filters]);
-        }
+        $customer_number = empty($filters['customer_number'])
+            ? customer_check()
+                ? customer()->erp_id
+                : config('amplify.frontend.guest_default')
+            : $filters['customer_number'];
 
-        $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
         $filters['customer_number'] = $customer_number;
 
         return Cache::remember(
