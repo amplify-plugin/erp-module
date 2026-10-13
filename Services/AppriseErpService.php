@@ -22,6 +22,7 @@ use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Facades\ErpApi;
+use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
@@ -138,6 +139,7 @@ class AppriseErpService implements ErpApiInterface
     public function post(string $url, array $payload = []): array
     {
         $response = Http::appriseErp()
+            ->withMiddleware(new OrderCommunication($this->orderId))
             ->baseUrl($this->config['url'])
             ->acceptJson()
             ->post($url, $payload);
@@ -724,35 +726,37 @@ class AppriseErpService implements ErpApiInterface
      */
     public function createOrder(array $orderInfo = []): Order
     {
+
         try {
 
-            $order = $orderInfo['order'] ?? [];
+            $this->orderId = $orderInfo['id'] ?? null;
 
-            $request = $order['request'] ?? [];
+            if (empty($this->orderId)) {
+                throw new ErpApiException('Order info is missing the Order Id.');
+            }
 
-            $customer_number = $this->customerId($order);
+            $credentials = $orderInfo['credentials'] ?? [];
 
-            $items = $orderInfo['items'] ?? [];
+            $cardExpiry = str_split($credentials['card_expiry'] ?? '', 2);
 
-            $customer = ErpApi::getCustomerDetail(['customer_number' => $customer_number]);
-
+            $items = $orderInfo['orderLines'] ?? [];
 
             $orderLines = [];
 
             foreach ($items as $index => $item) {
                 $orderLines[] = [
                     "lineKey" => $index,
-                    "productCode" => $item['ItemNumber'],
-                    "productDesc" => $item['ItemName'],
-                    "qtyOrdered" => $item['OrderQty'],
-                    "unitOfMeasureCode" => $item['UnitOfMeasure'] ?? '',
+                    "productCode" => $item['product_code'],
+                    "productDesc" => $item['product']['product_name'],
+                    "qtyOrdered" => $item['qty'],
+                    "unitOfMeasureCode" => $item['unit_code'] ?? '',
                     "unitOfMeasure" => "",
-                    "unitPrice" => floatval($item['Price']),
-                    "notes" => $item['additional_info']['notes'] ?? '',
-                    "remarks" => $item['additional_info']['remarks'] ?? '',
-                    "remarksDocuments" => $item['additional_info']['remarksDocuments'] ?? '',
-                    "dropShip" => false,
-                    "custProdCode" => "",
+                    "unitPrice" => floatval($item['customer_price']),
+//                    "notes" => $item['additional_info']['notes'] ?? '',
+//                    "remarks" => $item['additional_info']['remarks'] ?? '',
+//                    "remarksDocuments" => $item['additional_info']['remarksDocuments'] ?? '',
+//                    "dropShip" => false,
+//                    "custProdCode" => "",
                 ];
             }
 
@@ -763,63 +767,66 @@ class AppriseErpService implements ErpApiInterface
                 "language" => "en",
                 "headers" => [
                     [
-                        "customerCode" => (string)$customer_number,
-                        "customerName" => $order['customer_name'] ?? $customer->CustomerName,
-                        "phoneNumber" => $order['phone_number'] ?? $customer->CustomerPhone,
+                        "customerCode" => (string)$orderInfo['customer_code'],
+                        "customerName" => $orderInfo['customer_name'] ??  null,
+                        "phoneNumber" => $orderInfo['phone'] ?? null,
                         "orderClass" => "Sale",
-                        "customerPONumber" => $order['po_number'] ?? $order['customer_order_ref'] ?? "",
-                        "notes" => $order['order_note'] ?? "",
-                        "remarks" => $order['internal_note'] ?? "",
+                        "customerPONumber" => $orderInfo['po_number'] ?? "",
+                        "notes" =>  "",
+                        "remarks" => "",
                         "orderCreateInput" => "",
-                        "customerBillToName" => $customer->CustomerName,
-                        "customerBillToAddress1" => $customer->CustomerAddress1,
-                        "customerBillToAddress2" => $customer->CustomerAddress2,
-                        "customerBillToCity" => $customer->CustomerCity,
-                        "customerBillToState" => $customer->CustomerState,
-                        "customerBillToZipcode" => $customer->CustomerZipCode,
-                        "customerBillToCountry" => $customer->CustomerCountry,
-                        "customerShipToCode" => $order['ship_to_number'] ?? '',
-                        "customerShipToName" => $order['ship_to_name'] ?? '',
-                        "customerShipToAddress1" => $request['address_1'] ?? '',
-                        "customerShipToAddress2" => $request['address_2'] ?? '',
-                        "customerShipToCity" => $request['address_city'] ?? '',
-                        "customerShipToState" => $request['address_state'] ?? '',
-                        "customerShipToZipcode" => $request['address_zip_code'] ?? '',
-                        "customerShipToCountry" => $request['address_country_code'] ?? '',
+                        "customerBillToName" => $orderInfo['customer_name'] ??  null,
+                        "customerBillToAddress1" => $orderInfo['customer_address_1'] ??  null,
+                        "customerBillToAddress2" => $orderInfo['customer_address_2'] ??  null,
+                        "customerBillToCity" => $orderInfo['customer_city'] ??  null,
+                        "customerBillToState" => $orderInfo['customer_state'] ??  null,
+                        "customerBillToZipcode" => $orderInfo['customer_zip_code'] ??  null,
+                        "customerBillToCountry" => $orderInfo['customer_country_code'] ??  null,
+                        "customerShipToCode" => $orderInfo['ship_to_number'] ?? '',
+                        "customerShipToName" => $orderInfo['ship_to_name'] ?? '',
+                        "customerShipToAddress1" => $request['ship_to_address_1'] ?? '',
+                        "customerShipToAddress2" => $request['ship_to_address_2'] ?? '',
+                        "customerShipToCity" => $request['ship_to_city'] ?? '',
+                        "customerShipToState" => $request['ship_to_state'] ?? '',
+                        "customerShipToZipcode" => $request['ship_to_zip_code'] ?? '',
+                        "customerShipToCountry" => $request['ship_to_country_code'] ?? '',
                         "orderDate" => now()->toIso8601ZuluString('m'),
                         "requiredDate" => now()->toIso8601ZuluString('m'),
-                        "shippingLocation" => $order['warehouse_id'] ?? '',
-                        "shippingMethod" => $order['shipping_method'] ?? '',
-                        "billToAddress3" => $customer->CustomerAddress3,
+                        "shippingLocation" => $orderInfo['order_warehouse'] ?? '',
+                        "shippingMethod" => $orderInfo['ship_to_method'] ?? '',
+                        "billToAddress3" => $orderInfo['customer_address_2'] ??  null,
                         "shipToAddress3" => $request['address_3'] ?? '',
-                        "billToEmail" => $order['customer_email'] ?? $customer->CustomerEmail,
-                        "customerShipToPhone" => $order['phone_number'] ?? '',
-                        "customerBillToPhone" => $request['customer_phone'] ?? $customer->CustomerPhone,
-                        "enteredCurrency" => $orderInfo['currency'] ?? config('amplify.basic.global_currency', 'USD'),
+                        "billToEmail" => $orderInfo['email'] ?? '',
+                        "customerShipToPhone" => $orderInfo['ship_to_phone'] ?? '',
+                        "customerBillToPhone" => $request['phone'] ?? '',
+                        "enteredCurrency" => config('amplify.basic.global_currency', 'USD'),
                         "lines" => $orderLines,
                         "saleType" => "web",
-                        "salesLocation" => $order['warehouse_id'] ?? '',
+                        "salesLocation" => $order['order_warehouse'] ?? '',
                         "manualHold" => true,
                         "ecommSaveCC" => false,
                         "prepaidOrder" => false,
                         "charges" => [],
 
-                        "paymentAcctID" => "string",
-                        "ccLast4" => "string",
-                        "ccExpMonth" => 0,
-                        "ccExpYear" => 0,
+                        "paymentAcctID" => $credentials['card_token'] ?? '',
+                        "ccLast4" => $credentials['card_token'] ?? '',
+                        "ccExpMonth" => $cardExpiry[0] ? intval($cardExpiry[0]) : null,
+                        "ccExpYear" => $cardExpiry[1] ? intval($cardExpiry[1]) : null,
                         "ccClaimTicket" => true,
-                        "creditCardType" => "string",
-                        "creditCardName" => "string",
-                        "termsCode" => "string"
+                        "creditCardType" => $credentials['card_type'] ?? '',
+                        "creditCardName" => $credentials['card_holder_name'] ?? '',
+                        "termsCode" => $credentials['card_type'] ?? ''
                     ],
                 ],
             ];
 
             $response = $this->post('/orders', $payload);
 
-            return $this->adapter->createOrder($response);
+            $order = $this->adapter->createOrder($response);
 
+            $this->orderId = null;
+
+            return $order;
 
         } catch (Exception $exception) {
 
