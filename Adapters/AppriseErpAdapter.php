@@ -395,7 +395,7 @@ class AppriseErpAdapter implements ErpApiInterface
 
         if ($orderInfo['validationErrorCount'] != 0) {
             $model->Message = collect($orderInfo['statusReports'] ?? [])
-                ->filter(fn ($item) => is_numeric($item['msgNum']))
+                ->filter(fn ($item) => is_numeric($item['msgNum']) && !in_array($item['msgNum'], [19558, 19550, 19602, 19616]))
                 ->pluck('statLine')
                 ->implode(' | ');
         }
