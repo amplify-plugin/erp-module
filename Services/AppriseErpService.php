@@ -43,6 +43,7 @@ use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TermsType;
+use Amplify\System\Backend\Models\Country;
 use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\Backend\Models\SystemConfiguration;
 use Carbon\Carbon;
@@ -50,7 +51,6 @@ use Carbon\CarbonImmutable;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 /**
  * @property array $config
@@ -739,12 +739,12 @@ class AppriseErpService implements ErpApiInterface
 
             $cardExpiry = str_split($credentials['card_expiry'] ?? '', 2);
 
-            $items = $orderInfo['orderLines'] ?? [];
+            $items = $orderInfo['order_lines'] ?? [];
 
-            $orderLines = [];
+            $lines = [];
 
             foreach ($items as $index => $item) {
-                $orderLines[] = [
+                $lines[] = [
                     "lineKey" => $index,
                     "productCode" => $item['product_code'],
                     "productDesc" => $item['product']['product_name'],
@@ -759,6 +759,8 @@ class AppriseErpService implements ErpApiInterface
 //                    "custProdCode" => "",
                 ];
             }
+
+            $countryModel = Country::findByISO($orderInfo['customer_country_code'] ?? '');
 
             $payload = [
                 "viewErrorsOnly" => true,
@@ -781,7 +783,7 @@ class AppriseErpService implements ErpApiInterface
                         "customerBillToCity" => $orderInfo['customer_city'] ??  null,
                         "customerBillToState" => $orderInfo['customer_state'] ??  null,
                         "customerBillToZipcode" => $orderInfo['customer_zip_code'] ??  null,
-                        "customerBillToCountry" => $orderInfo['customer_country_code'] ??  null,
+                        "customerBillToCountry" => $orderInfo['customer_country_code'] ? $countryModel->iso3 :  '',
                         "customerShipToCode" => $orderInfo['ship_to_number'] ?? '',
                         "customerShipToName" => $orderInfo['ship_to_name'] ?? '',
                         "customerShipToAddress1" => $request['ship_to_address_1'] ?? '',
@@ -789,18 +791,18 @@ class AppriseErpService implements ErpApiInterface
                         "customerShipToCity" => $request['ship_to_city'] ?? '',
                         "customerShipToState" => $request['ship_to_state'] ?? '',
                         "customerShipToZipcode" => $request['ship_to_zip_code'] ?? '',
-                        "customerShipToCountry" => $request['ship_to_country_code'] ?? '',
+                        "customerShipToCountry" => $request['ship_to_country_code'] ? $countryModel->iso3 : '',
                         "orderDate" => now()->toIso8601ZuluString('m'),
                         "requiredDate" => now()->toIso8601ZuluString('m'),
                         "shippingLocation" => $orderInfo['order_warehouse'] ?? '',
                         "shippingMethod" => $orderInfo['ship_to_method'] ?? '',
-                        "billToAddress3" => $orderInfo['customer_address_2'] ??  null,
-                        "shipToAddress3" => $request['address_3'] ?? '',
+                        "billToAddress3" => $orderInfo['customer_address_3'] ??  null,
+                        "shipToAddress3" => $request['ship_to_address_3'] ?? '',
                         "billToEmail" => $orderInfo['email'] ?? '',
                         "customerShipToPhone" => $orderInfo['ship_to_phone'] ?? '',
                         "customerBillToPhone" => $request['phone'] ?? '',
                         "enteredCurrency" => config('amplify.basic.global_currency', 'USD'),
-                        "lines" => $orderLines,
+                        "lines" => $lines,
                         "saleType" => "web",
                         "salesLocation" => $order['order_warehouse'] ?? '',
                         "manualHold" => true,
@@ -809,7 +811,7 @@ class AppriseErpService implements ErpApiInterface
                         "charges" => [],
 
                         "paymentAcctID" => $credentials['card_token'] ?? '',
-                        "ccLast4" => $credentials['card_token'] ?? '',
+                        "ccLast4" => $credentials['card_number'] ?? '',
                         "ccExpMonth" => $cardExpiry[0] ? intval($cardExpiry[0]) : null,
                         "ccExpYear" => $cardExpiry[1] ? intval($cardExpiry[1]) : null,
                         "ccClaimTicket" => true,
