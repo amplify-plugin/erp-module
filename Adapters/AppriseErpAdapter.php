@@ -5,6 +5,7 @@ namespace Amplify\ErpApi\Adapters;
 use Amplify\ErpApi\ProductSyncService;
 use Amplify\ErpApi\Wrappers\OrderPODetails;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
+use Amplify\System\Backend\Models\Country;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Amplify\ErpApi\Facades\ErpApi;
@@ -383,26 +384,106 @@ class AppriseErpAdapter implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         $model = new Order($orderInfo);
-        $erpData = $orderInfo ?? [];
-        if (isset($erpData['error'])) {
-            // Handle error scenario if needed
-            $model->Message = $erpData['error'];
-            return $model;
+
+        $attribute = $orderInfo['orderInfo'] ?? [];
+
+        $specialCharge = collect($attribute['total_additional'] ?? [])->sum('value');
+
+        $orderNumber = $this->getAttribute($orderInfo['statusReports'] ?? [], 'Created order number');
+
+        $model->Message = null;
+
+        if ($orderInfo['validationErrorCount'] != 0) {
+            $model->Message = collect($orderInfo['statusReports'] ?? [])
+                ->filter(fn ($item) => is_numeric($item['msgNum']))
+                ->pluck('statLine')
+                ->implode(' | ');
         }
 
-        $header = $erpData['tOrdloadhdrdata']['t-ordloadhdrdata'][0] ?? [];
-        $lines = $erpData['tOrdloadlinedata']['t-ordloadlinedata'] ?? [];
-        $totals = $erpData['tOrdtotdata']['t-ordtotdata'][0] ?? [];
-        $notesRaw = $erpData['tOrdtotextamt']['t-ordtotextamt'] ?? [];
+        $model->CustomerNumber = $attribute['customer_code'] ?? null;
+        $model->ContactId = $attribute['contact_id'] ?? null;
+        $model->OrderNumber = $orderNumber['param1'] ?? null;
+        $model->OrderSuffix = $attribute['OrderSuffix'] ?? null;
+        $model->OrderType = $attribute['OrderType'] ?? null;
 
-        $flattened = array_merge(
-            $header,
-            $totals,
-        );
+        $model->OrderStatus = $attribute['order_status'] ?? null;
+        $model->CustomerName = $attribute['customer_name'] ?? null;
+        $model->BillToCountry = $attribute['customer_country_code'] ?? null;
+        $model->CustomerAddress1 = $attribute['customer_address_1'] ?? null;
+        $model->CustomerAddress2 = $attribute['customer_address_2'] ?? null;
+        $model->CustomerAddress3 = $attribute['customer_address_3'] ?? null;
+        $model->BillToCity = $attribute['customer_city'] ?? null;
+        $model->BillToState = $attribute['customer_state'] ?? null;
 
+        $model->BillToZipCode = $attribute['customer_zip_code'] ?? null;
+        $model->BillToContact = $attribute['name'] ?? null;
+        $model->ShipToNumber = $attribute['ship_to_number'] ?? null;
+        $model->ShipToName = $attribute['ship_to_name'] ?? null;
+        $model->ShipToCountry = $attribute['ship_to_country_code'] ?? null;
+        $model->ShipToAddress1 = $attribute['ship_to_address_1'] ?? null;
+        $model->ShipToAddress2 = $attribute['ship_to_address_2'] ?? null;
+        $model->ShipToAddress3 = $attribute['ship_to_address_3'] ?? null;
 
-        $model->OrderNumber = $flattened['orderno'] ?? null;
-        $model->OrderStatus = 'Accepted';
+        $model->ShipToCity = $attribute['ship_to_city'] ?? null;
+        $model->ShipToState = $attribute['ship_to_state'] ?? null;
+        $model->ShipToZipCode = $attribute['ship_to_zip_code'] ?? null;
+        $model->ShipToContact = $attribute['ship_to_contact'] ?? null;
+        $model->EntryDate = $attribute['created_at'] ?? null;
+//        $model->PromiseDate = $attribute['PromiseDate'] ?? null;
+//        $model->RequestedShipDate = $attribute['RequestedShipDate'] ?? null;
+        $model->CustomerPurchaseOrdernumber = $attribute['po_number'] ?? null;
+        $model->ItemSalesAmount = $attribute['total_net_price'] ?? null;
+
+//        $model->DiscountAmountTrading = $attribute['DiscountAmountTrading'] ?? null;
+        $model->SalesTaxAmount = $attribute['total_tax_amount'] ?? null;
+        $model->InvoiceAmount = $attribute['total_amount'] ?? null;
+        $model->FreightAmount = $attribute['total_shipping_cost'] ?? null;
+        $model->TotalOrderValue = $attribute['total_amount'] ?? null;
+        $model->TotalSpecialCharges = $specialCharge ?? null;
+        $model->CarrierCode = $attribute['ship_to_method'] ?? null;
+        $model->CarrierCodeDescription = $attribute['ship_to_method_label'] ?? null;
+        $model->WarehouseID = $attribute['order_warehouse'] ?? null;
+
+        $model->InvoiceNumber = $orderNumber['param1'] ?? null;
+        $model->EmailAddress = $attribute['email'] ?? null;
+
+        $billToCountry = Country::findByISO($attribute['customer_country_code']);
+        $model->BillToCountryName = $billToCountry?->name ?? null;
+
+        $shipToCountry = Country::findByISO($attribute['ship_to_country_code']);
+        $model->ShipToCountryName = $shipToCountry?->name ?? null;
+
+        $model->PdfAvailable = $attribute['PdfAvailable'] ?? null;
+        $model->OrderDetail = $attribute['OrderDetail'] ?? null;
+
+        $model->OrderNotes = new OrderNoteCollection();
+        if ($attribute['order_notes']) {
+            foreach ($attribute['order_notes'] as $orderNote) {
+                $temp = new OrderNote($orderNote);
+                $temp->Subject = $orderNote['subject'] ?? null;
+                $temp->Date = $orderNote['created_at'] ?? null;
+                $temp->NoteNum = $orderNote['id'] ?? null;
+                $temp->Type = $orderNote['type'] ?? null;
+                $temp->Editable = false;
+                $temp->Note = $orderNote['note'] ?? null;
+                $temp->Secureflag = false;
+                $model->OrderNotes->push($temp);
+            }
+        }
+
+        $model->SignedDoc = $attribute['SignedDoc'] ?? null;
+        $model->SignedType = $attribute['SignedType'] ?? null;
+
+        $model->HazMatCharge = $attribute['HazMatCharge'] ?? null;
+        $model->InHouseDeliveryDate = $attribute['InHouseDeliveryDate'] ?? null;
+        $model->OrderDisposition = $attribute['OrderDisposition'] ?? null;
+        $model->InvoiceDate = $attribute['InvoiceDate'] ?? null;
+        $model->TrackingShipments = $attribute['TrackingShipments'] ?? null;
+        $model->NoteList = $attribute['order_notes'] ?? [];
+        $model->ExtraCharges = $attribute['total_additional'] ?? null;
+        $model->FreightAccountNumber = $attribute['FreightAccountNumber'] ?? null;
+        $model->RestockFee = $attribute['RestockFee'] ?? null;
+        $model->OrderDiscount = $attribute['OrderDiscount'] ?? null;
 
         return $model;
     }

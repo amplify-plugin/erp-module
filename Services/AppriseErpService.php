@@ -51,6 +51,7 @@ use Carbon\CarbonImmutable;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 /**
  * @property array $config
@@ -172,8 +173,6 @@ class AppriseErpService implements ErpApiInterface
      */
     private function validate(?array $response, ?string $url = null, $status = true): array
     {
-
-        logger("status: $status");
         try {
 
             if (!empty($response['code']) && $response['code'] != 'Success') {
@@ -737,6 +736,8 @@ class AppriseErpService implements ErpApiInterface
 
             $credentials = $orderInfo['credentials'] ?? [];
 
+            $defaultNote = collect($orderInfo['order_notes'] ?? [])->firstWhere('type', 'INT');
+
             $cardExpiry = str_split($credentials['card_expiry'] ?? '', 2);
 
             $items = $orderInfo['order_lines'] ?? [];
@@ -747,7 +748,7 @@ class AppriseErpService implements ErpApiInterface
                 $lines[] = [
                     "lineKey" => $index,
                     "productCode" => $item['product_code'],
-                    "productDesc" => $item['product']['product_name'],
+                    "productDesc" => Str::trim(Str::limit($item['product']['product_name'], 35)),
                     "qtyOrdered" => $item['qty'],
                     "unitOfMeasureCode" => $item['unit_code'] ?? '',
                     "unitOfMeasure" => "",
@@ -770,21 +771,22 @@ class AppriseErpService implements ErpApiInterface
                 "headers" => [
                     [
                         "customerCode" => (string)$orderInfo['customer_code'],
-                        "customerName" => $orderInfo['customer_name'] ??  null,
-                        "phoneNumber" => $orderInfo['phone'] ?? null,
+                        "customerName" => $orderInfo['customer_name'] ?? '',
+                        "phoneNumber" => $orderInfo['phone'] ?? '',
                         "orderClass" => "Sale",
                         "customerPONumber" => $orderInfo['po_number'] ?? "",
-                        "notes" =>  "",
+                        "notes" => $defaultNote['note'] ?? '',
                         "remarks" => "",
                         "orderCreateInput" => "",
-                        "customerBillToName" => $orderInfo['customer_name'] ??  null,
-                        "customerBillToAddress1" => $orderInfo['customer_address_1'] ??  null,
-                        "customerBillToAddress2" => $orderInfo['customer_address_2'] ??  null,
-                        "customerBillToCity" => $orderInfo['customer_city'] ??  null,
-                        "customerBillToState" => $orderInfo['customer_state'] ??  null,
-                        "customerBillToZipcode" => $orderInfo['customer_zip_code'] ??  null,
-                        "customerBillToCountry" => $orderInfo['customer_country_code'] ? $countryModel->iso3 :  '',
-                        "customerShipToCode" => $orderInfo['ship_to_number'] ?? '',
+                        "customerBillToName" => $orderInfo['customer_name'] ?? '',
+                        "customerBillToAddress1" => $orderInfo['customer_address_1'] ?? '',
+                        "customerBillToAddress2" => $orderInfo['customer_address_2'] ?? '',
+                        "customerBillToCity" => $orderInfo['customer_city'] ?? '',
+                        "customerBillToState" => $orderInfo['customer_state'] ?? '',
+                        "customerBillToZipcode" => $orderInfo['customer_zip_code'] ?? '',
+                        "customerBillToCountry" => $orderInfo['customer_country_code'] ? $countryModel->iso3 : '',
+                        "customerShipToCode" => '',
+//                        "customerShipToCode" => $orderInfo['ship_to_number'] ?? '',
                         "customerShipToName" => $orderInfo['ship_to_name'] ?? '',
                         "customerShipToAddress1" => $orderInfo['ship_to_address_1'] ?? '',
                         "customerShipToAddress2" => $orderInfo['ship_to_address_2'] ?? '',
@@ -796,7 +798,7 @@ class AppriseErpService implements ErpApiInterface
                         "requiredDate" => now()->toIso8601ZuluString('m'),
                         "shippingLocation" => $orderInfo['order_warehouse'] ?? '',
                         "shippingMethod" => $orderInfo['ship_to_method'] ?? '',
-                        "billToAddress3" => $orderInfo['customer_address_3'] ??  null,
+                        "billToAddress3" => $orderInfo['customer_address_3'] ?? '',
                         "shipToAddress3" => $orderInfo['ship_to_address_3'] ?? '',
                         "billToEmail" => $orderInfo['email'] ?? '',
                         "customerShipToPhone" => $orderInfo['ship_to_phone'] ?? '',
@@ -823,6 +825,8 @@ class AppriseErpService implements ErpApiInterface
             ];
 
             $response = $this->post('/orders', $payload);
+
+            $response = array_merge($response, ['orderInfo' => $orderInfo]);
 
             $order = $this->adapter->createOrder($response);
 
