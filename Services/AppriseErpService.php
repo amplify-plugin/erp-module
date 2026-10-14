@@ -848,43 +848,21 @@ class AppriseErpService implements ErpApiInterface
     public function getOrderList(array $filters = []): OrderCollection
     {
         try {
-
-            $fromEntryDate = $filters['start_date'] ?? null;
-            $toEntryDate = $filters['end_date'] ?? null;
             $customer_number = $this->customerId($filters);
 
-            // Handle types array as comma-separated string
-            $transaction_types = $filters['transaction_types'] ?? [];
-            if (!empty($transaction_types) && is_array($transaction_types)) {
-                $transaction_types = implode(',', $transaction_types);
-            } else {
-                $transaction_types = '';
+            $response = $this->get('/open-orders/sales-rep');
+
+            $orders = $response['orders'] ?? [];
+
+            // The ERP returns every sales rep order, scope the list to the logged in customer
+            if (!empty($customer_number)) {
+                $orders = array_values(array_filter(
+                    $orders,
+                    fn ($order) => ($order['custCode'] ?? null) == $customer_number
+                ));
             }
 
-            // Handle statuses for startStage and endStage
-            $statuses = $filters['statuses'] ?? [];
-            $startStage = $endStage = ''; // default value
-            if (!empty($statuses)) {
-                $statuses = array_values($statuses); // ensure numeric keys
-                if (count($statuses) === 1) {
-                    $startStage = $endStage = $statuses[0];
-                } else {
-                    $startStage = $statuses[0];
-                    $endStage = $statuses[count($statuses) - 1];
-                }
-            }
-
-            $holdOnlyFlg = $filters['hold_only_flag'] ?? false;
-
-            $payload = [
-                'sales_agent_id' => null
-            ];
-
-            $response = $this->post('/open-orders/sales-rep', $payload);
-
-            dd($response);
-
-            return $this->adapter->getOrderList($response);
+            return $this->adapter->getOrderList(['orders' => $orders]);
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
@@ -900,12 +878,10 @@ class AppriseErpService implements ErpApiInterface
     {
         try {
             $order_number = $orderInfo['order_number'] ?? null;
-            $customer_number = $this->customerId($orderInfo);
-            $order_suffix = $orderInfo['order_suffix'] ?? 'O';
 
-            $response = $this->get("/orders/{$order_number}/information");
-
-            dd($response);
+            $response = !empty($order_number)
+                ? $this->get("/orders/{$order_number}/information")
+                : [];
 
             return $this->adapter->getOrderDetail($response);
 
