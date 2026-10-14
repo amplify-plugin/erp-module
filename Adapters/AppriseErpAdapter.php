@@ -1078,7 +1078,7 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->ContactId = (string)($attributes['contactid'] ?? null);
             $model->CustomerNumber = $attributes['custCode'] ?? null;
             $model->CustomerName = $attributes['custName'] ?? null;
-            $model->OrderNumber = $attributes['orderNum'] ?? null;
+            $model->OrderNumber = $attributes['orderNumber'] ?? $attributes['orderNum'] ?? null;
             $model->OrderNote = $attributes['OrderNote'] ?? null;
             $model->OrderSuffix = isset($attributes['orderSuf'])
                 ? str_pad($attributes['orderSuf'], 2, '0', STR_PAD_LEFT)
@@ -1103,7 +1103,7 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->ShipToState = $attributes['shiptost'] ?? null;
             $model->ShipToZipCode = $attributes['shiptozip'] ?? null;
             $model->ShipToContact = $attributes['contactid'] ?? null;
-            $model->EntryDate = $attributes['orderDate'] ?? null;
+            $model->EntryDate = $attributes['orderDate'] ?? $attributes['requiredDate'] ?? null;
             $model->PromiseDate = $attributes['promiseDt'] ?? null;
             $model->InHouseDeliveryDate = $attributes['linelevel-user9'] ?? null;
             $model->RequestedShipDate = $attributes['requiredDate'] ?? null;
