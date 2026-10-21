@@ -2,7 +2,10 @@
 
 namespace Amplify\ErpApi\Traits;
 
+use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Exceptions\InvalidBase64Data;
+use Amplify\ErpApi\Wrappers\ProductPriceAvailability;
+use Amplify\ErpApi\Wrappers\Warehouse;
 use Illuminate\Http\File;
 
 trait ManageDocumentTrait
@@ -38,5 +41,34 @@ trait ManageDocumentTrait
         //                return $pdf->download("invoice-details-{$id}.pdf");
 
         return new File('');
+    }
+
+    private function processWarehouseInventory(ProductPriceAvailabilityCollection &$collection): void
+    {
+        $temp = [];
+
+        foreach ($collection as $item) {
+            if (empty($item->ItemNumber)) {
+                continue;
+            }
+            $temp[$item->ItemNumber][$item->WarehouseID] = [
+                'qty' => floatval($item->QuantityAvailable),
+                'price' => $item->Price,
+                'uom' => $item->UnitOfMeasure,
+            ];
+        }
+
+        $collection = $collection->map(function (ProductPriceAvailability $product) use (&$temp) {
+            $product->Warehouses = $product->Warehouses->map(function (Warehouse $entry) use ($product, &$temp) {
+                $data = $temp[$product->ItemNumber][$entry->WarehouseNumber] ?? [];
+                if (!empty($data)) {
+                    $entry->QuantityAvailable = $data['qty'] ?? null;
+                    $entry->Price = $data['price'] ?? null;
+                    $entry->UnitOfMeasure = $data['uom'] ?? null;
+                }
+                return $entry;
+            });
+            return $product;
+        });
     }
 }

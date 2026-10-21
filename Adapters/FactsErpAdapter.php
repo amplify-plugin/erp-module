@@ -21,7 +21,6 @@ use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\InvalidBase64Data;
-use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\CampaignDetail;
@@ -49,7 +48,6 @@ use Amplify\ErpApi\Wrappers\TrackShipment;
 use Amplify\ErpApi\Wrappers\Warehouse;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 class FactsErpAdapter implements ErpApiInterface
 {
@@ -161,15 +159,15 @@ class FactsErpAdapter implements ErpApiInterface
      */
     public function getProductPriceAvailability(array $filters = []): ProductPriceAvailabilityCollection
     {
-        $model = new ProductPriceAvailabilityCollection;
+        $collection = new ProductPriceAvailabilityCollection;
 
-        if (!empty($filters)) {
-            foreach (($filters['Items'] ?? []) as $item) {
-                $model->push($this->renderSingleProductPriceAvailability($item));
-            }
+        foreach (($filters['Items'] ?? []) as $item) {
+            $collection->push($this->renderSingleProductPriceAvailability($item));
         }
 
-        return $model;
+        $this->processWarehouseInventory($collection);
+
+        return $collection;
     }
 
     /**
@@ -560,14 +558,20 @@ class FactsErpAdapter implements ErpApiInterface
     {
         $model = new ProductPriceAvailability($attributes);
 
-        $model->Warehouses = ErpApi::getWarehouses();
+        $model->Warehouses = \ErpApi::getWarehouses([['enabled', '=', true]]);
 
         if (!empty($attributes)) {
             $attributes = (!empty($attributes['Item'])) ? array_shift($attributes['Item']) : [];
 
+            $price = isset($attributes['Price']) && $attributes['Price'] !== null ? (float)str_replace(',', '', $attributes['Price']) : null;
+
+            if (config('amplify.client_code') == 'ACT') {
+                $price = !empty($attributes['Level6Price']) ? (float)str_replace(',', '', $attributes['Level6Price']) : null;
+            }
+
             $model->ItemNumber = $attributes['ItemNumber'] ?? null;
             $model->WarehouseID = $attributes['WarehouseID'] ?? null;
-            $model->Price = isset($attributes['Price']) && $attributes['Price'] !== null ? (float)str_replace(',', '', $attributes['Price']) : null;
+            $model->Price = $price;
             $model->ListPrice = isset($attributes['ListPrice']) && $attributes['ListPrice'] !== null ? (float)str_replace(',', '', $attributes['ListPrice']) : null;
             $model->StandardPrice = isset($attributes['StandardPrice']) && $attributes['StandardPrice'] !== null ? (float)str_replace(',', '', $attributes['StandardPrice']) : null;
             $model->QtyPrice_1 = $attributes['QtyPrice_1'] ?? null;

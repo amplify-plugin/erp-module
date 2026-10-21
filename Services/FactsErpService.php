@@ -41,6 +41,7 @@ use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\System\Backend\Models\Shipping;
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -559,18 +560,24 @@ class FactsErpService implements ErpApiInterface
      *
      * @throws ErpApiException|Exception
      *
-     * @since 1.0.0
+     * @since 2024.12.8354871
      */
     public function getWarehouses(array $filters = []): WarehouseCollection
     {
         try {
-            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
 
-            $jsonWarehouses = json_encode($warehouseCollection);
+            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
+                return \Amplify\System\Backend\Models\Warehouse::all();
+            });
 
-            $response = $this->validate($jsonWarehouses);
+            foreach ($filters as $filter) {
+                if (in_array(count($filter), [2, 3])) {
+                    $warehouses = $warehouses->where(...$filter);
+                }
+            }
 
-            return $this->adapter->getWarehouses($response);
+            return $this->adapter->getWarehouses($warehouses->toArray());
+
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 

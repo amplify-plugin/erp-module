@@ -336,6 +336,8 @@ class AppriseErpAdapter implements ErpApiInterface
             $collection->push($this->renderSingleProductPriceAvailability($filter));
         }
 
+        $this->processWarehouseInventory($collection);
+
         return $collection;
     }
 

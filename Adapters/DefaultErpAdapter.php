@@ -248,6 +248,8 @@ class DefaultErpAdapter implements ErpApiInterface
             }
         }
 
+        $this->processWarehouseInventory($collection);
+
         return $collection;
     }
 
