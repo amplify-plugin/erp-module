@@ -4,9 +4,9 @@ namespace Amplify\ErpApi\Traits;
 
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Wrappers\ShippingOption;
-use Amplify\ErpApi\Wrappers\Warehouse;
 use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\Backend\Models\ThresholdRange;
+use Amplify\System\Backend\Models\Warehouse;
 use Illuminate\Support\Str;
 
 trait BackendShippingCostTrait
