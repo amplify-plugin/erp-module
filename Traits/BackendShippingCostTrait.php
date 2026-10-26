@@ -6,7 +6,8 @@ use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Wrappers\ShippingOption;
 use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\Backend\Models\ThresholdRange;
-use Amplify\System\Backend\Models\Warehouse;
+use Amplify\System\Backend\Models\Warehouse as WarehouseModel;
+use Amplify\ErpApi\Wrappers\Warehouse;
 use Illuminate\Support\Str;
 
 trait BackendShippingCostTrait
@@ -25,7 +26,7 @@ trait BackendShippingCostTrait
     private function hasPickUpItems(): bool
     {
         if ($cartFirstItem = $this->cartItems->first()) {
-            if ($warehouse = Warehouse::find($cartFirstItem['warehouse_id'])) {
+            if ($warehouse = WarehouseModel::find($cartFirstItem['warehouse_id'])) {
                 return $warehouse->pickup_location == true;
             }
         }
@@ -153,7 +154,7 @@ trait BackendShippingCostTrait
         if ($this->hasPickUpItems()) {
             $cartFirstItem = $this->cartItems->first();
 
-            $warehouse = Warehouse::find($cartFirstItem['warehouse_id']);
+            $warehouse = WarehouseModel::find($cartFirstItem['warehouse_id']);
 
             $orderTotal['FreightRate'][$driverLabel][] = [
                 $warehouse->id => [
