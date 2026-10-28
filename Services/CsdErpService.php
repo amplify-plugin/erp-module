@@ -201,7 +201,9 @@ class CsdErpService implements ErpApiInterface
         } catch (ErpApiException $exception) {
             if ($exception->getCode() != 422) {
                 $this->exceptionHandler($exception);
-                return [];
+                return [
+                    'error' => $exception->getMessage(),
+                ];
             }
             return [
                 'error' => $exception->getMessage(),
@@ -1515,7 +1517,8 @@ class CsdErpService implements ErpApiInterface
                         'FreightAmount' => $freightAmount,
                         'FreightRate' => $freightRate,
                         'OrderLines' => $orderLines,
-                        'HazMatCharge' => 0
+                        'HazMatCharge' => 0,
+                        'Message' => $response['error'] ?? '',
                     ],
                 ],
             ];
@@ -1524,7 +1527,7 @@ class CsdErpService implements ErpApiInterface
 
 
         } catch (Exception $exception) {
-
+            dd($exception->getMessage());
             $this->exceptionHandler($exception);
 
             return $this->adapter->getOrderTotal();

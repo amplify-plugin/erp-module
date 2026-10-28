@@ -268,6 +268,7 @@ class FactsErpAdapter implements ErpApiInterface
         $model->WireTrasnsferFee = !empty($attributes['WireTrasnsferFee']) ? (float)filter_var($attributes['WireTrasnsferFee'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
         $model->HazMatCharge = isset($attributes['HazMatCharge']) && $attributes['HazMatCharge'] ? (float)$attributes['HazMatCharge'] : null;
         $model->OrderLines = new Collection();
+        $model->Message = !empty($attributes['Message']) ? $attributes['Message'] : null;
         //no use case
         if (!empty($attributes['OrderLines'])) {
             foreach ($attributes['OrderLines'] as $line) {
