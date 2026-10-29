@@ -1527,9 +1527,7 @@ class CsdErpService implements ErpApiInterface
 
 
         } catch (Exception $exception) {
-            dd($exception->getMessage());
             $this->exceptionHandler($exception);
-
             return $this->adapter->getOrderTotal();
         }
     }
