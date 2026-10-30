@@ -994,14 +994,14 @@ class CsdErpService implements ErpApiInterface
                     'lineno' => 0,
                     'seqno' => 0,
                     'fieldname' => 'AuthNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
+                    'fieldvalue' => $orderRequest['auth_number'] ?? '',
                 ],
                 [
                     'level' => 'SFOEOrderTotLoadV4',
                     'lineno' => 0,
                     'seqno' => 0,
                     'fieldname' => 'ReferenceNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
+                    'fieldvalue' => $orderRequest['reference_number'] ?? '',
                 ],
             ];
         }
@@ -1062,7 +1062,7 @@ class CsdErpService implements ErpApiInterface
                 't-infieldvalue' => $tinfieldvalue,
             ],
         ];
-
+        dd($payload);
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         if(\array_key_exists('error', $response)) {
