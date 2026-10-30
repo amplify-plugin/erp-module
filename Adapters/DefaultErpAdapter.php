@@ -959,6 +959,7 @@ class DefaultErpAdapter implements ErpApiInterface
         $model->SalesTaxAmount = $attributes['SalesTaxAmount'] ?? null;
         $model->FreightAmount = $attributes['FreightAmount'] ?? null;
         $model->FreightRate = $attributes['FreightRate'] ?? null;
+        $model->Message = !empty($attributes['Message']) ? $attributes['Message'] : null;
 
         return $model;
     }
