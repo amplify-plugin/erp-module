@@ -1062,7 +1062,7 @@ class CsdErpService implements ErpApiInterface
                 't-infieldvalue' => $tinfieldvalue,
             ],
         ];
-        dd($payload);
+      
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         if(\array_key_exists('error', $response)) {
