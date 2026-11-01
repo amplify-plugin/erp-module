@@ -1666,13 +1666,28 @@ class CsdErpService implements ErpApiInterface
         try {
             $customer_number = $this->customerId($filters);
 
-            $payload = [
+             //AR Summary
+            $arPayload = [
                 'companyNumber' => $this->companyNumber,
                 'operatorInit' => $this->operatorInit,
                 'customerNumber' => $customer_number,
             ];
+            $arSummaryResponse = $this->post('/sxapisfcustomersummary', $arPayload);
 
-            $response = $this->post('/sxapisfcustomersummary', $payload);
+            if (!empty($arSummaryResponse['tCustsummary']['t-custsummary'])) {
+                $arSummaryResponse['tCustsummary']['t-custsummary']['custnum'] = $customer_number;
+            }
+
+            //Terms Type
+            $ttPayload =  [
+                'companyNumber' => $this->companyNumber,
+                'operatorInit' => $this->operatorInit,
+                'customerNumber' => $customer_number,
+                'requestType' => 'credit',
+            ];
+            $termsSummaryResponse = $this->post('/sxapiargetcustomerdata', $ttPayload);
+
+            $response = array_merge($arSummaryResponse, $termsSummaryResponse);
 
             return $this->adapter->getCustomerARSummary($response);
 
