@@ -289,7 +289,7 @@ class FactsErpService implements ErpApiInterface
                 'OrderType' => 'T',
                 'ReturnType' => 'D',
                 // "WarehouseID" => $customerDetails->DefaultWarehouse,
-                'Items' => $items,
+                'Items' => array_map(function ($item) {}, $items),
             ],
         ];
 
@@ -461,6 +461,7 @@ class FactsErpService implements ErpApiInterface
                         'Customer' => $customer_number,
                         'WarehouseList' => $warehouse,
                         'Items' => $item,
+                        'ReturnCompanions' => $filters['return_companions'] ?? 'N',
                     ],
                 ];
             }
@@ -726,6 +727,7 @@ class FactsErpService implements ErpApiInterface
                     'ItemNumber' => $item['product_code'],
                     'WarehouseID' => $item['product_warehouse_code'],
                     'OrderQty' => $item['quantity'],
+                    'ActualSellPrice' => $item['unitprice'],
                     'UnitOfMeasure' => $item['uom'],
                 ];
             }, $orderInfo['items'] ?? []);
@@ -746,6 +748,7 @@ class FactsErpService implements ErpApiInterface
                     'ShipToZipCode' => $orderInfo['ship_to_zip_code'] ?? '',
                     'OrderType' => $orderInfo['order_type'] ?? 'T',
                     'ReturnType' => $orderInfo['return_type'] ?? 'D',
+                    'ReturnCompanions' => $orderInfo['return_companions'] ?? 'N',
                     'Items' => $orderLines,
                 ],
             ];
