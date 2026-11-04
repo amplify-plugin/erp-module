@@ -92,9 +92,7 @@ trait ErpApiConfigTrait
 
         Log::debug("Error: {$exception->getMessage()} | Class ErpApi::{$method}({$args}) | Driver: {$class}");
 
-        if (!suppress_exception()) {
-            throw $exception;
-        }
+        report($exception);
     }
 
     protected function countryByIso2(string $iso): ?Country

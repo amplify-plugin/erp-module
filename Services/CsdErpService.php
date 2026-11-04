@@ -201,7 +201,9 @@ class CsdErpService implements ErpApiInterface
         } catch (ErpApiException $exception) {
             if ($exception->getCode() != 422) {
                 $this->exceptionHandler($exception);
-                return [];
+                return [
+                    'error' => $exception->getMessage(),
+                ];
             }
             return [
                 'error' => $exception->getMessage(),
@@ -992,14 +994,14 @@ class CsdErpService implements ErpApiInterface
                     'lineno' => 0,
                     'seqno' => 0,
                     'fieldname' => 'AuthNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
+                    'fieldvalue' => $orderRequest['auth_number'] ?? '',
                 ],
                 [
                     'level' => 'SFOEOrderTotLoadV4',
                     'lineno' => 0,
                     'seqno' => 0,
                     'fieldname' => 'ReferenceNumber',
-                    'fieldvalue' => 'PDKWA9ZC',
+                    'fieldvalue' => $orderRequest['reference_number'] ?? '',
                 ],
             ];
         }
@@ -1060,7 +1062,7 @@ class CsdErpService implements ErpApiInterface
                 't-infieldvalue' => $tinfieldvalue,
             ],
         ];
-
+      
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         if(\array_key_exists('error', $response)) {
@@ -1515,7 +1517,8 @@ class CsdErpService implements ErpApiInterface
                         'FreightAmount' => $freightAmount,
                         'FreightRate' => $freightRate,
                         'OrderLines' => $orderLines,
-                        'HazMatCharge' => 0
+                        'HazMatCharge' => 0,
+                        'Message' => $response['error'] ?? '',
                     ],
                 ],
             ];
@@ -1524,9 +1527,7 @@ class CsdErpService implements ErpApiInterface
 
 
         } catch (Exception $exception) {
-
             $this->exceptionHandler($exception);
-
             return $this->adapter->getOrderTotal();
         }
     }
