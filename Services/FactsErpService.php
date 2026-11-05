@@ -726,8 +726,8 @@ class FactsErpService implements ErpApiInterface
                 return [
                     'ItemNumber' => $item['product_code'],
                     'WarehouseID' => $item['product_warehouse_code'],
-                    'OrderQty' => $item['quantity'],
-                    'ActualSellPrice' => $item['unitprice'],
+                    'OrderQty' => floatval($item['quantity']),
+                    'ActualSellPrice' => floatval($item['unitprice']),
                     'UnitOfMeasure' => $item['uom'],
                 ];
             }, $orderInfo['items'] ?? []);
