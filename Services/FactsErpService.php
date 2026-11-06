@@ -271,41 +271,6 @@ class FactsErpService implements ErpApiInterface
      */
     public function getShippingOption(array $data = []): ShippingOptionCollection
     {
-        $items = $data['items'] ?? [];
-        $customer = $this->getCustomerDetail();
-
-        $payload = [
-            'content' => [
-                'CustomerNumber' => $this->customerId($data),
-                'CustomerEmail' => $customer->CustomerEmail,
-                'CarrierCode' => $data['customer_carrier_code'] ?? $customer->CarrierCode,
-                'PoNumber' => $data['customer_po_number'] ?? '',
-                'ShipToAddress1' => $data['customer_address_one'] ?? $customer->CustomerAddress1,
-                'ShipToAddress2' => $data['customer_address_two'] ?? $customer->CustomerAddress2,
-                'ShipToAddress3' => $data['customer_address_three'] ?? $customer->CustomerAddress3,
-                'ShipToCity' => $data['customer_city'] ?? $customer->CustomerCity,
-                'ShipToState' => $data['customer_state'] ?? $customer->CustomerState,
-                'ShipToZipCode' => $data['customer_zipcode'] ?? $customer->CustomerZipCode,
-                'OrderType' => 'T',
-                'ReturnType' => 'D',
-                // "WarehouseID" => $customerDetails->DefaultWarehouse,
-                'Items' => array_map(function ($item) {}, $items),
-            ],
-        ];
-
-        if (in_array(config('amplify.client_code'), ['ACT', 'RHS'])) {
-            try {
-                $attributes = match (config('amplify.client_code')) {
-                    'ACT' => $this->post('/createOrder', $payload),
-                    'RHS' => $this->post('/getOrderTotal', $payload),
-                };
-
-                return $this->adapter->getShippingOption($attributes);
-            } catch (\Exception $e) {
-                $this->exceptionHandler($e);
-            }
-        }
-
         $options = Shipping::enabled()->get()->toArray();
 
         return $this->adapter->getShippingOption($options);
