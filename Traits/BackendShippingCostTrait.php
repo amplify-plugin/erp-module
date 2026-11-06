@@ -55,7 +55,7 @@ trait BackendShippingCostTrait
      */
     public function getOrderTotalUsingBackend(array $orderInfo = []): array
     {
-        $shippingOptions = $this->getShippingOption();
+        $shippingOptions = $this->getShippingOption($orderInfo);
         $this->cartItems = collect($orderInfo['items'] ?? []);
         $freightDetailsList = [];
 

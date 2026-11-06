@@ -761,7 +761,7 @@ class FactsErpService implements ErpApiInterface
             $response = $this->post("/{$url}", $payload);
 
             if (config('amplify.erp.use_amplify_shipping')) {
-                $responseBackEnd = $this->getOrderTotalUsingBackend();
+                $responseBackEnd = $this->getOrderTotalUsingBackend($orderInfo);
                 $totalLineAmount = $response['Order'][0]['TotalOrderValue'] ?? 0;
                 $salesTaxAmount =  $response['Order'][0]['SalesTaxAmount'] ?? 0;
                 $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? 0;
