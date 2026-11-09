@@ -264,6 +264,9 @@ class AppriseErpAdapter implements ErpApiInterface
         $location['shipviaty'] = $customer['preferredShipper'] ?? null;
         $location['poreqfl'] = isset($customer['reqPoNum']) ? $customer['reqPoNum'] ? 'Y' : 'N' : null;
         $location['backorder'] = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
+        $location['state_tax_exempt'] = $default['stateTaxExempt'] ?? null;
+        $location['tax_exempt'] = $default['taxExempt'] ?? null;
+        $location['jurisdiction_key'] = $default['jurisdictionKey'] ?? null;
 
 //        if (!empty($locations)) {
 //            foreach ($locations as $location) {
@@ -294,6 +297,9 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->BackorderCode = $attributes['backorder'] ?? null;
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->PoRequired = $attributes['poreqfl'] ?? null;
+            $model->StateTaxExempt = $attributes['state_tax_exempt'] ?? null;
+            $model->TaxExempt = $attributes['tax_exempt'] ?? null;
+            $model->JurisdictionKey = $attributes['jurisdiction_key'] ?? null;
         }
 
         return $model;

@@ -763,6 +763,40 @@ class AppriseErpService implements ErpApiInterface
 
             $countryModel = Country::findByISO($orderInfo['customer_country_code'] ?? '');
 
+            $phone = substr(preg_replace('/\D+/', '', $orderInfo['phone'] ?? ''), -10) ?: '';
+            $shipToPhone = substr(preg_replace('/\D+/', '', $orderInfo['ship_to_phone'] ?? ''), -10) ?: '';
+
+            // Strategy 1 (explicit ship-to): attach the tax information of the matching
+            // custShipto record. When the ship-to record cannot be matched, the fields
+            // are omitted so the ERP applies its own ship-to defaults (no mixed data).
+            $taxFields = [];
+
+            if (!empty($orderInfo['ship_to_name']) || !empty($orderInfo['ship_to_address_1'])) {
+                try {
+                    $shipToLocation = $this->getCustomerShippingLocationList([
+                        'customer_number' => $orderInfo['customer_code'] ?? null,
+                    ])->first(fn ($location) => $location->ShipToNumber == ($orderInfo['ship_to_number'] ?? null));
+
+                    if ($shipToLocation !== null) {
+                        if (!empty($shipToLocation->StateTaxExempt)) {
+                            $taxFields['stateTaxExemptNum'] = $shipToLocation->StateTaxExempt;
+                        }
+
+                        if ($shipToLocation->TaxExempt !== null) {
+                            $taxFields['taxExempt'] = (bool)$shipToLocation->TaxExempt;
+                        }
+
+                        $jurisdictionCode = $this->config['jurisdiction_map'][trim((string)$shipToLocation->JurisdictionKey)] ?? null;
+
+                        if ($jurisdictionCode !== null) {
+                            $taxFields['taxJurisdiction'] = $jurisdictionCode;
+                        }
+                    }
+                } catch (Exception $taxException) {
+                    $this->exceptionHandler($taxException);
+                }
+            }
+
             $payload = [
                 "viewErrorsOnly" => true,
                 "importAndValidate" => true,
@@ -772,7 +806,7 @@ class AppriseErpService implements ErpApiInterface
                     [
                         "customerCode" => (string)$orderInfo['customer_code'],
                         "customerName" => $orderInfo['customer_name'] ?? '',
-                        "phoneNumber" => substr(filter_var($orderInfo['phone'] ?? '', FILTER_SANITIZE_NUMBER_INT), -10),
+                        "phoneNumber" => $phone,
                         "orderClass" => "Sale",
                         "customerPONumber" => $orderInfo['po_number'] ?? "",
                         "notes" => $defaultNote['note'] ?? '',
@@ -801,12 +835,12 @@ class AppriseErpService implements ErpApiInterface
                         "billToAddress3" => $orderInfo['customer_address_3'] ?? '',
                         "shipToAddress3" => $orderInfo['ship_to_address_3'] ?? '',
                         "billToEmail" => $orderInfo['email'] ?? '',
-                        "customerShipToPhone" => substr(filter_var($orderInfo['ship_to_phone'] ?? '', FILTER_SANITIZE_NUMBER_INT), -10),
-                        "customerBillToPhone" => substr(filter_var($orderInfo['phone'] ?? '', FILTER_SANITIZE_NUMBER_INT), -10),
+                        "customerShipToPhone" => $shipToPhone,
+                        "customerBillToPhone" => $phone,
                         "enteredCurrency" => config('amplify.basic.global_currency', 'USD'),
                         "lines" => $lines,
                         "saleType" => "web",
-                        "salesLocation" => $order['order_warehouse'] ?? '',
+                        "salesLocation" => $orderInfo['order_warehouse'] ?? '',
                         "manualHold" => true,
                         "ecommSaveCC" => false,
                         "prepaidOrder" => false,
@@ -823,6 +857,8 @@ class AppriseErpService implements ErpApiInterface
                     ],
                 ],
             ];
+
+            $payload['headers'][0] += $taxFields;
 
             $response = $this->post('/orders', $payload);
 
