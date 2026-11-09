@@ -45,6 +45,11 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property null|float $MinOrderQuantity
  * @property null|float $DiscountAmount
  * @property null|float $QuantityInterval
+ * @property null|float $QuantityOnHand
+ * @property null|float $QuantityAllocated
+ * @property null|float $QuantityFuture
+ * @property null|float $QuantityPending
+ * @property null|float $QuantityInTransit
  * @property bool $ItemRestricted
  * @property bool $AllowBackOrder
  */
@@ -91,6 +96,11 @@ class ProductPriceAvailability extends Wrapper implements ErpApiWrapperInterface
         'DiscountAmount',
         'QuantityInterval',
         'ItemRestricted',
-        'AllowBackOrder'
+        'AllowBackOrder',
+        'QuantityOnHand',
+        'QuantityAllocated',
+        'QuantityFuture',
+        'QuantityPending',
+        'QuantityInTransit'
     ];
 }

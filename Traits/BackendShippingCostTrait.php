@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi\Traits;
 
+use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Wrappers\ShippingOption;
 use Amplify\System\Backend\Models\Shipping;
@@ -48,9 +49,13 @@ trait BackendShippingCostTrait
         return false;
     }
 
+    /**
+     * @throws ErpApiException
+     * @throws \Exception
+     */
     public function getOrderTotalUsingBackend(array $orderInfo = []): array
     {
-        $shippingOptions = $this->getShippingOption();
+        $shippingOptions = $this->getShippingOption($orderInfo);
         $this->cartItems = collect($orderInfo['items'] ?? []);
         $freightDetailsList = [];
 
@@ -122,6 +127,9 @@ trait BackendShippingCostTrait
         return ['Order' => [$orderTotal]];
     }
 
+    /**
+     * @throws ErpApiException
+     */
     private function getPickUpShipOption(array &$orderTotal, ShippingOption $option): void
     {
         $driverKey = $option->Driver ?? 'UNKNOWN';
@@ -221,7 +229,7 @@ trait BackendShippingCostTrait
                 ->where('shipping_id', $option->InternalId)
                 ->first();
 
-            $frightAmount = !empty($thresholdSlot) ? currency_format($thresholdSlot->amount) : 0;
+            $frightAmount = !empty($thresholdSlot) ? currency_format($thresholdSlot->amount) : currency_format('0.00');
 
             $method = $option->CarrierCode;
 
@@ -247,6 +255,9 @@ trait BackendShippingCostTrait
         }
     }
 
+    /**
+     * @throws ErpApiException
+     */
     private function getWillCallShipOptions(string $shipVia = 'WILL CALL'): array
     {
         $warehouses = [];
@@ -260,7 +271,7 @@ trait BackendShippingCostTrait
                 'fullday' => '',
                 'date' => '',
                 'nrates' => '',
-                'amount' => '0.00',
+                'amount' => currency_format('0.00'),
                 'address1' => Str::upper($warehouse->WarehouseAddress),
                 'address2' => '',
                 'city' => '',
@@ -323,7 +334,6 @@ trait BackendShippingCostTrait
         $driverKey = $shippingOption->Driver ?? 'UNKNOWN';
         $method = $shippingOption->CarrierCode;
         $name = Str::upper($shippingOption->Name ?? $method);
-        $amount = '0.00'; // default
         $driverLabel = Shipping::SHIP_OPTIONS[$driverKey] ?? $driverKey;
 
         $orderTotal['FreightRate'][$driverLabel][] = [
@@ -334,7 +344,7 @@ trait BackendShippingCostTrait
                 'fullday' => '',
                 'date' => '',
                 'nrates' => '',
-                'amount' => $amount,
+                'amount' => currency_format('0.00'),
                 'address1' => '',
                 'address2' => '',
                 'city' => '',
@@ -399,7 +409,7 @@ trait BackendShippingCostTrait
             'fullday' => '',
             'date' => '',
             'nrates' => '',
-            'amount' => '0.00',
+            'amount' => currency_format('0.00'),
             'address1' => '',
             'address2' => '',
             'city' => '',
@@ -442,7 +452,7 @@ trait BackendShippingCostTrait
                 'fullday' => '',
                 'date' => '',
                 'nrates' => '',
-                'amount' => '0.00',
+                'amount' => currency_format('0.00'),
                 'address1' => '',
                 'address2' => '',
                 'city' => '',

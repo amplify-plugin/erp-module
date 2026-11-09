@@ -336,6 +336,8 @@ class CsdErpAdapter implements ErpApiInterface
             $collection->push($this->renderSingleProductPriceAvailability($item));
         }
 
+        $this->processWarehouseInventory($collection);
+
         return $collection;
     }
 

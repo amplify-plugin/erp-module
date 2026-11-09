@@ -41,6 +41,7 @@ use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\System\Backend\Models\Shipping;
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -270,41 +271,6 @@ class FactsErpService implements ErpApiInterface
      */
     public function getShippingOption(array $data = []): ShippingOptionCollection
     {
-        $items = $data['items'] ?? [];
-        $customer = $this->getCustomerDetail();
-
-        $payload = [
-            'content' => [
-                'CustomerNumber' => $this->customerId($data),
-                'CustomerEmail' => $customer->CustomerEmail,
-                'CarrierCode' => $data['customer_carrier_code'] ?? $customer->CarrierCode,
-                'PoNumber' => $data['customer_po_number'] ?? '',
-                'ShipToAddress1' => $data['customer_address_one'] ?? $customer->CustomerAddress1,
-                'ShipToAddress2' => $data['customer_address_two'] ?? $customer->CustomerAddress2,
-                'ShipToAddress3' => $data['customer_address_three'] ?? $customer->CustomerAddress3,
-                'ShipToCity' => $data['customer_city'] ?? $customer->CustomerCity,
-                'ShipToState' => $data['customer_state'] ?? $customer->CustomerState,
-                'ShipToZipCode' => $data['customer_zipcode'] ?? $customer->CustomerZipCode,
-                'OrderType' => 'T',
-                'ReturnType' => 'D',
-                // "WarehouseID" => $customerDetails->DefaultWarehouse,
-                'Items' => $items,
-            ],
-        ];
-
-        if (in_array(config('amplify.client_code'), ['ACT', 'RHS'])) {
-            try {
-                $attributes = match (config('amplify.client_code')) {
-                    'ACT' => $this->post('/createOrder', $payload),
-                    'RHS' => $this->post('/getOrderTotal', $payload),
-                };
-
-                return $this->adapter->getShippingOption($attributes);
-            } catch (\Exception $e) {
-                $this->exceptionHandler($e);
-            }
-        }
-
         $options = Shipping::enabled()->get()->toArray();
 
         return $this->adapter->getShippingOption($options);
@@ -460,6 +426,7 @@ class FactsErpService implements ErpApiInterface
                         'Customer' => $customer_number,
                         'WarehouseList' => $warehouse,
                         'Items' => $item,
+                        'ReturnCompanions' => $filters['return_companions'] ?? 'N',
                     ],
                 ];
             }
@@ -559,18 +526,24 @@ class FactsErpService implements ErpApiInterface
      *
      * @throws ErpApiException|Exception
      *
-     * @since 1.0.0
+     * @since 2024.12.8354871
      */
     public function getWarehouses(array $filters = []): WarehouseCollection
     {
         try {
-            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
 
-            $jsonWarehouses = json_encode($warehouseCollection);
+            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
+                return \Amplify\System\Backend\Models\Warehouse::all();
+            });
 
-            $response = $this->validate($jsonWarehouses);
+            foreach ($filters as $filter) {
+                if (in_array(count($filter), [2, 3])) {
+                    $warehouses = $warehouses->where(...$filter);
+                }
+            }
 
-            return $this->adapter->getWarehouses($response);
+            return $this->adapter->getWarehouses($warehouses->toArray());
+
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -718,7 +691,8 @@ class FactsErpService implements ErpApiInterface
                 return [
                     'ItemNumber' => $item['product_code'],
                     'WarehouseID' => $item['product_warehouse_code'],
-                    'OrderQty' => $item['quantity'],
+                    'OrderQty' => floatval($item['quantity']),
+                    'ActualSellPrice' => floatval($item['unitprice']),
                     'UnitOfMeasure' => $item['uom'],
                 ];
             }, $orderInfo['items'] ?? []);
@@ -739,6 +713,7 @@ class FactsErpService implements ErpApiInterface
                     'ShipToZipCode' => $orderInfo['ship_to_zip_code'] ?? '',
                     'OrderType' => $orderInfo['order_type'] ?? 'T',
                     'ReturnType' => $orderInfo['return_type'] ?? 'D',
+                    'ReturnCompanions' => $orderInfo['return_companions'] ?? 'N',
                     'Items' => $orderLines,
                 ],
             ];
@@ -751,7 +726,7 @@ class FactsErpService implements ErpApiInterface
             $response = $this->post("/{$url}", $payload);
 
             if (config('amplify.erp.use_amplify_shipping')) {
-                $responseBackEnd = $this->getOrderTotalUsingBackend();
+                $responseBackEnd = $this->getOrderTotalUsingBackend($orderInfo);
                 $totalLineAmount = $response['Order'][0]['TotalOrderValue'] ?? 0;
                 $salesTaxAmount =  $response['Order'][0]['SalesTaxAmount'] ?? 0;
                 $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? 0;

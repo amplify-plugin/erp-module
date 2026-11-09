@@ -5,6 +5,7 @@ namespace Amplify\ErpApi\Adapters;
 use Amplify\ErpApi\ProductSyncService;
 use Amplify\ErpApi\Wrappers\OrderPODetails;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
+use Amplify\System\Backend\Models\Country;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Amplify\ErpApi\Facades\ErpApi;
@@ -70,59 +71,6 @@ class AppriseErpAdapter implements ErpApiInterface
     |--------------------------------------------------------------------------
     */
 
-    private function mapFieldAttributes(array $fields = []): array
-    {
-        $values = [];
-
-        if (!empty($fields)) {
-            foreach ($fields as $field) {
-                if (isset($field['fieldName']) && isset($field['fieldValue'])) {
-                    $values[$field['fieldName']] = trim($field['fieldValue']);
-                } elseif (isset($field['fieldname']) && isset($field['fieldvalue'])) {
-                    $values[$field['fieldname']] = trim($field['fieldvalue']);
-                }
-            }
-        }
-
-        return $values;
-    }
-
-    /**
-     * Extract In-House Delivery Dates from tFieldlist, keyed by seqNo
-     *
-     * @param array $orderInfo
-     * @return array [seqNo => inHouseDeliveryDate]
-     */
-    private function extractLineLevelFieldMap(array $orderInfo): array
-    {
-        $map = [];
-
-        foreach ($orderInfo['tFieldlist']['t-fieldlist'] ?? [] as $field) {
-            $fieldName = $field['fieldName'] ?? null;
-            $seqNo = $field['seqNo'] ?? null;
-            $fieldValue = $field['fieldValue'] ?? null;
-
-            // Only process fields with seqNo
-            if ($seqNo === null || $fieldName === null) {
-                continue;
-            }
-
-            // only interested in linelevel- prefixed fields
-            if (str_starts_with($fieldName, 'linelevel-')) {
-                // Initialize sequence entry if not present
-                if (!isset($map[$seqNo])) {
-                    $map[$seqNo] = [];
-                }
-
-                // Strip prefix "linelevel-" and store field
-                $cleanName = str_replace('linelevel-', '', $fieldName);
-                $map[$seqNo][$cleanName] = $fieldValue;
-            }
-        }
-
-        return $map;
-    }
-
     /**
      * Extract extra charges from attributes.
      *
@@ -141,6 +89,13 @@ class AppriseErpAdapter implements ErpApiInterface
                 return [$desc => $attributes[$netKey] ?? 0];
             })
             ->toArray();
+    }
+
+    private function getAttribute($collection, $pattern): ?array
+    {
+        $result = array_filter($collection, fn($item) => str_starts_with($item['statLine'] ?? '', $pattern));
+
+        return empty($result) ? null : array_shift($result);
     }
 
     /**
@@ -289,18 +244,91 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $customerShippingLocations = new ShippingLocationCollection;
 
-        if (!empty($locations)) {
-            $locationFields = $locations['tShiptovaluepair']['t-shiptovaluepair'] ?? [];
+        $location = [];
 
-            foreach (($locations['tShiptolstv3']['t-shiptolstv3'] ?? []) as $location) {
-                $supportFields = array_filter($locationFields, fn($item) => $location['shipto'] == $item['shipto']);
-                $supportFields = $this->mapFieldAttributes($supportFields);
-                $location = array_merge($location, $supportFields);
+        $customer = $locations['custname'] ?? [];
+        $default = $locations['custShipto'] ?? [];
+
+        $location['address_code'] = $customer['custCode'] ?? null;
+        $location['address_name'] = $default['shiptoName'] ?? null;
+        $location['country_code'] = substr($default['country'] ?? '', 0, 2);
+        $location['address_1'] = $default['address1'] ?? null;
+        $location['address_2'] = $default['address2'] ?? null;
+        $location['address_3'] = $default['address3'] ?? null;
+        $location['city'] = $default['city'] ?? null;
+        $location['state'] = $default['state'] ?? null;
+        $location['zip_code'] = $default['postalCode'] ?? null;
+        $location['phone'] = $default['phone'] ?? null;
+        $location['contact'] = null;
+        $location['whse'] = $locations['locationSales']['locationPrefix'] ?? null;
+        $location['shipviaty'] = $customer['preferredShipper'] ?? null;
+        $location['poreqfl'] = isset($customer['reqPoNum']) ? $customer['reqPoNum'] ? 'Y' : 'N' : null;
+        $location['backorder'] = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
+        $location['state_tax_exempt'] = $default['stateTaxExempt'] ?? null;
+        $location['tax_exempt'] = $default['taxExempt'] ?? null;
+        $location['jurisdiction_key'] = $default['jurisdictionKey'] ?? null;
+
+//        if (!empty($locations)) {
+//            foreach ($locations as $location) {
                 $customerShippingLocations->push($this->renderSingleCustomerShippingLocation($location));
-            }
-        }
+//            }
+//        }
 
         return $customerShippingLocations;
+    }
+
+    public function renderSingleCustomerShippingLocation($attributes): ShippingLocation
+    {
+        $model = new ShippingLocation($attributes);
+
+        if (!empty($attributes)) {
+            $model->ShipToNumber = $attributes['address_code'] ?? null;
+            $model->ShipToName = $attributes['address_name'] ?? null;
+            $model->ShipToCountryCode = $attributes['country_code'] ?? '';
+            $model->ShipToAddress1 = $attributes['address_1'] ?? null;
+            $model->ShipToAddress2 = $attributes['address_2'] ?? null;
+            $model->ShipToAddress3 = $attributes['address_3'] ?? null;
+            $model->ShipToCity = $attributes['city'] ?? null;
+            $model->ShipToState = $attributes['state'] ?? null;
+            $model->ShipToZipCode = $attributes['zip_code'] ?? null;
+            $model->ShipToPhoneNumber = $attributes['phone'] ?? null;
+            $model->ShipToContact = $attributes['contact'] ?? null;
+            $model->ShipToWarehouse = $attributes['whse'] ?? null;
+            $model->BackorderCode = $attributes['backorder'] ?? null;
+            $model->CarrierCode = $attributes['shipviaty'] ?? null;
+            $model->PoRequired = $attributes['poreqfl'] ?? null;
+            $model->StateTaxExempt = $attributes['state_tax_exempt'] ?? null;
+            $model->TaxExempt = $attributes['tax_exempt'] ?? null;
+            $model->JurisdictionKey = $attributes['jurisdiction_key'] ?? null;
+        }
+
+        return $model;
+    }
+
+    public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
+    {
+        $model = new ShippingLocation($attributes);
+
+        if (!empty($attributes)) {
+            $model->Message = $attributes['error'] ?? null;
+            $model->ShipToNumber = $attributes['address_code'] ?? null;
+            $model->ShipToName = $attributes['address_name'] ?? null;
+            $model->ShipToCountryCode = $attributes['country_code'] ?? null;
+            $model->ShipToAddress1 = $attributes['address_1'] ?? null;
+            $model->ShipToAddress2 = $attributes['address_2'] ?? null;
+            $model->ShipToAddress3 = $attributes['address_3'] ?? null;
+            $model->ShipToCity = $attributes['city'] ?? null;
+            $model->ShipToState = $attributes['state'] ?? null;
+            $model->ShipToZipCode = $attributes['zip_code'] ?? null;
+            $model->ShipToPhoneNumber = $attributes['phone_1'] ?? null;
+            $model->ShipToContact = $attributes['contact'] ?? null;
+            $model->ShipToWarehouse = $attributes['warehouse'] ?? null;
+            $model->BackorderCode = $attributes['backorder'] ?? null;
+            $model->CarrierCode = $attributes['carrier_code'] ?? null;
+            $model->PoRequired = $attributes['po_required'] ?? null;
+        }
+
+        return $model;
     }
 
     /**
@@ -310,7 +338,11 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $collection = new ProductPriceAvailabilityCollection;
 
-        $collection->push($this->renderSingleProductPriceAvailability($filters));
+        foreach ($filters as $filter) {
+            $collection->push($this->renderSingleProductPriceAvailability($filter));
+        }
+
+        $this->processWarehouseInventory($collection);
 
         return $collection;
     }
@@ -360,26 +392,106 @@ class AppriseErpAdapter implements ErpApiInterface
     public function createOrder(array $orderInfo = []): Order
     {
         $model = new Order($orderInfo);
-        $erpData = $orderInfo ?? [];
-        if (isset($erpData['error'])) {
-            // Handle error scenario if needed
-            $model->Message = $erpData['error'];
-            return $model;
+
+        $attribute = $orderInfo['orderInfo'] ?? [];
+
+        $specialCharge = collect($attribute['total_additional'] ?? [])->sum('value');
+
+        $orderNumber = $this->getAttribute($orderInfo['statusReports'] ?? [], 'Created order number');
+
+        $model->Message = null;
+
+        if ($orderInfo['validationErrorCount'] != 0) {
+            $model->Message = collect($orderInfo['statusReports'] ?? [])
+                ->filter(fn ($item) => is_numeric($item['msgNum']) && !in_array($item['msgNum'], [19558, 19550, 19602, 19616]))
+                ->pluck('statLine')
+                ->implode(' | ');
         }
 
-        $header = $erpData['tOrdloadhdrdata']['t-ordloadhdrdata'][0] ?? [];
-        $lines = $erpData['tOrdloadlinedata']['t-ordloadlinedata'] ?? [];
-        $totals = $erpData['tOrdtotdata']['t-ordtotdata'][0] ?? [];
-        $notesRaw = $erpData['tOrdtotextamt']['t-ordtotextamt'] ?? [];
+        $model->CustomerNumber = $attribute['customer_code'] ?? null;
+        $model->ContactId = $attribute['contact_id'] ?? null;
+        $model->OrderNumber = $orderNumber['param1'] ?? null;
+        $model->OrderSuffix = $attribute['OrderSuffix'] ?? null;
+        $model->OrderType = $attribute['OrderType'] ?? null;
 
-        $flattened = array_merge(
-            $header,
-            $totals,
-        );
+        $model->OrderStatus = $attribute['order_status'] ?? null;
+        $model->CustomerName = $attribute['customer_name'] ?? null;
+        $model->BillToCountry = $attribute['customer_country_code'] ?? null;
+        $model->CustomerAddress1 = $attribute['customer_address_1'] ?? null;
+        $model->CustomerAddress2 = $attribute['customer_address_2'] ?? null;
+        $model->CustomerAddress3 = $attribute['customer_address_3'] ?? null;
+        $model->BillToCity = $attribute['customer_city'] ?? null;
+        $model->BillToState = $attribute['customer_state'] ?? null;
 
+        $model->BillToZipCode = $attribute['customer_zip_code'] ?? null;
+        $model->BillToContact = $attribute['name'] ?? null;
+        $model->ShipToNumber = $attribute['ship_to_number'] ?? null;
+        $model->ShipToName = $attribute['ship_to_name'] ?? null;
+        $model->ShipToCountry = $attribute['ship_to_country_code'] ?? null;
+        $model->ShipToAddress1 = $attribute['ship_to_address_1'] ?? null;
+        $model->ShipToAddress2 = $attribute['ship_to_address_2'] ?? null;
+        $model->ShipToAddress3 = $attribute['ship_to_address_3'] ?? null;
 
-        $model->OrderNumber = $flattened['orderno'] ?? null;
-        $model->OrderStatus = 'Accepted';
+        $model->ShipToCity = $attribute['ship_to_city'] ?? null;
+        $model->ShipToState = $attribute['ship_to_state'] ?? null;
+        $model->ShipToZipCode = $attribute['ship_to_zip_code'] ?? null;
+        $model->ShipToContact = $attribute['ship_to_contact'] ?? null;
+        $model->EntryDate = $attribute['created_at'] ?? null;
+//        $model->PromiseDate = $attribute['PromiseDate'] ?? null;
+//        $model->RequestedShipDate = $attribute['RequestedShipDate'] ?? null;
+        $model->CustomerPurchaseOrdernumber = $attribute['po_number'] ?? null;
+        $model->ItemSalesAmount = $attribute['total_net_price'] ?? null;
+
+//        $model->DiscountAmountTrading = $attribute['DiscountAmountTrading'] ?? null;
+        $model->SalesTaxAmount = $attribute['total_tax_amount'] ?? null;
+        $model->InvoiceAmount = $attribute['total_amount'] ?? null;
+        $model->FreightAmount = $attribute['total_shipping_cost'] ?? null;
+        $model->TotalOrderValue = $attribute['total_amount'] ?? null;
+        $model->TotalSpecialCharges = $specialCharge ?? null;
+        $model->CarrierCode = $attribute['ship_to_method'] ?? null;
+        $model->CarrierCodeDescription = $attribute['ship_to_method_label'] ?? null;
+        $model->WarehouseID = $attribute['order_warehouse'] ?? null;
+
+        $model->InvoiceNumber = $orderNumber['param1'] ?? null;
+        $model->EmailAddress = $attribute['email'] ?? null;
+
+        $billToCountry = Country::findByISO($attribute['customer_country_code']);
+        $model->BillToCountryName = $billToCountry?->name ?? null;
+
+        $shipToCountry = Country::findByISO($attribute['ship_to_country_code']);
+        $model->ShipToCountryName = $shipToCountry?->name ?? null;
+
+        $model->PdfAvailable = $attribute['PdfAvailable'] ?? null;
+        $model->OrderDetail = $attribute['OrderDetail'] ?? null;
+
+        $model->OrderNotes = new OrderNoteCollection();
+        if ($attribute['order_notes']) {
+            foreach ($attribute['order_notes'] as $orderNote) {
+                $temp = new OrderNote($orderNote);
+                $temp->Subject = $orderNote['subject'] ?? null;
+                $temp->Date = $orderNote['created_at'] ?? null;
+                $temp->NoteNum = $orderNote['id'] ?? null;
+                $temp->Type = $orderNote['type'] ?? null;
+                $temp->Editable = false;
+                $temp->Note = $orderNote['note'] ?? null;
+                $temp->Secureflag = false;
+                $model->OrderNotes->push($temp);
+            }
+        }
+
+        $model->SignedDoc = $attribute['SignedDoc'] ?? null;
+        $model->SignedType = $attribute['SignedType'] ?? null;
+
+        $model->HazMatCharge = $attribute['HazMatCharge'] ?? null;
+        $model->InHouseDeliveryDate = $attribute['InHouseDeliveryDate'] ?? null;
+        $model->OrderDisposition = $attribute['OrderDisposition'] ?? null;
+        $model->InvoiceDate = $attribute['InvoiceDate'] ?? null;
+        $model->TrackingShipments = $attribute['TrackingShipments'] ?? null;
+        $model->NoteList = $attribute['order_notes'] ?? [];
+        $model->ExtraCharges = $attribute['total_additional'] ?? null;
+        $model->FreightAccountNumber = $attribute['FreightAccountNumber'] ?? null;
+        $model->RestockFee = $attribute['RestockFee'] ?? null;
+        $model->OrderDiscount = $attribute['OrderDiscount'] ?? null;
 
         return $model;
     }
@@ -390,8 +502,9 @@ class AppriseErpAdapter implements ErpApiInterface
     public function getOrderList(array $customerOrders = []): OrderCollection
     {
         $orders = new OrderCollection;
-        if (!empty($customerOrders)) {
-            foreach (($customerOrders['tOeordV5']['t-oeordV5'] ?? []) as $order) {
+
+        if (array_key_exists('orders', $customerOrders)) {
+            foreach (($customerOrders['orders'] ?? []) as $order) {
                 $orders->push($this->renderSingleOrder($order));
             }
         }
@@ -404,35 +517,33 @@ class AppriseErpAdapter implements ErpApiInterface
      */
     public function getOrderDetail(array $orderInfo = []): Order
     {
-        $headers = $this->mapFieldAttributes($orderInfo['tFieldlist']['t-fieldlist'] ?? []);
+        if (array_key_exists('orderHeader', $orderInfo)) {
+            $header = $orderInfo['orderHeader'][0] ?? [];
 
-        $taxes = $orderInfo['tOetaxsa']['t-oetaxsa'] ?? [];
+            $orderItems = $orderInfo['orderItems'] ?? [];
 
-        $headers['lineLevelFieldMap'] = $this->extractLineLevelFieldMap($orderInfo);
+            $itemAmount = collect($orderItems)
+                ->sum(fn ($item) => (float)($item['extendedPrice'] ?? 0));
 
-        foreach ($taxes as $index => $orderTax) {
-            foreach (($orderInfo['tOetaxar']['t-oetaxar'] ?? []) as $item) {
-                if ($orderTax['taxcode'] == $item['localcode']) {
-                    $taxes[$index] = array_merge($orderTax, $item);
-                }
-            }
+            $chargeAmount = collect($orderInfo['additionalCharges'] ?? [])
+                ->sum(fn ($charge) => (($charge['sign'] ?? '+') === '-' ? -1 : 1) * (float)($charge['chargeAmount'] ?? 0));
+
+            $taxAmount = collect($orderItems)->sum(fn ($item) => (float)($item['taxAmount'] ?? 0))
+                + collect($orderInfo['additionalCharges'] ?? [])->sum(fn ($charge) => (float)($charge['taxAmount'] ?? 0));
+
+            $orderTotal = round($itemAmount + $chargeAmount + $taxAmount, 2);
+
+            return $this->renderSingleOrder(array_merge($orderInfo, $header, [
+                'totLineAmt' => $itemAmount,
+                'totaddonamt' => $chargeAmount,
+                'taxAmt' => $taxAmount,
+                'totInvAmt' => $orderTotal,
+                'totLineOrd' => $orderTotal,
+                'orderlines' => $orderItems,
+            ]));
         }
 
-        $orderInfo = array_merge($orderInfo, $headers, [
-            'ordertaxes' => $taxes,
-            'orderlines' => ($orderInfo['tOelineitemV3']['t-oelineitemV3'] ?? []),
-        ]);
-
-        unset(
-            $orderInfo['tFieldlist'],
-            $orderInfo['tOetaxsa'],
-            $orderInfo['tOetaxar'],
-            $orderInfo['tOelineitemV3']
-        );
-
-        array_walk($orderInfo, fn(&$item, $key) => $item = (!is_array($item)) ? trim($item) : $item);
-
-        return $this->renderSingleOrder($orderInfo);
+        return new Order;
     }
 
     public function getOrderTotal(array $orderInfo = []): OrderTotal
@@ -457,12 +568,12 @@ class AppriseErpAdapter implements ErpApiInterface
         if (!empty($attributes['OrderLines'])) {
             foreach ($attributes['OrderLines'] as $line) {
                 $model->OrderLines->push((object)[
-                    'ItemNumber' => $line['shipprod'] ?? '',
-                    'ItemDesc' => $line['descrip'] ?? '',
-                    'Quantity' => $line['qtyord'] ?? 0,
-                    'UoM' => $line['unit'] ?? '',
-                    'UnitPrice' => $line['price'] ?? 0,
-                    'TotalLineAmount' => $line['netamt'] ?? 0,
+                    'ItemNumber' => $line['product_code'] ?? '',
+                    'ItemDesc' => $line['product_name'] ?? '',
+                    'Quantity' => floatval($line['quantity'] ?? 0),
+                    'UoM' => $line['uom'] ?? '',
+                    'UnitPrice' => floatval($line['unitprice'] ?? 0),
+                    'TotalLineAmount' => floatval($line['subtotal'] ?? 0),
                 ]);
             }
         }
@@ -547,12 +658,9 @@ class AppriseErpAdapter implements ErpApiInterface
      */
     public function getCustomerARSummary(array $attributes = []): CustomerAR
     {
-        $attributes = $attributes['tCustsummary']['t-custsummary'] ?? [];
-
         $model = new CustomerAR($attributes);
 
         if (!empty($attributes)) {
-            $attributes = array_shift($attributes);
 
             $model->CustomerNum = $attributes['CustomerNum'] ?? null;
 
@@ -572,7 +680,7 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->DateOfLastPayment = $attributes['lastpaydt'] ?? null;
             $model->DateOfLastSale = $attributes['lastsaledt'] ?? null;
             $model->FutureAmount = $attributes['futureamt'] ?? null;
-            $model->OpenOrderAmount = $attributes['openordamt'] ?? null;
+            $model->OpenOrderAmount = $attributes['totalOpenAmt'] ?? null;
             $model->SalesLastYearToDate = $attributes['salesLYTD'] ?? null;
             $model->SalesMonthToDate = $attributes['salesMTD'] ?? null;
             $model->SalesYearToDate = $attributes['salesYTD'] ?? null;
@@ -720,9 +828,19 @@ class AppriseErpAdapter implements ErpApiInterface
             $customer = $attributes['custname'] ?? [];
             $salesAgent = $attributes['salesAgent'] ?? [];
 
+            $customerModel = \Amplify\System\Backend\Models\Customer::whereCustomerCode($customer['custCode'])->first();
+
+            $guessDefaultShipTo = \Amplify\System\Backend\Models\CustomerAddress::where('customer_id', $customerModel->id ?? null)
+                ->where('address_1', 'like', "%{$customer['address1']}%")
+                ->where('city', 'like', "%{$customer['city']}%")
+                ->where('state', 'like', "%{$customer['state']}%")
+                ->where('zip_code', 'like', "%{$customer['postalCode']}%")
+                ->where('country_code', '=', substr($customer['country'],0, 2))
+                ->first();
+
             $model->Message = $errorMessage;
             $model->CustomerNumber = $customer['custCode'] ?? null;
-            $model->ArCustomerNumber = $customer['custCode'] ?? null;
+            $model->ArCustomerNumber = $attributes['customerAr']['creditCustomerKey'] ?? $customer['custCode'] ?? null;
             $model->CustomerName = $customer['custName'] ?? null;
             $model->CustomerAddress1 = $customer['address1'] ?? null;
             $model->CustomerAddress2 = $customer['address2'] ?? null;
@@ -731,48 +849,24 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->CustomerState = $customer['state'] ?? null;
             $model->CustomerZipCode = $customer['postalCode'] ?? null;
             $model->CustomerCountry = isset($customer['country']) ? substr($customer['country'], 0, 2) : null;
+            $model->CustomerEmail = $customer['emailAddress'] ?? null;
             $model->CustomerPhone = $customer['phone'] ?? null;
-            $model->CustomerContact = $customer['CustomerContact'] ?? null;
-            $model->DefaultShipTo = $customer['preferredShipper'] ?? null;
-            $model->DefaultWarehouse = null;
-            $model->CarrierCode = $customer['shippingMethod'] ?? null;
-            $model->PriceList = $customer['priceList'] ?? null;
+            $model->CustomerContact = $customerModel['business_contact'] ?? null;
+            $model->DefaultShipTo = $customerModel['shipto_address_code'] ?? $guessDefaultShipTo?->address_code ?? null;
+            $model->DefaultWarehouse = $attributes['locationSales']['locationPrefix'] ?? null;
+            $model->CarrierCode = $customer['preferredShipper'] ?? null;
+            $model->PriceList = $customerModel['list_price'] ?? null;
             $model->BackorderCode = isset($customer['cancelBackorder']) ? !$customer['cancelBackorder'] ? 'Y' : 'N' : null;
-            $model->CustomerClass = $customer['cfCustGroupKey'] ?? null;
-            $model->SuspendCode = isset($customer['suspendCode']) ? !$customer['active'] ? 'Y' : 'N' : null;
-            $model->AllowArPayments = $customer['AllowArPayments'] ?? null;
-            $model->CreditCardOnly = $customer['CreditCardOnly'] ?? null;
+            $model->CustomerClass = $customer['groupId'] ?? null;
+            $model->SuspendCode = isset($customer['active']) ? !$customer['active'] ? 'Y' : 'N' : null;
+            $model->AllowArPayments = isset($attributes['arPaymentRemit']) ? $attributes['arPaymentRemit']['active'] ? 'Y' : 'N' : null;
+            $model->CreditCardOnly = isset($attributes['locationSales']) ? $attributes['locationSales']['useCreditcard'] ? 'Y' : 'N' : null;
             $model->FreightOptionAmount = !empty($customer['FreightOptionAmount']) ? floatval($customer['FreightOptionAmount']) : null;
-            $model->PoRequired = $customer['poRequired'] ?? null;
-            $model->SalesPersonCode = $salesAgent['salesAgentId'] ?? null;
+            $model->PoRequired = isset($customer['reqPoNum']) ? $customer['reqPoNum'] ? 'Y' : 'N' : null;
+            $model->SalesPersonCode = $customer['defaultSalesAgent'] ?? null;
             $model->SalesPersonName = trim(($salesAgent['firstName'] ?? '') . ' ' . ($salesAgent['lastName'] ?? ''));
             $model->SalesPersonEmail = $salesAgent['emailAddress'] ?? null;
             $model->ProductRestriction = $customer['productRestriction'] ?? null;
-        }
-
-        return $model;
-    }
-
-    public function renderSingleCustomerShippingLocation($attributes): ShippingLocation
-    {
-        $model = new ShippingLocation($attributes);
-
-        if (!empty($attributes)) {
-            $model->ShipToNumber = $attributes['shipto'] ?? null;
-            $model->ShipToName = $attributes['name'] ?? null;
-            $model->ShipToCountryCode = strtoupper($attributes['countrycd'] ?? null);
-            $model->ShipToAddress1 = $attributes['addr1'] ?? null;
-            $model->ShipToAddress2 = $attributes['addr2'] ?? null;
-            $model->ShipToAddress3 = $attributes['addr3'] ?? null;
-            $model->ShipToCity = $attributes['city'] ?? null;
-            $model->ShipToState = $attributes['state'] ?? null;
-            $model->ShipToZipCode = $attributes['zipcd'] ?? null;
-            $model->ShipToPhoneNumber = $attributes['phoneno'] ?? null;
-            $model->ShipToContact = $attributes['contact'] ?? null;
-            $model->ShipToWarehouse = $attributes['whse'] ?? null;
-            $model->BackorderCode = isset($attributes['bofl']) ? $attributes['bofl'] == 'yes' : null;
-            $model->CarrierCode = $attributes['shipviaty'] ?? null;
-            $model->PoRequired = $attributes['poreqfl'] ?? null;
         }
 
         return $model;
@@ -788,9 +882,9 @@ class AppriseErpAdapter implements ErpApiInterface
 
             $price = $attributes['price'] ?? null;
 
-            $model->ItemNumber = $attributes['product_code'] ?? null;
-            $model->WarehouseID = $attributes['whse'] ?? null;
-            $model->QuantityOnOrder = $attributes['quantity'] ?? 0;
+            $model->ItemNumber = $attributes['productCode'] ?? null;
+            $model->WarehouseID = $attributes['locationPrefix'] ?? null;
+            $model->QuantityOnOrder = $attributes['qtyOnOrder'] ?? 0;
             $model->Price = !empty($price) ? (float)str_replace([',', '$'], '', $price) : 0;
             $model->ListPrice = $attributes['price'] ?? null;
             $model->StandardPrice = $attributes['price'] ?? null;
@@ -815,44 +909,25 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->QtyBreak_9 = $attributes['quantitybreak9'] ?? null;
             $model->ExtendedPrice = $model->Price * $model->QuantityOnOrder;
             $model->OrderPrice = $model->Price;
-            $model->UnitOfMeasure = $attributes['um_code'] ?? null;
-            $model->DiscountAmount = $attributes['extdiscount'] ?? 0;
-            $model->PricingUnitOfMeasure = ucwords(strtolower($attributes['unit'] ?? null));
-            $model->DefaultSellingUnitOfMeasure = $attributes['unit'] ?? null;
+            $model->UnitOfMeasure = $attributes['um'] ?? null;
+            $model->DiscountAmount = $attributes['priceAdjustment'] ?? 0;
+            $model->PricingUnitOfMeasure = $attributes['um'] ?? null;
+            $model->DefaultSellingUnitOfMeasure = $attributes['um'] ?? null;
             $model->AverageLeadTime = $attributes['leadtmavg'] ?? null;
-            $model->QuantityAvailable = $attributes['netavail'] ?? null;
-            $model->MinOrderQuantity = $attributes['MOQ'] ?? 1;
+            $model->QuantityAvailable = $attributes['qtyAvailable'] ?? null;
+            $model->MinOrderQuantity = 1;
             $model->AllowBackOrder = isset($attributes['SANA']) && $attributes['SANA'] == 'yes';
-            $model->QuantityInterval = $attributes['SellMult'] ?? null;
+            $model->QuantityInterval = 1;
             $model->ItemRestricted = isset($attributes['Restricted']) && $attributes['Restricted'] == 'Y';
+            $model->QuantityOnHand = $attributes['qtyOnHand'] ?? null;
+            $model->QuantityAllocated = $attributes['qtyAllocated'] ?? null;
+            $model->QuantityFuture = $attributes['qtyFuture'] ?? null;
+            $model->QuantityPending = $attributes['qtyPending'] ?? null;
+            $model->QuantityInTransit = $attributes['qtyInTransit'] ?? null;
+            $model->FutureReceiptDetails = $attributes['futureReceiptDetails'] ?? [];
         }
 
         return $model;
-    }
-
-    private function getPriceBasedOnQtyBreak(ProductPriceAvailability $model, float $orderedQty): float
-    {
-        $breaks = [
-            ['qty' => $model->QtyBreak_9, 'price' => $model->QtyPrice_9],
-            ['qty' => $model->QtyBreak_8, 'price' => $model->QtyPrice_8],
-            ['qty' => $model->QtyBreak_7, 'price' => $model->QtyPrice_7],
-            ['qty' => $model->QtyBreak_6, 'price' => $model->QtyPrice_6],
-            ['qty' => $model->QtyBreak_5, 'price' => $model->QtyPrice_5],
-            ['qty' => $model->QtyBreak_4, 'price' => $model->QtyPrice_4],
-            ['qty' => $model->QtyBreak_3, 'price' => $model->QtyPrice_3],
-            ['qty' => $model->QtyBreak_2, 'price' => $model->QtyPrice_2],
-            ['qty' => $model->QtyBreak_1, 'price' => $model->QtyPrice_1],
-        ];
-
-        foreach ($breaks as $break) {
-            if (!empty($break['qty']) && $orderedQty >= $break['qty']) {
-                return !empty($break['price'])
-                    ? (float)str_replace([',', '$'], '', $break['price'])
-                    : 0;
-            }
-        }
-
-        return $model->Price;
     }
 
     private function renderProductSync($attributes): ProductSync
@@ -1010,26 +1085,26 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->FreightAmount = $attributes['actfreight'] ?? null;
             $model->FreightAccountNumber = $attributes['zFreightAcct'] ?? null;
             $model->ContactId = (string)($attributes['contactid'] ?? null);
-            $model->CustomerNumber = $attributes['custno'] ?? $attributes['custNo'] ?? null;
-            $model->CustomerName = $attributes['name'] ?? null;
-            $model->OrderNumber = $attributes['orderno'] ?? $attributes['orderNo'] ?? null;
+            $model->CustomerNumber = $attributes['custCode'] ?? null;
+            $model->CustomerName = $attributes['custName'] ?? null;
+            $model->OrderNumber = $attributes['orderNumber'] ?? $attributes['orderNum'] ?? null;
             $model->OrderNote = $attributes['OrderNote'] ?? null;
-            $model->OrderSuffix = isset($attributes['ordersuf']) || isset($attributes['orderSuf'])
-                ? str_pad($attributes['ordersuf'] ?? $attributes['orderSuf'], 2, '0', STR_PAD_LEFT)
+            $model->OrderSuffix = isset($attributes['orderSuf'])
+                ? str_pad($attributes['orderSuf'], 2, '0', STR_PAD_LEFT)
                 : null;
-            $model->OrderType = $attributes['transtype'] ?? $attributes['transType'] ?? null;
-            $model->OrderStatus = $attributes['stage'] ?? $attributes['stageCd'] ?? null;
-            $model->CustomerAddress1 = $attributes['addr1'] ?? $attributes['soldtoaddr1'] ?? null;
-            $model->CustomerAddress2 = $attributes['addr2'] ?? $attributes['soldtoaddr2'] ?? null;
-            $model->CustomerAddress3 = $attributes['addr3'] ?? $attributes['soldtoaddr3'] ?? null;
-            $model->BillToCity = $attributes['city'] ?? $attributes['soldtocity'] ?? null;
-            $model->BillToState = $attributes['state'] ?? $attributes['soldtost'] ?? null;
-            $model->BillToZipCode = $attributes['zipcd'] ?? $attributes['soldtozipcd'] ?? null;
-            $model->BillToCountry = mb_strtoupper($attributes['countrycd'] ?? null);
+            $model->OrderType = $attributes['transType'] ?? null;
+            $model->OrderStatus = $attributes['orderStatus'] ?? null;
+            $model->CustomerAddress1 = $attributes['addr1'] ?? null;
+            $model->CustomerAddress2 = $attributes['addr2'] ?? null;
+            $model->CustomerAddress3 = $attributes['addr3'] ?? null;
+            $model->BillToCity = $attributes['city'] ?? null;
+            $model->BillToState = $attributes['state'] ?? null;
+            $model->BillToZipCode = $attributes['zipcd'] ?? null;
+            $model->BillToCountry = mb_strtoupper($attributes['countrycd'] ?? '');
             $model->BillToContact = $attributes['contactid'] ?? null;
             $model->ShipToNumber = $attributes['shipto'] ?? null;
             $model->ShipToName = $attributes['shiptonm'] ?? null;
-            $model->ShipToCountry = mb_strtoupper($attributes['zCountryCd'] ?? $attributes['shiptocountrycd'] ?? null);
+            $model->ShipToCountry = mb_strtoupper($attributes['shiptocountrycd'] ?? '');
             $model->ShipToAddress1 = $attributes['shiptoaddr1'] ?? null;
             $model->ShipToAddress2 = $attributes['shiptoaddr2'] ?? null;
             $model->ShipToAddress3 = $attributes['shiptoaddr3'] ?? null;
@@ -1037,47 +1112,36 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->ShipToState = $attributes['shiptost'] ?? null;
             $model->ShipToZipCode = $attributes['shiptozip'] ?? null;
             $model->ShipToContact = $attributes['contactid'] ?? null;
-            $model->EntryDate = $attributes['enterdt'] ?? $attributes['enterDt'] ?? null;
-            $model->PromiseDate = $attributes['promisedt'] ?? $attributes['promiseDt'] ?? null;
+            $model->EntryDate = $attributes['orderDate'] ?? $attributes['requiredDate'] ?? null;
+            $model->PromiseDate = $attributes['promiseDt'] ?? null;
             $model->InHouseDeliveryDate = $attributes['linelevel-user9'] ?? null;
-            $model->RequestedShipDate = $attributes['reqshipdt'] ?? null;
-            $model->CustomerPurchaseOrdernumber = $attributes['custpo'] ?? $attributes['custPo'] ?? null;
-            $model->ItemSalesAmount = isset($attributes['totlineamt']) || isset($attributes['totLineAmt'])
-                ? (float)filter_var(
-                    $attributes['totlineamt'] ?? $attributes['totLineAmt'],
-                    FILTER_SANITIZE_NUMBER_FLOAT,
-                    FILTER_FLAG_ALLOW_FRACTION
-                )
+            $model->RequestedShipDate = $attributes['requiredDate'] ?? null;
+            $model->CustomerPurchaseOrdernumber = $attributes['custPo'] ?? null;
+            $model->ItemSalesAmount = isset($attributes['totLineAmt'])
+                ? (float)filter_var($attributes['totLineAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
                 : null; // net amount (post-discount)
             $model->DiscountAmountTrading = isset($attributes['totdiscamt']) ? (float)filter_var($attributes['totdiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
             $model->OrderDiscount = isset($attributes['wodiscamt']) ? (float)filter_var($attributes['wodiscamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->SalesTaxAmount = isset($attributes['taxamt']) ? (float)filter_var($attributes['taxamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->InvoiceAmount = isset($attributes['totinvamt']) || isset($attributes['totInvAmt'])
-                ? (float)filter_var(
-                    $attributes['totinvamt'] ?? $attributes['totInvAmt'],
-                    FILTER_SANITIZE_NUMBER_FLOAT,
-                    FILTER_FLAG_ALLOW_FRACTION
-                ) : null;
+            $model->SalesTaxAmount = isset($attributes['taxAmt']) ? (float)filter_var($attributes['taxAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
+            $model->InvoiceAmount = isset($attributes['totInvAmt'])
+                ? (float)filter_var($attributes['totInvAmt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
+                : null;
             $model->TotalSpecialCharges = isset($attributes['totaddonamt']) ? (float)filter_var($attributes['totaddonamt'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null;
-            $model->TotalOrderValue = isset($attributes['totlineord']) || isset($attributes['totLineOrd'])
-                ? (float)filter_var(
-                    $attributes['totlineord'] ?? $attributes['totLineOrd'],
-                    FILTER_SANITIZE_NUMBER_FLOAT,
-                    FILTER_FLAG_ALLOW_FRACTION
-                )
-                : null; // gross amount (pre-discount)
+            $model->TotalOrderValue = isset($attributes['totLineOrd'])
+                ? (float)filter_var($attributes['totLineOrd'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
+                : (isset($attributes['totalAmount']) ? (float)filter_var($attributes['totalAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null); // gross amount (pre-discount)
             $model->CarrierCode = $attributes['shipviaty'] ?? null;
             $model->CarrierCodeDescription = $attributes['shipviatydesc'] ?? null;
-            $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? null);
+            $model->WarehouseID = mb_strtoupper($attributes['whse'] ?? '');
             $model->InvoiceNumber = $attributes['invno'] ?? null;
             $model->EmailAddress = $attributes['EmailAddress'] ?? null;
-            $model->BillToCountryName = mb_strtoupper($attributes['countrycd'] ?? null);
-            $model->ShipToCountryName = mb_strtoupper($attributes['shiptocountrycd'] ?? null);
+            $model->BillToCountryName = mb_strtoupper($attributes['countrycd'] ?? '');
+            $model->ShipToCountryName = mb_strtoupper($attributes['shiptocountrycd'] ?? '');
             $model->PdfAvailable = $attributes['PdfAvailable'] ?? 'No';
             $model->SignedType = $attributes['SignedType'] ?? null;
             $model->SignedDoc = $attributes['SignedDoc'] ?? null;
             $model->OrderDisposition = $attributes['orderdisp'] ?? null;
-            $model->InvoiceDate = $attributes['invoicedt'] ?? $attributes['invoiceDt'] ?? null;
+            $model->InvoiceDate = $attributes['invoicedt'] ?? null;
             $model->OrderDetail = new OrderDetailCollection;
             $model->OrderNotes = new OrderNoteCollection;
             $model->RestockFee = isset($attributes['zRestockAmt'])
@@ -1135,24 +1199,24 @@ class AppriseErpAdapter implements ErpApiInterface
 
         if (!empty($attributes)) {
             // Basic line/item info
-            $model->LineNumber = $attributes['lineNo'] ?? null;
-            $model->ItemNumber = $attributes['prod'] ?? null;
+            $model->LineNumber = $attributes['lineNo'] ?? $attributes['lineNumber'] ?? null;
+            $model->ItemNumber = $attributes['prod'] ?? $attributes['productCode'] ?? null;
             $model->ItemType = $attributes['ItemType'] ?? null;
-            $model->ItemDescription1 = $attributes['desc1'] ?? null;
+            $model->ItemDescription1 = $attributes['desc1'] ?? $attributes['productName'] ?? null;
             $model->ItemDescription2 = $attributes['desc2'] ?? null;
 
             // Quantity details
-            $model->QuantityOrdered = $attributes['qtyOrd'] ?? $attributes['Quantity'] ?? null;
+            $model->QuantityOrdered = $attributes['qtyOrd'] ?? $attributes['Quantity'] ?? $attributes['qtyOrdered'] ?? null;
             $model->QuantityShipped = $attributes['qtyShip'] ?? null;
             $model->QuantityBackordered = isset($model->QuantityOrdered, $model->QuantityShipped)
                 ? $model->QuantityOrdered - $model->QuantityShipped
                 : null;
 
-            $model->UnitOfMeasure = $attributes['unit'] ?? null;
+            $model->UnitOfMeasure = $attributes['unit'] ?? $attributes['um'] ?? null;
 
             // Pricing & amounts
-            $model->ActualSellPrice = $attributes['netOrd'] ?? null;
-            $model->TotalLineAmount = $attributes['netAmt'] ?? null;
+            $model->ActualSellPrice = $attributes['netOrd'] ?? $attributes['unitPrice'] ?? null;
+            $model->TotalLineAmount = $attributes['netAmt'] ?? $attributes['extendedPrice'] ?? null;
             $model->PricingUM = (isset($model->QuantityOrdered, $model->ActualSellPrice)
                 && $model->ActualSellPrice != 0)
                 ? $model->ActualSellPrice / $model->QuantityOrdered
@@ -1160,8 +1224,8 @@ class AppriseErpAdapter implements ErpApiInterface
             $model->TiedOrder = !empty($attributes['tiedorder']) ?
                 str_replace('PO# ', '', $attributes['tiedorder']) : '';
             $model->PODetails = $this->getPODetails([
-                'poNumber' => $attributes['tiedorder'],
-                'productCode' => $attributes['prod'],
+                'poNumber' => $attributes['tiedorder'] ?? null,
+                'productCode' => $attributes['prod'] ?? $attributes['productCode'] ?? null,
             ]);
             $model->DirectOrder = $attributes['botype'] ?? null;
             // Shipping & order info
@@ -1688,16 +1752,7 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $model = new TermsType($attributes);
 
-        $termsTypeValue = null;
-        if (!empty($attributes['tFieldlist']['t-fieldlist'])) {
-            foreach ($attributes['tFieldlist']['t-fieldlist'] as $field) {
-                if ($field['fieldName'] === 'termstype') {
-                    $termsTypeValue = $field['fieldValue'];
-                    break;
-                }
-            }
-        }
-        $model->TermsType = $termsTypeValue;
+        $model->TermsType = $attributes['termsCode'] ?? null;
 
         return $model;
     }
@@ -1800,9 +1855,9 @@ class AppriseErpAdapter implements ErpApiInterface
     {
         $model = new TrackShipment($attributes);
 
-        $model->OrderNumber = $attributes['orderno'] ?? null;
-        $model->TrackerNo = $attributes['trackerno'] ?? null;
-        $model->ShipViaType = $attributes['shipviaty'] ?? null;
+        $model->OrderNumber = $attributes['orderNumber'] ?? null;
+        $model->TrackerNo = $attributes['trackingNumber'] ?? null;
+        $model->ShipViaType = $attributes['shipperID'] ?? null;
 
         return $model;
     }
@@ -1847,31 +1902,9 @@ class AppriseErpAdapter implements ErpApiInterface
         return $model;
     }
 
-    private function getPODetails(array $inputs = [])
+    public function getPODetails(array $inputs = [])
     {
-        if (!in_array(config('amplify.client_code'), ['NUX', 'DKL']) || empty($inputs['poNumber'])) {
-            return [];
-        }
-
-        $poDetails = Cache::remember(
-            'po_details_' . $inputs['poNumber'],
-            now()->addMinutes(5),
-            function () use ($inputs) {
-                return ErpApi::getPODetails($inputs);
-            }
-        );
-
-        if (empty($poDetails['tPolineitemv2']['t-polineitemv2'])) {
-            return [];
-        }
-
-        $productCode = $inputs['productCode'];
-        $filteredPoDetails = array_filter($poDetails['tPolineitemv2']['t-polineitemv2'], function ($item) use ($productCode) {
-            return $item['shipprod'] === $productCode;
-        });
-
-        $orderPODetails = array_shift($filteredPoDetails);
-        $model = new OrderPODetails($orderPODetails);
+        $model = new OrderPODetails($inputs);
 
         if (!empty($orderPODetails)) {
             $model->BoType = $this->clearFix($orderPODetails['botype']);

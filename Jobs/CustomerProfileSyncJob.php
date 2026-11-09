@@ -57,11 +57,12 @@ class CustomerProfileSyncJob implements ShouldQueue
      * syncCustomerInfo
      *
      * @return void
+     * @throws \ErrorException
      */
     private function syncCustomerInfo()
     {
 
-        $erpCustomer = ErpApi::getCustomerDetail(['customer_number' => $this->customer->customer_code]);
+        $erpCustomer = ErpApi::getCustomerDetail(['customer_number' => $this->customer->erp_id]);
         $warehouse = Warehouse::where('code', $erpCustomer->DefaultWarehouse)->first();
 
         $normalizedCountry = CustomerSyncHelper::normalizeCountryIso2($erpCustomer->CustomerCountry ?? null);
