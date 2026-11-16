@@ -21,8 +21,10 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property $PrimaryVendor
  * @property $RHSpartscomNotes
  * @property $Brand
+ * @property string $ItemGroup
  * @property $AllowBackOrder
- * @property $ItemID
+ * @property string $ItemID
+ * @property string $ImagePath
  * @property $StandardPartNumber Manufacturer Part Number
  */
 class ProductSync extends Wrapper implements ErpApiWrapperInterface
