@@ -209,82 +209,12 @@ class AppriseErpService implements ErpApiInterface
     /**
      * This API is to create a new cash customer account
      *
-     * @done untested
-     *
-     * @since 2024.12.8354871
      */
     public function createCustomer(array $attributes = []): CreateCustomer|Customer
     {
         try {
-            $fields['currencyty'] = '';
-            $fields['name'] = $attributes['customer_name'] ?? '';
-            $fields['addr1'] = $attributes['address_1'] ?? null;
-            $fields['addr2'] = $attributes['address_2'] ?? null;
-            $fields['addr3'] = $attributes['address_3'] ?? null;
-            $fields['city'] = $attributes['city'] ?? '';
-            $fields['zipcd'] = $attributes['zip_code'] ?? '';
-            $fields['state'] = $attributes['state'] ?? '';
-            $fields['countrycd'] = strtolower($attributes['country_code'] ?? '');
-            $fields['phoneno'] = '';
-            $fields['faxphoneno'] = '';
-            $fields['comment'] = '';
-            $fields['siccd1'] = $attributes['siccd1'] ?? 0;
-            $fields['siccd2'] = $attributes['siccd2'] ?? 0;
-            $fields['siccd3'] = $attributes['siccd3'] ?? 0;
-            $fields['statustype'] = $attributes['statustype'] ?? 'Active';
-            $fields['user1'] = $attributes['contact'] ?? '';
-            $fields['email'] = 'ACCOUNTING USE ONLY!  DO NOT MODIFY';
-            $fields['credlim'] = '';
-            $fields['termstype'] = $attributes['termstype'] ?? 'CRCD';
-            $fields['pricetype'] = '2';
-            $fields['shipviaty'] = 'UPSG';
-            $fields['lookupnm'] = substr($attributes['customer_name'] ?? '', 0, 15);
-            $fields['selltype'] = 'Y';
-            $fields['taxablety'] = 'Y';
-            $fields['pricecd'] = '1';
 
-            if (isset($attributes['edinsprodfl'])) {
-                $fields['edinsprodfl'] = $attributes['edinsprodfl'];
-            }
-            if (isset($attributes['edicatprodfl'])) {
-                $fields['edicatprodfl'] = $attributes['edicatprodfl'];
-            }
-
-            $tMnTt = [];
-
-            $count = 1;
-
-            foreach ($fields as $field => $value) {
-                $tMnTt[] = [
-                    'setNo' => 1,
-                    'seqNo' => $count,
-                    'key1' => '', // customer code
-                    'key2' => '', // customer shop-to code
-                    'updateMode' => 'add', // add/chg
-                    'fieldName' => $field,
-                    'fieldValue' => (string)$value,
-                ];
-                $count++;
-            }
-
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'tMntTt' => ['t-mnt-tt' => $tMnTt],
-            ];
-
-            $response = $this->post('/sxapiarcustomermnt', $payload);
-
-            if (isset($response['error'])) {
-                return $this->adapter->createCustomer(['Customers' => [$response]]);
-            }
-
-            $customer_number = preg_replace('/Set#: (\d*) Update Successful, Cono: 1 Customer #: ([\d+])/', '$2', $response['returnData'] ?? '');
-
-            $payload = [
-                'customer_number' => $customer_number,
-            ];
-
-            return $this->getCustomerDetail($payload);
+            return $this->adapter->createCustomer();
 
         } catch (Exception $exception) {
 
@@ -308,37 +238,8 @@ class AppriseErpService implements ErpApiInterface
     public function getCustomerList(array $filters = []): CustomerCollection
     {
         try {
-            $limit = $filters['limit'] ?? 0;
 
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'includeInactiveCustomers' => true,
-                'recordLimit' => $limit,
-                'postalCode' => (string)($filters['zip_code'] ?? null),
-            ];
-
-            if (!empty($filters['customer_number'])) {
-                $payload['customerNumber'] = $filters['customer_number'];
-            }
-
-            if (!empty($filters['customer_start'])) {
-                $payload['customerNumber'] = $filters['customer_start'];
-            }
-
-            if (!empty($filters['customer_end'])) {
-                $payload['customerNumber'] = $filters['customer_end'];
-            }
-
-            if (isset($filters['street_address'])) {
-                $address = explode(' ', strtoupper($filters['street_address']), 5);
-                foreach ($address as $index => $addr) {
-                    $payload['keyWord' . ($index + 1)] = $addr;
-                }
-            }
-
-            $response = $this->post('/sxapiargetcustomerlistv3', $payload);
-
-            return $this->adapter->getCustomerList($response);
+            return $this->adapter->getCustomerList();
 
         } catch (Exception $exception) {
 
@@ -385,86 +286,6 @@ class AppriseErpService implements ErpApiInterface
     | SHIPPING FUNCTIONS
     |--------------------------------------------------------------------------
     */
-
-    /**
-     * This function will return the ERP Carrier code options
-     *
-     * @done
-     *
-     * @since 2024.12.8354871
-     */
-    public function getShippingOption(array $data = []): ShippingOptionCollection
-    {
-        $options = Shipping::enabled()->get()->toArray();
-
-        return $this->adapter->getShippingOption($options);
-    }
-
-    /**
-     * @todo untestable
-     */
-    public function validateCustomerShippingLocation(array $filters = []): ShippingLocationValidation
-    {
-        try {
-
-            $customer_number = $this->customerId($filters);
-
-            $addressName = $filters['ship_to_name'] ?? $filters['address_name'] ?? '';
-            $addressCode = $filters['ship_to_code'] ?? $filters['address_code'] ?? '';
-
-            // taxing software in use
-            $shipTo = [
-                'streetaddr' => $filters['ship_to_address1'] ?? $filters['address_1'] ?? null,
-                'streetaddr2' => $filters['ship_to_address2'] ?? $filters['address_2'] ?? null,
-                'streetaddr3' => $filters['ship_to_address3'] ?? $filters['address_3'] ?? null,
-                'city' => $filters['ship_to_city'] ?? $filters['city'] ?? null,
-                'country' => $filters['ship_to_country_code'] ?? $filters['country_code'] ?? null,
-                'state' => $filters['ship_to_state'] ?? $filters['state'] ?? null,
-                'zipcd' => $filters['ship_to_zip_code'] ?? $filters['zip_code'] ?? null,
-                'addressoverfl' => true,
-            ];
-
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'tInAddrValidation' => [
-                    't-in-addr-validation' => [$shipTo],
-                ],
-            ];
-
-            $response = $this->post('/sxapiaddressvalidation', $payload);
-
-            $response['name'] = $addressName;
-            $response['code'] = $addressCode;
-
-            return $this->adapter->validateCustomerShippingLocation($response);
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->validateCustomerShippingLocation();
-        }
-    }
-
-    /**
-     * This API is to get customer ship to locations entity information from the CSD ERP
-     *
-     *
-     * @todo
-     *
-     * @since 2024.12.8354871
-     */
-    public function createCustomerShippingLocation(array $attributes = []): ShippingLocation
-    {
-        try {
-
-            return $this->adapter->createCustomerShippingLocation($attributes);
-
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->renderSingleCustomerShippingLocation();
-        }
-    }
 
     /**
      * This API is to get customer ship to locations entity information from the CSD ERP
@@ -568,7 +389,7 @@ class AppriseErpService implements ErpApiInterface
                     $records = $res['records'] ?? [];
 
                     foreach ($records as $index => $record) {
-                        $records[$index]['um'] = $uoms[$record['productCode']] ?? $record['um'] ?? null;
+                        $records[$index]['um'] = $uoms[$record['productCode']] ?? $record['um'] ?? 'each';
                         $records[$index]['qtyOnOrder'] = $qtyNumber;
                     }
 
@@ -585,62 +406,6 @@ class AppriseErpService implements ErpApiInterface
     }
 
     /**
-     * Fetch past sales history from ERP using FetchWhere proxy call.
-     *
-     * Expected filters:
-     * - prod / product : product code (required)
-     * - year : two-digit or four-digit year (optional, defaults to current year)
-     * - warehouses : comma separated warehouse list for CAN-DO (optional)
-     * - batch_size : number (optional, defaults to 100)
-     * - restart_row_id : string (optional)
-     *
-     * This calls the /proxy/FetchWhere endpoint with the payload shape the ERP expects.
-     */
-    public function getPastSalesHistory(array $filters = []): array
-    {
-        try {
-            $prod = $filters['prod'] ?? $filters['product'] ?? null;
-
-            if (empty($prod)) {
-                throw new ErpApiException('Product code is missing.');
-            }
-
-            $year = $filters['year'] ?? date('Y');
-            if (is_numeric($year) && intval($year) > 999) {
-                $year = intval(substr((string)$year, -2));
-            } else {
-                $year = intval($year);
-            }
-
-            $warehouses = $filters['warehouses'] ?? 'MAIN,COR1,ORE1,CEL1';
-
-            $customer_number = $this->customerId($filters);
-
-            $whereClause = "smsew.cono = {$this->systemId} and smsew.yr = {$year} and smsew.prod = '{$prod}' and CAN-DO('{$warehouses}', smsew.whse)and smsew.custno = {$customer_number}";
-
-            $payload = [
-                'CompanyNumber' => $this->systemId,
-                'TableName' => 'smsew',
-                'WhereClause' => $whereClause,
-                'BatchSize' => $filters['batch_size'] ?? 100,
-                'RestartRowID' => $filters['restart_row_id'] ?? '',
-            ];
-
-            $response = $this->post('/proxy/FetchWhere', $payload);
-            $response['year'] = (int)$filters['year'] ?? date('Y');
-
-            return $this->adapter->getPastSalesHistory($response);
-
-        } catch (Exception $exception) {
-
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->getPastSalesHistory();
-
-        }
-    }
-
-    /**
      * This function will check if the ERP has Any changes on inventory
      * of items between filters and data range
      *
@@ -651,23 +416,8 @@ class AppriseErpService implements ErpApiInterface
     public function getProductSync(array $filters = []): ProductSyncCollection
     {
         try {
-            $itemStart = $filters['item_start'] ?? '';
-            $itemEnd = $filters['item_end'] ?? '';
-            $updatesOnly = $filters['updates_only'] ?? 'N';
-            $processUpdates = $filters['process_updates'] ?? 'N';
-            $maxRecords = $filters['limit'] ?? '';
-            $restartPoint = ($filters['restart_point'] ?? isset($filters['restartPoint'])) ? $filters['restartPoint'] : '';
 
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'updateDate' => now()->format('Y-m-d'),
-                'updateRecords' => $processUpdates == 'Y',
-                'recordLimit' => $maxRecords,
-            ];
-
-            $response = $this->post('/sxapiicecatalogitemmasterv3', $payload);
-
-            return $this->adapter->getProductSync($response);
+            return $this->adapter->getProductSync();
 
         } catch (Exception $exception) {
 
@@ -682,39 +432,6 @@ class AppriseErpService implements ErpApiInterface
     | ORDER FUNCTIONS
     |--------------------------------------------------------------------------
     */
-
-    /**
-     * This function will check if the ERP has Any changes on inventory
-     * of items between filters and data range
-     *
-     * ** Note this function does not make andy api call **
-     *
-     * @throws ErpApiException|Exception
-     *
-     * @since 2024.12.8354871
-     */
-    public function getWarehouses(array $filters = []): WarehouseCollection
-    {
-        try {
-
-            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
-                return \Amplify\System\Backend\Models\Warehouse::all();
-            });
-
-            foreach ($filters as $filter) {
-                if (in_array(count($filter), [2, 3])) {
-                    $warehouses = $warehouses->where(...$filter);
-                }
-            }
-
-            return $this->adapter->getWarehouses($warehouses->toArray());
-
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->getWarehouses();
-        }
-    }
 
     /**
      * This API is to create an order in the CSD ERP
@@ -1141,22 +858,7 @@ class AppriseErpService implements ErpApiInterface
     public function getQuotationList(array $filters = []): QuotationCollection
     {
         try {
-            $fromEntryDate = $filters['start_date'] ?? null;
-            $toEntryDate = $filters['end_date'] ?? null;
-            $customer_number = $this->customerId($filters);
-            $transaction_types = $filters['transaction_types'] ?? null;
-
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'transactionTypes' => $transaction_types,
-                'startEnterDate' => $fromEntryDate,
-                'endEnterDate' => $toEntryDate,
-            ];
-
-            $response = $this->post('/sxapioegetlistofordersv5', $payload);
-
-            return $this->adapter->getQuotationList($response);
+            return $this->adapter->getQuotationList();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1176,27 +878,8 @@ class AppriseErpService implements ErpApiInterface
     public function getQuotationDetail(array $orderInfo = []): Quotation
     {
         try {
-            $quote_number = $orderInfo['quote_number'] ?? null;
-            $customer_number = $this->customerId($orderInfo);
-            $quote_suffix = $orderInfo['quote_suffix'] ?? 'O';
 
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'operatorPassword' => '',
-                'orderNumber' => $quote_number,
-                'orderSuffix' => $quote_suffix,
-                'getOrderInfo' => 'Y',
-                'lineSort' => 'A',
-                'includeHeaderData' => true,
-                'includeTotalData' => true,
-                'includeTaxData' => true,
-                'includeLineData' => true,
-            ];
-
-            $response = $this->post('/sxapioegetsingleorderv3', $payload);
-
-            return $this->adapter->getQuotationDetail($response);
+            return $this->adapter->getQuotationDetail();
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
@@ -1213,19 +896,8 @@ class AppriseErpService implements ErpApiInterface
     public function getCustomerARSummary(array $filters = []): CustomerAR
     {
         try {
-            $customer_number = $this->customerId($filters);
 
-            if ($customer_number == null) {
-                throw new ErpApiException('Customer Code is missing.');
-            }
-
-            $payload = [
-                'currency' => config('amplify.basic.global_currency', 'USD'),
-            ];
-
-            $response = $this->get("/ar/customers/{$customer_number}/open-invoices", $payload);
-
-            return $this->adapter->getCustomerARSummary($response);
+            return $this->adapter->getCustomerARSummary();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1239,58 +911,7 @@ class AppriseErpService implements ErpApiInterface
     public function getInvoiceList(array $filters = []): InvoiceCollection
     {
         try {
-            $customer_number = $this->customerId($filters);
-            $invoice_status = $filters['invoice_status'] ?? 'All';
-            $to_entry_date = $filters['to_entry_date'] ?? null;
-            $from_entry_date = $filters['from_entry_date'] ?? null;
-            $invoice_number = $filters['invoice_number'] ?? 0;
-            $record_limit = $filters['limit'] ?? 0;
-
-            if ($invoice_status == 'PAST') {
-                $invoice_status = 'CLOSED';
-            }
-
-            // Default true
-            $includePeriods = [
-                'includePeriod1' => true,
-                'includePeriod2' => true,
-                'includePeriod3' => true,
-                'includePeriod4' => true,
-                'includePeriod5' => true,
-                'includeFutureInvoices' => true,
-            ];
-
-            // If CLOSED, override to false
-            if ($invoice_status === 'CLOSED' || $invoice_status === 'All') {
-                $includePeriods = array_map(fn() => false, $includePeriods);
-            }
-
-            $payload = array_merge([
-                'companyNumber' => $this->systemId,
-                'operatorPassword' => '',
-                'customerNumber' => $customer_number,
-                'shipTo' => '',
-                'includeInvoices' => true,
-                'includeServiceCharges' => true,
-                'includeCOD' => true,
-                'includeDebitMemos' => true,
-                'includeCreditMemos' => true,
-                'includeUnappliedCash' => true,
-                'includeMiscCredits' => true,
-                'includeRebates' => true,
-                'includeChecks' => true,
-                'includeScheduledPayments' => true,
-                'cStatus' => $invoice_status,
-                'startDate' => $from_entry_date,
-                'endDate' => $to_entry_date,
-                'invoiceNumber' => $invoice_number,
-                'checkNumber' => 0,
-                'recordLimit' => $record_limit,
-            ], $includePeriods);
-
-            $response = $this->post('/sxapiargetinvoicelistv3', $payload);
-
-            return $this->adapter->getInvoiceList($response);
+            return $this->adapter->getInvoiceList();
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
@@ -1310,27 +931,8 @@ class AppriseErpService implements ErpApiInterface
     public function getInvoiceDetail(array $filters = []): Invoice
     {
         try {
-            $order_number = $filters['invoice_number'] ?? null;
-            $customer_number = $this->customerId($filters);
-            $suffix = $filters['suffix'] ?? 'O';
 
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'operatorPassword' => '',
-                'orderNumber' => $order_number,
-                'orderSuffix' => $suffix,
-                'getOrderInfo' => 'Y',
-                'lineSort' => 'A',
-                'includeHeaderData' => true,
-                'includeTotalData' => true,
-                'includeTaxData' => true,
-                'includeLineData' => true,
-            ];
-
-            $response = $this->post('/sxapioegetsingleorderv3', $payload);
-
-            return $this->adapter->getInvoiceDetail($response);
+            return $this->adapter->getInvoiceDetail();
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
@@ -1345,22 +947,7 @@ class AppriseErpService implements ErpApiInterface
     public function createPayment(array $paymentInfo = []): CreatePayment
     {
         try {
-            $invoices = $paymentInfo['invoices'] ?? [];
-            $payment = $paymentInfo['paymentInfo'] ?? [];
-            $type = $paymentInfo['type'] ?? [];
-            $customer_number = $this->customerId($paymentInfo);
-
-            $payload = [
-                'content' => [
-                        'CustomerNumber' => $customer_number,
-                        'Type' => $type,
-                        'Invoices' => $invoices,
-                    ] + $payment,
-            ];
-
-            $response = $this->post('/arPayment', $payload);
-
-            return $this->adapter->createPayment($response);
+            return $this->adapter->createPayment();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1374,23 +961,8 @@ class AppriseErpService implements ErpApiInterface
     public function createOrUpdateNote(array $noteInfo = []): CreateOrUpdateNote
     {
         try {
-            $type = $noteInfo['type'] ?? 'SOEH';
-            $note_number = $noteInfo['noteNumber'] ?? '';
-            $order_number = $noteInfo['orderNumber'];
-            $note = $noteInfo['note'] ?? '';
 
-            $payload = [
-                'content' => [
-                    'Type' => $type,
-                    'NoteNum' => $note_number,
-                    'OrderNumber' => $order_number,
-                    'Note' => $note,
-                ],
-            ];
-
-            $response = $this->post('/sxapisanotechange', $payload);
-
-            return $this->adapter->createOrUpdateNote($response);
+            return $this->adapter->createOrUpdateNote();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1406,21 +978,7 @@ class AppriseErpService implements ErpApiInterface
     public function getCampaignList(array $filters = []): CampaignCollection
     {
         try {
-            $override_date = $filters['override_date'] ?? null;
-            $promo_type = $filters['promo_type'] ?? 'O';
-            $promo = $filters['promo'] ?? '';
-
-            $payload = [
-                'content' => [
-                    'OverrideDate' => $override_date,
-                    'PromoType' => $promo_type,
-                    'Promo' => $promo,
-                ],
-            ];
-
-            $response = $this->post('/getPromotion', $payload);
-
-            return $this->adapter->getCampaignList($response);
+            return $this->adapter->getCampaignList();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1437,23 +995,7 @@ class AppriseErpService implements ErpApiInterface
     public function getCampaignDetail(array $filters = []): Campaign
     {
         try {
-            $action = $filters['action'] ?? 'SPECIFIC';
-            $override_date = $filters['override_date'] ?? null;
-            $promo_type = $filters['promo_type'] ?? 'O';
-            $promo = $filters['promo'];
-
-            $payload = [
-                'content' => [
-                    'Action' => $action,
-                    'OverrideDate' => $override_date,
-                    'PromoType' => $promo_type,
-                    'Promo' => $promo,
-                ],
-            ];
-
-            $response = $this->post('/getPromotion', $payload);
-
-            return $this->adapter->getCampaignDetail($response);
+            return $this->adapter->getCampaignDetail();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1473,24 +1015,8 @@ class AppriseErpService implements ErpApiInterface
     public function contactValidation(array $inputs = []): ContactValidation
     {
         try {
-            $inputs['limit'] = 1;
 
-            $customerData = $this->getCustomerList($inputs);
-
-            if ($customerData->isEmpty()) {
-                return $this->adapter->contactValidation([]);
-            }
-
-            /**
-             * @var $customer Customer
-             */
-            $customer = $customerData->first();
-
-            $customerArray = $customer->toArray();
-
-            $customerArray['ValidCombination'] = 'Y';
-
-            return $this->adapter->contactValidation($customerArray);
+            return $this->adapter->contactValidation();
 
         } catch (Exception $exception) {
 
@@ -1507,24 +1033,7 @@ class AppriseErpService implements ErpApiInterface
     public function getDocument(array $inputs = []): Document
     {
         try {
-
-            $customer_number = $this->customerId($inputs);
-            $document_number = $inputs['document_number'] ?? null;
-            $document_type = $inputs['document_type'] ?? 'I';
-
-            $query = [
-                'content' => [
-                    'Customer' => $customer_number,
-                    'DocNum' => $document_number,
-                    'DocType' => $document_type,
-                ],
-            ];
-
-            $url = 'pdf_document.php';
-
-            $response = $this->post("/{$url}", $query);
-
-            return $this->adapter->getDocument($response);
+            return $this->adapter->getDocument();
 
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
@@ -1539,21 +1048,7 @@ class AppriseErpService implements ErpApiInterface
     public function getPastItemList(array $filters = []): PastItemCollection
     {
         try {
-
-            $customer_number = $this->customerId($filters);
-
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $customer_number,
-                'fromMonth' => $filters['start_month'] ?? '',
-                'toMonth' => $filters['end_month'] ?? '',
-                'fromYear' => $filters['start_year'] ?? '',
-                'toYear' => $filters['end_year'] ?? '',
-            ];
-
-            $response = $this->post('/sxapisfgetoeorderhistory', $payload);
-
-            return $this->adapter->getPastItemList($response);
+            return $this->adapter->getPastItemList();
 
         } catch (Exception $exception) {
 
@@ -1721,31 +1216,7 @@ class AppriseErpService implements ErpApiInterface
     {
         try {
 
-            $customer_number = $this->customerId($filters);
-
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'subjectRoleType' => 'arsc',
-                'subjectPrimaryKey' => (string)$customer_number,
-            ];
-
-            if (!empty($filters['name'])) {
-                $nameParts = split_full_name($filters['name'] ?? '');
-                $payload['firstName'] = strtoupper($nameParts['first']);
-                $payload['lastName'] = strtoupper($nameParts['last']);
-            }
-
-            if (!empty($filters['limit'])) {
-                $payload['recordLimit'] = $filters['limit'];
-            }
-
-            if (!empty($filters['contact_code'])) {
-                $payload['contactID'] = $filters['contact_code'];
-            }
-
-            $response = $this->post('/sxapicamgetcontactlistv4', $payload);
-
-            return $this->adapter->getContactList($response);
+            return $this->adapter->getContactList();
 
         } catch (Exception $exception) {
 
@@ -1767,24 +1238,8 @@ class AppriseErpService implements ErpApiInterface
     public function getContactDetail(array $filters = []): Contact
     {
         try {
-            $customer_number = $this->customerId($filters);
 
-            $contact_code = $filters['contact_code'] ?? null;
-
-            if ($customer_number == null) {
-                throw new ErpApiException('Contact Code is missing.');
-            }
-
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'contactID' => $contact_code,
-                'subjectRoleType' => 'arsc',
-                'subjectPrimaryKey' => (string)$customer_number,
-            ];
-
-            $response = $this->post('/sxapicamgetcontactlistv4', $payload);
-
-            return $this->adapter->getContactDetail($response);
+            return $this->adapter->getContactDetail();
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
 
@@ -1795,20 +1250,8 @@ class AppriseErpService implements ErpApiInterface
     public function getNotesList(array $inputs = []): OrderNoteCollection
     {
         try {
-            $primary_key = $inputs['order_number'] ?? null;
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'notesType' => 'o',
-                'primaryKey' => $primary_key,
-                'secondaryKey' => '',
-                'requiredNotesOnlyFlag' => false,
-                'lineFeedFlag' => true,
-                'recordLimit' => 0,
-            ];
 
-            $response = $this->post('/sxapisagetnoteslist', $payload);
-
-            return $this->adapter->getNotesList($response);
+            return $this->adapter->getNotesList();
 
         } catch (Exception $exception) {
 
@@ -1837,18 +1280,8 @@ class AppriseErpService implements ErpApiInterface
     public function getInvoiceTransaction(array $inputs = []): InvoiceTransactionCollection
     {
         try {
-            $payload = [
-                'companyNumber' => $this->systemId,
-                'customerNumber' => $this->customerId($inputs),
-                'invoiceType' => '',
-                'invoiceNumber' => $inputs['invoice_number'] ?? null,
-                'invoiceSuffix' => (string)$inputs['suffix'] ?? '0',
-                'transactionType' => $inputs['transaction_type'] ?? 'O',
-            ];
 
-            $response = $this->post('/sxapiSFGetInvoiceDetail', $payload);
-
-            return $this->adapter->getInvoiceTransaction($response);
+            return $this->adapter->getInvoiceTransaction();
 
         } catch (Exception $exception) {
 
@@ -1892,63 +1325,10 @@ class AppriseErpService implements ErpApiInterface
     public function getPrintableDocument(array $inputs = []): DocumentCollection
     {
         try {
-            // Extract parameters from array with defaults
-            $type = $inputs['type'] ?? null;
-            $orderNumber = $inputs['order_number'] ?? null;
-            $suffix = $inputs['suffix'] ?? null;
-            $offset = $inputs['offset'] ?? 0;
-            $limit = $inputs['limit'] ?? 11;
-
-            if (!$type || !$orderNumber) {
-                throw new \InvalidArgumentException('Type and order number are required.');
-            }
-
-            // Build query conditions
-            $conditions = [
-                sprintf('@Order_Number = "%s"', $orderNumber),
-            ];
-
-            if ($suffix !== null && $suffix !== '') {
-                $conditions[] = sprintf('@Order_Suffix = "%s"', $suffix);
-            }
-
-            $conditionString = implode(' AND ', $conditions);
-
-            // Build query
-            if ($type === 'order') {
-                $docTypes = ['Acknowledgement', 'Invoice', 'Pick_List'];
-
-                $unionParts = array_map(
-                    fn($t) => sprintf('/%s[%s]', $t, $conditionString),
-                    $docTypes
-                );
-
-                $query = implode(' UNION ', $unionParts) . ' SORTBY(@LASTCHANGEDTS DESCENDING)';
-            } else {
-                $query = sprintf(
-                    '/%s[%s] SORTBY(@LASTCHANGEDTS DESCENDING)',
-                    ucfirst($type),
-                    $conditionString
-                );
-            }
-
-            // Make HTTP request
-            $response = Http::csdErp()
-                ->baseUrl($this->getIdmBaseUrl())
-                ->get('/api/items/search', [
-                    '$query' => $query,
-                    '$offset' => $offset,
-                    '$limit' => $limit,
-                    '$includeCount' => 'true',
-                    '$state' => 0,
-                ])
-                ->json();
-
-            // Parse response using adapter
-            return $this->adapter->renderPrintableDocument($response);
+            return $this->adapter->renderPrintableDocument([]);
         } catch (Exception $exception) {
             $this->exceptionHandler($exception);
-            return new DocumentCollection([]);
+            return $this->adapter->renderPrintableDocument([]);
         }
     }
 

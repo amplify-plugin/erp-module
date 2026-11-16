@@ -489,50 +489,12 @@ class DefaultErpService implements ErpApiInterface
     }
 
     /**
-     * This function will return the ERP Carrier code options
-     */
-    public function getShippingOption(array $data = []): ShippingOptionCollection
-    {
-        $options = Shipping::enabled()->get()->toArray();
-
-        return $this->adapter->getShippingOption($options);
-
-    }
-
-    /**
      * This function will check if the ERP has Any changes on inventory
      * of items between filters and data range
      */
     public function getProductSync(array $filters = []): ProductSyncCollection
     {
         return $this->adapter->getProductSync(ProductSync::all()->toArray());
-    }
-
-    /**
-     * This function will check if the ERP has Any changes on inventory
-     * of items between filters and data range
-     */
-    public function getWarehouses(array $filters = []): WarehouseCollection
-    {
-        try {
-
-            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
-                return Warehouse::all();
-            });
-
-            foreach ($filters as $filter) {
-                if (in_array(count($filter), [2, 3])) {
-                    $warehouses = $warehouses->where(...$filter);
-                }
-            }
-
-            return $this->adapter->getWarehouses($warehouses->toArray());
-
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->getWarehouses();
-        }
     }
 
     /**

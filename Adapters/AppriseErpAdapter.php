@@ -98,21 +98,6 @@ class AppriseErpAdapter implements ErpApiInterface
         return empty($result) ? null : array_shift($result);
     }
 
-    /**
-     * This function will check if the ERP can be enabled
-     */
-    public function enabled(): bool
-    {
-        return true;
-    }
-
-    /**
-     * This function will check if the ERP has Multiple warehouse capabilities
-     */
-    public function allowMultiWarehouse(): bool
-    {
-        return true;
-    }
 
     /**
      * This function will return the ERP Carrier code options
@@ -968,7 +953,7 @@ class AppriseErpAdapter implements ErpApiInterface
         $model->WarehousePhone = $warehouse['telephone'] ?? null;
         $model->WarehouseZip = $warehouse['zip_code'] ?? null;
         $model->WarehouseAddress = $warehouse['address'] ?? null;
-        $model->WarehouseEmail = $warehouse['eamil'] ?? null;
+        $model->WarehouseEmail = $warehouse['email'] ?? null;
         $model->IsPickUpLocation = $warehouse['pickup_location'] ?? false;
 
         $model->WhsSeqCode = $warehouse['WhsSeqCode'] ?? null;

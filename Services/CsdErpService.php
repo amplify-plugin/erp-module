@@ -443,20 +443,6 @@ class CsdErpService implements ErpApiInterface
     */
 
     /**
-     * This function will return the ERP Carrier code options
-     *
-     * @done
-     *
-     * @since 2024.12.8354871
-     */
-    public function getShippingOption(array $data = []): ShippingOptionCollection
-    {
-        $options = Shipping::enabled()->get()->toArray();
-
-        return $this->adapter->getShippingOption($options);
-    }
-
-    /**
      * @todo untestable
      */
     public function validateCustomerShippingLocation(array $filters = []): ShippingLocationValidation
