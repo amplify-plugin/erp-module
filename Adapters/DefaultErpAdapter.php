@@ -19,7 +19,6 @@ use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
-use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\CampaignDetail;

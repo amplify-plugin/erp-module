@@ -6,7 +6,6 @@ use Amplify\ErpApi\Jobs\PriceSyncJob;
 use Amplify\System\Backend\Models\Product;
 use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 class PriceSyncCommand extends Command
 {

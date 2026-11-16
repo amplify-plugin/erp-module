@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi\Services;
 
+use AllowDynamicProperties;
 use Amplify\ErpApi\Adapters\CsdErpAdapter;
 use Amplify\ErpApi\Collections\CampaignCollection;
 use Amplify\ErpApi\Collections\ContactCollection;
@@ -17,14 +18,13 @@ use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Collections\ProductSyncCollection;
 use Amplify\ErpApi\Collections\QuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\ErpApi\Traits\CommonMethodsTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
@@ -42,7 +42,6 @@ use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TermsType;
-use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\Backend\Models\SystemConfiguration;
 use Carbon\CarbonImmutable;
 use Exception;
@@ -53,11 +52,12 @@ use Illuminate\Support\Str;
 /**
  * @property array $config
  */
+#[AllowDynamicProperties]
 class CsdErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
-
     use ErpApiConfigTrait;
+    use CommonMethodsTrait;
 
     private array $commonHeaders;
 
@@ -824,39 +824,6 @@ class CsdErpService implements ErpApiInterface
     | ORDER FUNCTIONS
     |--------------------------------------------------------------------------
     */
-
-    /**
-     * This function will check if the ERP has Any changes on inventory
-     * of items between filters and data range
-     *
-     * ** Note this function does not make andy api call **
-     *
-     * @throws ErpApiException|Exception
-     *
-     * @since 2024.12.8354871
-     */
-    public function getWarehouses(array $filters = []): WarehouseCollection
-    {
-        try {
-
-            $warehouses = Cache::remember('site-erp-warehouses', WEEK, function () {
-                return \Amplify\System\Backend\Models\Warehouse::all();
-            });
-
-            foreach ($filters as $filter) {
-                if (in_array(count($filter), [2, 3])) {
-                    $warehouses = $warehouses->where(...$filter);
-                }
-            }
-
-            return $this->adapter->getWarehouses($warehouses->toArray());
-
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->getWarehouses();
-        }
-    }
 
     /**
      * This API is to create an order in the CSD ERP

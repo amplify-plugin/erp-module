@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi\Services;
 
+use AllowDynamicProperties;
 use Amplify\ErpApi\Adapters\AppriseErpAdapter;
 use Amplify\ErpApi\Collections\CampaignCollection;
 use Amplify\ErpApi\Collections\ContactCollection;
@@ -17,14 +18,13 @@ use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Collections\ProductSyncCollection;
 use Amplify\ErpApi\Collections\QuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\ErpApi\Traits\CommonMethodsTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
@@ -40,27 +40,24 @@ use Amplify\ErpApi\Wrappers\Order;
 use Amplify\ErpApi\Wrappers\OrderPODetails;
 use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
-use Amplify\ErpApi\Wrappers\ShippingLocation;
-use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
 use Amplify\ErpApi\Wrappers\TermsType;
 use Amplify\System\Backend\Models\Country;
-use Amplify\System\Backend\Models\Shipping;
 use Amplify\System\Backend\Models\SystemConfiguration;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Exception;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 /**
  * @property array $config
  */
+#[AllowDynamicProperties]
 class AppriseErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
-
     use ErpApiConfigTrait;
+    use CommonMethodsTrait;
 
     private array $commonHeaders;
 
@@ -76,8 +73,7 @@ class AppriseErpService implements ErpApiInterface
 
 
         $this->commonHeaders = [
-            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-            'Accept' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         ];
     }
 
@@ -86,11 +82,6 @@ class AppriseErpService implements ErpApiInterface
     | UTILITY FUNCTIONS
     |--------------------------------------------------------------------------
     */
-
-    public function adapter(): AppriseErpAdapter
-    {
-        return $this->adapter;
-    }
 
     /**
      * @throws ErpApiException

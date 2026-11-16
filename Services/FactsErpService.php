@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi\Services;
 
+use AllowDynamicProperties;
 use Amplify\ErpApi\Adapters\FactsErpAdapter;
 use Amplify\ErpApi\Collections\CampaignCollection;
 use Amplify\ErpApi\Collections\ContactCollection;
@@ -15,14 +16,13 @@ use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Collections\ProductSyncCollection;
 use Amplify\ErpApi\Collections\QuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\ErpApiService;
 use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\ErpApi\Traits\CommonMethodsTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
@@ -39,19 +39,19 @@ use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
-use Amplify\System\Backend\Models\Shipping;
 use Exception;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 /**
  * @property array $config
  */
+#[AllowDynamicProperties]
 class FactsErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
     use ErpApiConfigTrait;
+    use CommonMethodsTrait;
 
     private array $commonHeaders;
 

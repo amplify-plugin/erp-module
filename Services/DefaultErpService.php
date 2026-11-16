@@ -14,11 +14,10 @@ use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Collections\ProductSyncCollection;
 use Amplify\ErpApi\Collections\QuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\ErpApi\Traits\CommonMethodsTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
@@ -42,15 +41,14 @@ use Amplify\System\Backend\Models\CustomerOrderNote;
 use Amplify\System\Backend\Models\Product;
 use Amplify\System\Backend\Models\ProductAvailability;
 use Amplify\System\Backend\Models\ProductSync;
-use Amplify\System\Backend\Models\Shipping;
-use Amplify\System\Backend\Models\Warehouse;
 use Exception;
-use Illuminate\Support\Facades\Cache;
 
+#[AllowDynamicProperties]
 class DefaultErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
     use ErpApiConfigTrait;
+    use CommonMethodsTrait;
 
     public function __construct()
     {

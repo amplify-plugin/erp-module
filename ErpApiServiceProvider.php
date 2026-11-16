@@ -2,10 +2,10 @@
 
 namespace Amplify\ErpApi;
 
+use Amplify\ErpApi\Commands\Apprise\TokenRefreshCommand as AppriseTokenRefreshCommand;
 use Amplify\ErpApi\Commands\Csd\ContactSyncCommand;
 use Amplify\ErpApi\Commands\Csd\ManufactureSyncCommand;
 use Amplify\ErpApi\Commands\Csd\TokenRefreshCommand as CsdTokenRefreshCommand;
-use Amplify\ErpApi\Commands\Apprise\TokenRefreshCommand as AppriseTokenRefreshCommand;
 use Amplify\ErpApi\Commands\PriceSyncCommand;
 use Amplify\ErpApi\Commands\ProductSyncCommand;
 use Amplify\ErpApi\Interfaces\ProductSyncNameResolver;
