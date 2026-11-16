@@ -571,25 +571,26 @@ class CsdErpAdapter implements ErpApiInterface
      */
     public function getCustomerARSummary(array $attributes = []): CustomerAR
     {
-        $attributes = $attributes['tCustsummary']['t-custsummary'] ?? [];
-
         $model = new CustomerAR($attributes);
+
+        $ttFields = $this->mapFieldAttributes($attributes['tFieldlist']['t-fieldlist'] ?? []);
+        $attributes = $attributes['tCustsummary']['t-custsummary'] ?? [];
 
         if (!empty($attributes)) {
             $attributes = array_shift($attributes);
+            $attributes = array_merge($ttFields, $attributes);
 
-            $model->CustomerNum = $attributes['CustomerNum'] ?? null;
-
+            $model->CustomerNum = $attributes['custnum'] ?? null;
             $model->CustomerName = $attributes['custname'] ?? null;
             $model->Address1 = $attributes['addr1'] ?? null;
             $model->Address2 = $attributes['addr2'] ?? null;
             $model->City = $attributes['city'] ?? null;
             $model->ZipCode = $attributes['zipcd'] ?? null;
             $model->State = $attributes['state'] ?? null;
-            $model->AgeDaysPeriod1 = $attributes['ageprd1'] ?? null;
-            $model->AgeDaysPeriod2 = $attributes['ageprd2'] ?? null;
-            $model->AgeDaysPeriod3 = $attributes['ageprd3'] ?? null;
-            $model->AgeDaysPeriod4 = $attributes['ageprd4'] ?? null;
+            $model->AgeDaysPeriod1 = $attributes['ageprd1'] ?? $attributes['agedaysper1'] ?? null;
+            $model->AgeDaysPeriod2 = $attributes['ageprd2'] ?? $attributes['agedaysper2'] ?? null;
+            $model->AgeDaysPeriod3 = $attributes['ageprd3'] ?? $attributes['agedaysper3'] ?? null;
+            $model->AgeDaysPeriod4 = $attributes['ageprd4'] ?? $attributes['agedaysper4'] ?? null;
             $model->AmountDue = $attributes['amtdue'] ?? null;
             $model->BillingPeriodAmount = $attributes['billprdamt'] ?? null;
             $model->DateOfFirstSale = $attributes['firstsaledt'] ?? null;
@@ -601,39 +602,26 @@ class CsdErpAdapter implements ErpApiInterface
             $model->SalesMonthToDate = $attributes['salesMTD'] ?? null;
             $model->SalesYearToDate = $attributes['salesYTD'] ?? null;
             $model->TermsDescription = $attributes['termsdesc'] ?? null;
-            $model->TermsCode = $attributes['termsdesc'] ?? null;
-
+            $model->TermsCode = $attributes['termstype'] ?? null;
             $model->TradeAgePeriod1Amount = $attributes['tradeageprd1'] ?? null;
             $model->TradeAgePeriod2Amount = $attributes['tradeageprd2'] ?? null;
             $model->TradeAgePeriod3Amount = $attributes['tradeageprd3'] ?? null;
             $model->TradeAgePeriod4Amount = $attributes['tradeageprd4'] ?? null;
             $model->TradeAmountDue = $attributes['tradeamtdue'] ?? null;
             $model->TradeBillingPeriodAmount = $attributes['tradebillprdamt'] ?? null;
-            $model->AvgDaysToPay1 = $attributes['tradeageprd1'] ?? null;
-            $model->AvgDaysToPay1Wgt = $attributes['AvgDaysToPay1Wgt'] ?? null;
+            $model->AvgDaysToPay1 = $attributes['avgpaydays'] ?? null;
             $model->AvgDaysToPay2 = $attributes['tradeageprd2'] ?? null;
-            $model->AvgDaysToPay2Wgt = $attributes['AvgDaysToPay2Wgt'] ?? null;
-            $model->AvgDaysToPay3 = $attributes['tradeageprd3'] ?? null;
-            $model->AvgDaysToPay3Wgt = $attributes['AvgDaysToPay3Wgt'] ?? null;
-            $model->AvgDaysToPayDesc1 = $attributes['AvgDaysToPayDesc1'] ?? null;
-            $model->AvgDaysToPayDesc2 = $attributes['AvgDaysToPayDesc2'] ?? null;
-            $model->AvgDaysToPayDesc3 = $attributes['AvgDaysToPayDesc3'] ?? null;
-            $model->CreditCheckType = $attributes['CreditCheckType'] ?? null;
+            $model->CreditCheckType = $attributes['creditmgr'] ?? null;
             $model->CreditLimit = $attributes['credlim'] ?? null;
-            $model->HighBalance = $attributes['HighBalance'] ?? null;
+            $model->HighBalance = $attributes['highbal'] ?? null;
             $model->LastPayAmount = $attributes['lastpayamt'] ?? null;
-            $model->NumInvPastDue = $attributes['NumInvPastDue'] ?? null;
-            $model->NumOpenInv = $attributes['NumOpenInv'] ?? null;
-            $model->NumPayments1 = $attributes['NumPayments1'] ?? null;
-            $model->NumPayments2 = $attributes['NumPayments2'] ?? null;
-            $model->NumPayments3 = $attributes['NumPayments3'] ?? null;
-
+            $model->NumInvPastDue = $attributes['nopastdue'] ?? null;
+            $model->NumOpenInv = $attributes['noinv'] ?? null;
+            $model->NumPayments1 = $attributes['nopay'] ?? null;
             $model->TradeAgePeriod1Text = $attributes['agedaysper1'] ?? null;
             $model->TradeAgePeriod2Text = $attributes['agedaysper2'] ?? null;
             $model->TradeAgePeriod3Text = $attributes['agedaysper3'] ?? null;
             $model->TradeAgePeriod4Text = $attributes['agedaysper4'] ?? null;
-
-            $model->TradeBillingPeriodText = $attributes['TradeBillingPeriodText'] ?? null;
         }
 
         return $model;
