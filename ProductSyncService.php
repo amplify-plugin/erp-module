@@ -353,13 +353,11 @@ class ProductSyncService
             return null;
         }
 
-        return Manufacturer::when(
+        return Manufacturer::query()->when(
             config('amplify.erp.default') == 'csd-erp',
-            fn($query) => $query->where('code', '=', $keyword))
-            ->when(
-                config('amplify.erp.default') == 'facts-erp',
-                fn($query) => $query->where('name', '=', $keyword)
-            )->first();
+            fn($query) => $query->where('code', '=', $keyword),
+             fn($query) => $query->where('name', '=', $keyword)
+        )->first();
     }
 
     private function getBrand(string $keyword = null): ?Brand
