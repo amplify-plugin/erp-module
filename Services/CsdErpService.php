@@ -1015,7 +1015,7 @@ class CsdErpService implements ErpApiInterface
                 't-infieldvalue' => $tinfieldvalue,
             ],
         ];
-      
+
         $response = $this->post('/sxapisfoeordertotloadv4', $payload);
 
         if(\array_key_exists('error', $response)) {
@@ -1670,12 +1670,12 @@ class CsdErpService implements ErpApiInterface
 
             // Default true
             $includePeriods = [
-                'includePeriod1' => true,
-                'includePeriod2' => true,
-                'includePeriod3' => true,
-                'includePeriod4' => true,
-                'includePeriod5' => true,
-                'includeFutureInvoices' => true,
+                'includePeriod1' => $filters['include_period1'] ?? true,
+                'includePeriod2' => $filters['include_period2'] ?? true,
+                'includePeriod3' => $filters['include_period3'] ?? true,
+                'includePeriod4' => $filters['include_period4'] ?? true,
+                'includePeriod5' => $filters['include_period5'] ?? true,
+                'includeFutureInvoices' => $filters['include_future_invoices'] ?? true,
             ];
 
             // If CLOSED, override to false
@@ -1689,16 +1689,16 @@ class CsdErpService implements ErpApiInterface
                 'operatorPassword' => '',
                 'customerNumber' => $customer_number,
                 'shipTo' => '',
-                'includeInvoices' => true,
-                'includeServiceCharges' => true,
-                'includeCOD' => true,
-                'includeDebitMemos' => true,
-                'includeCreditMemos' => true,
-                'includeUnappliedCash' => true,
-                'includeMiscCredits' => true,
-                'includeRebates' => true,
-                'includeChecks' => true,
-                'includeScheduledPayments' => true,
+                'includeInvoices' => $filters['include_invoices'] ?? true,
+                'includeServiceCharges' => $filters['include_service_charges'] ?? true,
+                'includeCOD' => $filters['include_cod'] ?? true,
+                'includeDebitMemos' => $filters['include_debit_memos'] ?? true,
+                'includeCreditMemos' => $filters['include_credit_memos'] ?? true,
+                'includeUnappliedCash' => $filters['include_unapplied_cash'] ?? true,
+                'includeMiscCredits' => $filters['include_misc_credits'] ?? true,
+                'includeRebates' => $filters['include_rebates'] ?? true,
+                'includeChecks' => $filters['include_checks'] ?? true,
+                'includeScheduledPayments' => $filters['include_scheduled_payments'] ?? true,
                 'cStatus' => $invoice_status,
                 'startDate' => $from_entry_date,
                 'endDate' => $to_entry_date,
