@@ -44,7 +44,7 @@ class PromptProductSyncJob implements ShouldQueue
                 ->whereNotNull('error')
                 ->orderBy('id')
                 ->chunkById($this->parentChunkSize, function ($rows) use ($userId) {
-                    $ids = $rows->pluck('id')->values()->all();
+                    $ids = $rows->pluck('id')->values()->toArray();
                     if (empty($ids)) {
                         return;
                     }

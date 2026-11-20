@@ -3,14 +3,11 @@
 namespace Amplify\ErpApi;
 
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Jobs\ProductSyncJob;
 use Amplify\ErpApi\Services\AppriseErpService;
 use Amplify\ErpApi\Services\CsdErpService;
 use Amplify\ErpApi\Services\FactsErpService;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Customer;
-use Amplify\System\Backend\Models\ProductSync;
-
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\Facades\Cache;
 
@@ -40,7 +37,7 @@ class ErpApiService
      *
      * @var CsdErpService|FactsErpService|AppriseErpService
      */
-    protected $serviceInstance;
+    public $serviceInstance;
 
 
     /**
@@ -86,6 +83,9 @@ class ErpApiService
             $this->erpAdapterName = $adapter;
             $this->serviceInstance = new $config['adapter'];
 
+            $this->adapter = $this->serviceInstance->adapter;
+            $this->config = $this->serviceInstance->config;
+
             return $this;
 
         } else {
@@ -116,7 +116,7 @@ class ErpApiService
      */
     public function __call($method, $parameters)
     {
-        if (!$this->enabled()) {
+        if (!$this->serviceInstance->enabled()) {
             throw new \ErrorException(class_basename($this->serviceInstance) . ' is disabled.', 500);
         }
 
@@ -162,51 +162,20 @@ class ErpApiService
         return $this->erpAdapterName;
     }
 
-    /**
-     * This function will check if the ERP has Multiple warehouse capabilities
-     */
-    public function allowMultiWarehouse(): bool
-    {
-        return $this->serviceInstance->config['multiple_warehouse'] ?? false;
-    }
-
-    /**
-     * This function will check if the ERP has Multiple warehouse capabilities
-     */
-    public function useSingleWarehouseInCart(): bool
-    {
-        return $this->serviceInstance->config['use_single_warehouse_cart'] ?? false;
-    }
-
-    /**
-     * This function will check if the ERP can be enabled
-     */
-    public function enabled(): bool
-    {
-        return $this->serviceInstance->config['enabled'] ?? false;
-    }
-
-    public function adapter(): mixed
-    {
-        return $this->serviceInstance->adapter;
-    }
-
     /*
     |--------------------------------------------------------------------------
     | GENERAL FUNCTIONS
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * @throws \ErrorException
-     */
     public function getCustomerDetail(array $filters = []): Customer
     {
-        if (!empty($filters['customer_number'])) {
-            return $this->__call(__FUNCTION__, [$filters]);
-        }
+        $customer_number = empty($filters['customer_number'])
+            ? customer_check()
+                ? customer()->erp_id
+                : config('amplify.frontend.guest_default')
+            : $filters['customer_number'];
 
-        $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
         $filters['customer_number'] = $customer_number;
 
         return Cache::remember(
@@ -216,16 +185,14 @@ class ErpApiService
         );
     }
 
-    /**
-     * @throws \ErrorException
-     */
     public function getCustomerShippingLocationList(array $filters = []): ShippingLocationCollection
     {
-        if (!empty($filters['customer_number'])) {
-            return $this->__call(__FUNCTION__, [$filters]);
-        }
+        $customer_number = empty($filters['customer_number'])
+            ? customer_check()
+                ? customer()->erp_id
+                : config('amplify.frontend.guest_default')
+            : $filters['customer_number'];
 
-        $customer_number = customer_check() ? customer()->erp_id : config('amplify.frontend.guest_default');
         $filters['customer_number'] = $customer_number;
 
         return Cache::remember(

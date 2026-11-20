@@ -74,6 +74,11 @@ return [
             'expires_at' => '',
             'multiple_warehouse' => false,
             'use_single_warehouse_cart' => false,
+            // Internal ERP tax jurisdiction key => Sales Order API jurisdiction code
+            'jurisdiction_map' => [
+                '00000001' => 'None',
+                '00000010' => 'IND',
+            ],
         ],
     ],
 ];

@@ -2,6 +2,7 @@
 
 namespace Amplify\ErpApi\Services;
 
+use AllowDynamicProperties;
 use Amplify\ErpApi\Adapters\FactsErpAdapter;
 use Amplify\ErpApi\Collections\CampaignCollection;
 use Amplify\ErpApi\Collections\ContactCollection;
@@ -15,14 +16,13 @@ use Amplify\ErpApi\Collections\ProductPriceAvailabilityCollection;
 use Amplify\ErpApi\Collections\ProductSyncCollection;
 use Amplify\ErpApi\Collections\QuotationCollection;
 use Amplify\ErpApi\Collections\ShippingLocationCollection;
-use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
-use Amplify\ErpApi\Collections\WarehouseCollection;
 use Amplify\ErpApi\ErpApiService;
 use Amplify\ErpApi\Exceptions\ErpApiException;
 use Amplify\ErpApi\Guzzle\Middlewares\OrderCommunication;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Traits\BackendShippingCostTrait;
+use Amplify\ErpApi\Traits\CommonMethodsTrait;
 use Amplify\ErpApi\Traits\ErpApiConfigTrait;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\Contact;
@@ -39,7 +39,6 @@ use Amplify\ErpApi\Wrappers\OrderTotal;
 use Amplify\ErpApi\Wrappers\Quotation;
 use Amplify\ErpApi\Wrappers\ShippingLocation;
 use Amplify\ErpApi\Wrappers\ShippingLocationValidation;
-use Amplify\System\Backend\Models\Shipping;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -47,10 +46,12 @@ use Illuminate\Support\Str;
 /**
  * @property array $config
  */
+#[AllowDynamicProperties]
 class FactsErpService implements ErpApiInterface
 {
     use BackendShippingCostTrait;
     use ErpApiConfigTrait;
+    use CommonMethodsTrait;
 
     private array $commonHeaders;
 
@@ -263,53 +264,6 @@ class FactsErpService implements ErpApiInterface
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * This function will return the ERP Carrier code options
-     *
-     * @since 1.0.0
-     */
-    public function getShippingOption(array $data = []): ShippingOptionCollection
-    {
-        $items = $data['items'] ?? [];
-        $customer = $this->getCustomerDetail();
-
-        $payload = [
-            'content' => [
-                'CustomerNumber' => $this->customerId($data),
-                'CustomerEmail' => $customer->CustomerEmail,
-                'CarrierCode' => $data['customer_carrier_code'] ?? $customer->CarrierCode,
-                'PoNumber' => $data['customer_po_number'] ?? '',
-                'ShipToAddress1' => $data['customer_address_one'] ?? $customer->CustomerAddress1,
-                'ShipToAddress2' => $data['customer_address_two'] ?? $customer->CustomerAddress2,
-                'ShipToAddress3' => $data['customer_address_three'] ?? $customer->CustomerAddress3,
-                'ShipToCity' => $data['customer_city'] ?? $customer->CustomerCity,
-                'ShipToState' => $data['customer_state'] ?? $customer->CustomerState,
-                'ShipToZipCode' => $data['customer_zipcode'] ?? $customer->CustomerZipCode,
-                'OrderType' => 'T',
-                'ReturnType' => 'D',
-                // "WarehouseID" => $customerDetails->DefaultWarehouse,
-                'Items' => $items,
-            ],
-        ];
-
-        if (in_array(config('amplify.client_code'), ['ACT', 'RHS'])) {
-            try {
-                $attributes = match (config('amplify.client_code')) {
-                    'ACT' => $this->post('/createOrder', $payload),
-                    'RHS' => $this->post('/getOrderTotal', $payload),
-                };
-
-                return $this->adapter->getShippingOption($attributes);
-            } catch (\Exception $e) {
-                $this->exceptionHandler($e);
-            }
-        }
-
-        $options = Shipping::enabled()->get()->toArray();
-
-        return $this->adapter->getShippingOption($options);
-    }
-
     public function validateCustomerShippingLocation(array $filters = []): ShippingLocationValidation
     {
         $model = new ShippingLocationValidation($filters);
@@ -460,6 +414,7 @@ class FactsErpService implements ErpApiInterface
                         'Customer' => $customer_number,
                         'WarehouseList' => $warehouse,
                         'Items' => $item,
+                        'ReturnCompanions' => $filters['return_companions'] ?? 'N',
                     ],
                 ];
             }
@@ -550,33 +505,6 @@ class FactsErpService implements ErpApiInterface
     | ORDER FUNCTIONS
     |--------------------------------------------------------------------------
     */
-
-    /**
-     * This function will check if the ERP has Any changes on inventory
-     * of items between filters and data range
-     *
-     * ** Note this function does not make andy api call **
-     *
-     * @throws ErpApiException|Exception
-     *
-     * @since 1.0.0
-     */
-    public function getWarehouses(array $filters = []): WarehouseCollection
-    {
-        try {
-            $warehouseCollection = \Amplify\System\Backend\Models\Warehouse::where($filters)->get();
-
-            $jsonWarehouses = json_encode($warehouseCollection);
-
-            $response = $this->validate($jsonWarehouses);
-
-            return $this->adapter->getWarehouses($response);
-        } catch (Exception $exception) {
-            $this->exceptionHandler($exception);
-
-            return $this->adapter->getWarehouses();
-        }
-    }
 
     /**
      * This API is to create an order in the FACTS ERP
@@ -718,7 +646,8 @@ class FactsErpService implements ErpApiInterface
                 return [
                     'ItemNumber' => $item['product_code'],
                     'WarehouseID' => $item['product_warehouse_code'],
-                    'OrderQty' => $item['quantity'],
+                    'OrderQty' => floatval($item['quantity']),
+                    'ActualSellPrice' => floatval($item['unitprice']),
                     'UnitOfMeasure' => $item['uom'],
                 ];
             }, $orderInfo['items'] ?? []);
@@ -739,6 +668,7 @@ class FactsErpService implements ErpApiInterface
                     'ShipToZipCode' => $orderInfo['ship_to_zip_code'] ?? '',
                     'OrderType' => $orderInfo['order_type'] ?? 'T',
                     'ReturnType' => $orderInfo['return_type'] ?? 'D',
+                    'ReturnCompanions' => $orderInfo['return_companions'] ?? 'N',
                     'Items' => $orderLines,
                 ],
             ];
@@ -751,7 +681,7 @@ class FactsErpService implements ErpApiInterface
             $response = $this->post("/{$url}", $payload);
 
             if (config('amplify.erp.use_amplify_shipping')) {
-                $responseBackEnd = $this->getOrderTotalUsingBackend();
+                $responseBackEnd = $this->getOrderTotalUsingBackend($orderInfo);
                 $totalLineAmount = $response['Order'][0]['TotalOrderValue'] ?? 0;
                 $salesTaxAmount =  $response['Order'][0]['SalesTaxAmount'] ?? 0;
                 $hazMatCharge = $response['Order'][0]['HazMatCharge'] ?? 0;

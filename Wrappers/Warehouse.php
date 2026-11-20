@@ -19,6 +19,9 @@ use Amplify\ErpApi\Traits\ApiWrapperTrait;
  * @property string $WarehouseEmail
  * @property bool $IsPickUpLocation
  * @property string $ShipVia
+ * @property float $Price
+ * @property string|null $UnitOfMeasure
+ * @property null|int|float $QuantityAvailable
  */
 class Warehouse extends Wrapper implements ErpApiWrapperInterface
 {
@@ -37,5 +40,8 @@ class Warehouse extends Wrapper implements ErpApiWrapperInterface
         'WarehouseEmail',
         'IsPickUpLocation',
         'ShipVia',
+        'QuantityAvailable',
+        'Price',
+        'UnitOfMeasure',
     ];
 }

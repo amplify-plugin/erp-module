@@ -5,6 +5,7 @@ namespace Amplify\ErpApi\Traits;
 use Amplify\ErpApi\Adapters\CsdErpAdapter;
 use Amplify\ErpApi\Adapters\DefaultErpAdapter;
 use Amplify\ErpApi\Adapters\FactsErpAdapter;
+use Amplify\System\Backend\Models\Country;
 use Amplify\System\Backend\Models\Customer;
 use Illuminate\Support\Facades\Log;
 
@@ -92,5 +93,15 @@ trait ErpApiConfigTrait
         Log::debug("Error: {$exception->getMessage()} | Class ErpApi::{$method}({$args}) | Driver: {$class}");
 
         report($exception);
+    }
+
+    protected function countryByIso2(string $iso): ?Country
+    {
+        return Country::whereIso2($iso)->first();
+    }
+
+    protected function countryByIso3(string $iso): ?Country
+    {
+        return Country::whereIso2($iso)->first();
     }
 }

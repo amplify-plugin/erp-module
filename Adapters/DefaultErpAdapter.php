@@ -19,7 +19,6 @@ use Amplify\ErpApi\Collections\ShippingLocationCollection;
 use Amplify\ErpApi\Collections\ShippingOptionCollection;
 use Amplify\ErpApi\Collections\TrackShipmentCollection;
 use Amplify\ErpApi\Collections\WarehouseCollection;
-use Amplify\ErpApi\Facades\ErpApi;
 use Amplify\ErpApi\Interfaces\ErpApiInterface;
 use Amplify\ErpApi\Wrappers\Campaign;
 use Amplify\ErpApi\Wrappers\CampaignDetail;
@@ -248,6 +247,8 @@ class DefaultErpAdapter implements ErpApiInterface
             }
         }
 
+        $this->processWarehouseInventory($collection);
+
         return $collection;
     }
 
@@ -255,6 +256,7 @@ class DefaultErpAdapter implements ErpApiInterface
     {
         $attributes = $attributes->toArray();
         $model = new ProductPriceAvailability($attributes);
+        $model->Warehouses = \ErpApi::getWarehouses([['enabled', '=', true]]);
 
         if (!empty($attributes)) {
             $model->ItemNumber = $attributes['item_number'] ?? null;
@@ -274,7 +276,6 @@ class DefaultErpAdapter implements ErpApiInterface
             $model->AverageLeadTime = $attributes['average_lead_time'] ?? null;
             $model->QuantityAvailable = $attributes['quantity_available'] ?? null;
             $model->QuantityOnOrder = $attributes['quantity_on_order'] ?? null;
-            $model->Warehouses = ErpApi::getWarehouses()->first(fn($warehouse) => $warehouse->WarehouseNumber == $model->WarehouseID);
         }
 
         return $model;
