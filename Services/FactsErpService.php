@@ -984,6 +984,12 @@ class FactsErpService implements ErpApiInterface
                 ],
             ];
 
+            // Omit when unset. A blank DateSort keeps FACTS' default order.
+            $dateSort = $this->normalizeInvoiceDateSort($filters['date_sort'] ?? null);
+            if ($dateSort !== null) {
+                $payload['content']['DateSort'] = $dateSort;
+            }
+
             $url = match (config('amplify.client_code')) {
                 'RHS' => 'opArInvoice',
                 'ALR' => 'opArInvoice',
@@ -1299,6 +1305,18 @@ class FactsErpService implements ErpApiInterface
 
             return $this->adapter->getPastItemList();
         }
+    }
+
+    /**
+     * opArInvoice DateSort. Blank stays omitted so the default order is unchanged.
+     */
+    private function normalizeInvoiceDateSort(mixed $value): ?string
+    {
+        return match (strtolower(trim((string) $value))) {
+            'ascending', 'asc' => 'Ascending',
+            'descending', 'desc' => 'Descending',
+            default => null,
+        };
     }
 
     private function getCustomerNumber($orderInfo)
